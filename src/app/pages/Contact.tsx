@@ -83,12 +83,12 @@ export function Contact() {
                 <div>
                   <h3 className="font-semibold text-[#2E7D6B] mb-2">Instagram</h3>
                   <a
-                    href="https://instagram.com/saal"
+                    href="https://www.instagram.com/ongsaal"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-[#6FAE9C] hover:text-[#E4B04A] transition-colors"
                   >
-                    @saal_santuario
+                    @ongsaal
                   </a>
                   <p className="text-sm text-gray-500 mt-1">
                     Acompanhe nosso dia a dia

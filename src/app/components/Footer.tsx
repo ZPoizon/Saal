@@ -53,9 +53,9 @@ export function Footer() {
                 <Mail size={16} />
                 contato@saal.com.br
               </a>
-              <a href="https://instagram.com/saal" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-[#F5EFE6] hover:text-[#E4B04A] transition-colors">
+              <a href="https://www.instagram.com/ongsaal" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-[#F5EFE6] hover:text-[#E4B04A] transition-colors">
                 <Instagram size={16} />
-                @saal_santuario
+                @ongsaal
               </a>
               <div className="flex items-start gap-2 text-sm text-[#F5EFE6]">
                 <MapPin size={16} className="mt-0.5 flex-shrink-0" />
