@@ -1,0 +1,403 @@
+openapi: 3.0.3
+info:
+  title: SAAL API planejada
+  version: 0.1.0
+  description: |
+    Contrato-alvo para a futura API Spring Boot do SAAL.
+    Nenhum endpoint deste documento está implementado no frontend atual.
+servers:
+  - url: http://localhost:8080/api
+    description: Ambiente local futuro
+tags:
+  - name: Animals
+  - name: Adoption requests
+  - name: Authentication
+  - name: Contact
+paths:
+  /animals:
+    get:
+      tags: [Animals]
+      summary: Lista animais
+      parameters:
+        - in: query
+          name: status
+          schema:
+            $ref: "#/components/schemas/AnimalStatus"
+        - in: query
+          name: species
+          schema:
+            $ref: "#/components/schemas/Species"
+        - in: query
+          name: search
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Lista obtida
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Animal"
+    post:
+      tags: [Animals]
+      summary: Cadastra animal
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AnimalInput"
+      responses:
+        "201":
+          description: Animal cadastrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Animal"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /animals/{animalId}:
+    parameters:
+      - $ref: "#/components/parameters/AnimalId"
+    get:
+      tags: [Animals]
+      summary: Obtém detalhes de um animal
+      responses:
+        "200":
+          description: Animal encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Animal"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    put:
+      tags: [Animals]
+      summary: Atualiza animal
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AnimalInput"
+      responses:
+        "200":
+          description: Animal atualizado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Animal"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      tags: [Animals]
+      summary: Remove ou arquiva animal
+      description: "PENDENTE DE DECISÃO: exclusão física ou arquivamento."
+      security:
+        - bearerAuth: []
+      responses:
+        "204":
+          description: Operação concluída
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /adoption-requests:
+    post:
+      tags: [Adoption requests]
+      summary: Registra interesse em adoção
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdoptionRequestInput"
+      responses:
+        "201":
+          description: Solicitação registrada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdoptionRequest"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    get:
+      tags: [Adoption requests]
+      summary: Lista solicitações para administração
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: status
+          schema:
+            $ref: "#/components/schemas/AdoptionRequestStatus"
+        - in: query
+          name: animalId
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Lista obtida
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AdoptionRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /adoption-requests/{requestId}/status:
+    patch:
+      tags: [Adoption requests]
+      summary: Atualiza o status de uma solicitação
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: requestId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  $ref: "#/components/schemas/AdoptionRequestStatus"
+      responses:
+        "200":
+          description: Status atualizado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdoptionRequest"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /auth/login:
+    post:
+      tags: [Authentication]
+      summary: Autentica administrador
+      description: "Formato definitivo de sessão/token: PENDENTE DE DECISÃO."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginInput"
+      responses:
+        "200":
+          description: Autenticação válida
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResult"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /contact-messages:
+    post:
+      tags: [Contact]
+      summary: Envia mensagem de contato
+      description: "Persistência e entrega por e-mail: PENDENTE DE DECISÃO."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ContactMessageInput"
+      responses:
+        "202":
+          description: Mensagem aceita para processamento
+        "400":
+          $ref: "#/components/responses/ValidationError"
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Mecanismo provisório; decisão arquitetural pendente.
+  parameters:
+    AnimalId:
+      in: path
+      name: animalId
+      required: true
+      schema:
+        type: string
+  responses:
+    ValidationError:
+      description: Dados inválidos
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    Unauthorized:
+      description: Não autenticado ou credenciais inválidas
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    NotFound:
+      description: Recurso não encontrado
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+  schemas:
+    Species:
+      type: string
+      enum: [DOG, CAT]
+    AnimalSize:
+      type: string
+      enum: [SMALL, MEDIUM, LARGE]
+    Sex:
+      type: string
+      enum: [MALE, FEMALE]
+    AnimalStatus:
+      type: string
+      enum: [AVAILABLE, TREATMENT, ADOPTED]
+    AdoptionRequestStatus:
+      type: string
+      enum: [PENDING, ACCEPTED, REJECTED]
+    AnimalInput:
+      type: object
+      required: [name, species, age, size, sex, status, description]
+      properties:
+        name:
+          type: string
+          minLength: 1
+        species:
+          $ref: "#/components/schemas/Species"
+        age:
+          type: string
+          minLength: 1
+        size:
+          $ref: "#/components/schemas/AnimalSize"
+        sex:
+          $ref: "#/components/schemas/Sex"
+        status:
+          $ref: "#/components/schemas/AnimalStatus"
+        description:
+          type: string
+          minLength: 1
+        personality:
+          type: array
+          items:
+            type: string
+        medicalInfo:
+          type: string
+        images:
+          type: array
+          items:
+            type: string
+            format: uri
+    Animal:
+      allOf:
+        - $ref: "#/components/schemas/AnimalInput"
+        - type: object
+          required: [id]
+          properties:
+            id:
+              type: string
+            createdAt:
+              type: string
+              format: date-time
+            updatedAt:
+              type: string
+              format: date-time
+    AdoptionRequestInput:
+      type: object
+      required: [animalId, applicantName, email, phone]
+      properties:
+        animalId:
+          type: string
+        applicantName:
+          type: string
+          minLength: 1
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+          minLength: 1
+        message:
+          type: string
+    AdoptionRequest:
+      allOf:
+        - $ref: "#/components/schemas/AdoptionRequestInput"
+        - type: object
+          required: [id, status, createdAt]
+          properties:
+            id:
+              type: string
+            status:
+              $ref: "#/components/schemas/AdoptionRequestStatus"
+            createdAt:
+              type: string
+              format: date-time
+    LoginInput:
+      type: object
+      required: [username, password]
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+          format: password
+    AuthResult:
+      type: object
+      description: Estrutura provisória até decisão de autenticação.
+      properties:
+        accessToken:
+          type: string
+        expiresAt:
+          type: string
+          format: date-time
+    ContactMessageInput:
+      type: object
+      required: [name, email, subject, message]
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        subject:
+          type: string
+        message:
+          type: string
+    Problem:
+      type: object
+      required: [status, title]
+      properties:
+        status:
+          type: integer
+        title:
+          type: string
+        detail:
+          type: string
+        fieldErrors:
+          type: object
+          additionalProperties:
+            type: string

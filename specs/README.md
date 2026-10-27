@@ -1,0 +1,51 @@
+# Especificações SDD do SAAL
+
+Esta pasta é a fonte normativa para evolução incremental do SAAL. A documentação histórica
+na raiz continua útil, mas, em caso de divergência sobre estado implementado, prevalecem o
+código observado e estas especificações.
+
+## Como trabalhar
+
+1. Escolha uma feature em `features/`.
+2. Leia o contexto e os ADRs relacionados.
+3. Resolva explicitamente qualquer `PENDENTE DE DECISÃO` necessário à tarefa.
+4. Altere primeiro a especificação quando o comportamento desejado mudar.
+5. Implemente a menor mudança que cumpra os critérios Dado/Quando/Então.
+6. Atualize contrato, modelo e testes.
+7. Execute `pnpm typecheck` e `pnpm build`; execute testes/lint quando forem adicionados.
+8. Registre evidências e limitações antes de marcar a feature como concluída.
+
+## Estados
+
+- **Implementado:** comportamento existe e usa infraestrutura real necessária.
+- **Parcial:** parte dos critérios existe, mas faltam comportamentos.
+- **Protótipo:** interface funciona com dados mockados, estado local ou simulação.
+- **Não implementado:** não há comportamento utilizável.
+
+## Mapa
+
+| Área | Documento | Estado atual |
+|---|---|---|
+| Catálogo | `features/animal-catalog.md` | Protótipo |
+| Detalhes | `features/animal-details.md` | Protótipo |
+| Solicitação de adoção | `features/adoption-request.md` | Protótipo |
+| Gestão de animais | `features/animal-management.md` | Protótipo |
+| Autenticação admin | `features/admin-authentication.md` | Protótipo inseguro |
+| Gestão de adoções | `features/adoption-management.md` | Protótipo |
+
+## Rastreabilidade
+
+- Requisitos legados: `REQUISITOS_FUNCIONAIS.md`.
+- Documentação legada: `DOCUMENTACAO_PROJETO.md`.
+- Contrato futuro: `contracts/openapi.yaml`; ele descreve o alvo e **não endpoints ativos**.
+- Modelo conceitual: `contracts/data-model.md`.
+- Mudanças arquiteturais: novo ADR em `decisions/`.
+
+## Pendências transversais
+
+- Definir política de autenticação, sessão, perfis e recuperação de acesso.
+- Definir ciclo de vida completo de uma solicitação de adoção.
+- Definir retenção, consentimento e exclusão de dados pessoais conforme LGPD.
+- Definir armazenamento, limites e moderação de imagens.
+- Adicionar infraestrutura de testes automatizados e lint.
+- Implementar backend Spring Boot e banco MySQL 8 em projeto próprio quando aprovado.
