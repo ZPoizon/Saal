@@ -1,18 +1,16 @@
 import { useState } from "react";
-import { Search, Filter } from "lucide-react";
-import { mockAnimals, type AnimalStatus } from "../data/animals";
+import { Search, Filter, PawPrint } from "lucide-react";
+import { getAvailableAnimals } from "../data/animals";
 import { AnimalCard } from "../components/AnimalCard";
 
 export function Animals() {
   const [searchTerm, setSearchTerm] = useState("");
   const [speciesFilter, setSpeciesFilter] = useState<"all" | "dog" | "cat">("all");
-  const [statusFilter, setStatusFilter] = useState<"all" | AnimalStatus>("all");
 
-  const filteredAnimals = mockAnimals.filter(animal => {
+  const filteredAnimals = getAvailableAnimals().filter(animal => {
     const matchesSearch = animal.name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesSpecies = speciesFilter === "all" || animal.species === speciesFilter;
-    const matchesStatus = statusFilter === "all" || animal.status === statusFilter;
-    return matchesSearch && matchesSpecies && matchesStatus;
+    return matchesSearch && matchesSpecies;
   });
 
   return (
@@ -23,14 +21,14 @@ export function Animals() {
           <h1 className="text-4xl md:text-5xl font-bold text-[#2E7D6B] mb-4">
             Nossos Animais
           </h1>
-          <p className="text-[#6FAE9C] max-w-2xl mx-auto">
-            Encontre seu novo melhor amigo. Todos estão esperando por um lar cheio de amor.
+          <p className="text-[#527f74] max-w-2xl mx-auto">
+            Conheça os animais que estão disponíveis neste momento e encontre seu novo melhor amigo.
           </p>
         </div>
 
         {/* Filters */}
         <div className="bg-white rounded-2xl p-6 shadow-md mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Search */}
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6FAE9C]" size={20} />
@@ -57,20 +55,6 @@ export function Animals() {
               </select>
             </div>
 
-            {/* Status Filter */}
-            <div className="relative">
-              <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6FAE9C]" size={20} />
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value as any)}
-                className="w-full pl-10 pr-4 py-3 bg-[#F5EFE6] rounded-lg border-none focus:outline-none focus:ring-2 focus:ring-[#E4B04A] appearance-none cursor-pointer"
-              >
-                <option value="all">Todos os Status</option>
-                <option value="available">Disponível</option>
-                <option value="treatment">Em Tratamento</option>
-                <option value="adopted">Adotados</option>
-              </select>
-            </div>
           </div>
         </div>
 
@@ -89,10 +73,21 @@ export function Animals() {
             ))}
           </div>
         ) : (
-          <div className="text-center py-16">
-            <p className="text-[#6FAE9C] text-lg">
+          <div className="bg-white rounded-2xl text-center py-16 px-6 shadow-sm">
+            <PawPrint className="mx-auto mb-4 text-[#E4B04A]" size={40} />
+            <p className="text-[#2E7D6B] text-lg font-semibold">
               Nenhum animal encontrado com esses filtros.
             </p>
+            <button
+              type="button"
+              onClick={() => {
+                setSearchTerm("");
+                setSpeciesFilter("all");
+              }}
+              className="mt-4 text-sm font-semibold text-[#527f74] underline underline-offset-4 hover:text-[#E4B04A]"
+            >
+              Limpar filtros
+            </button>
           </div>
         )}
       </div>

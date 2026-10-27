@@ -1,13 +1,19 @@
-import { Link } from "react-router";
+import { Link, NavLink } from "react-router";
 import { Menu, X } from "lucide-react";
 import { useState } from "react";
 import logoSaal from "../../imports/logo_fundo_0.png";
 
 export function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const navClass = ({ isActive }: { isActive: boolean }) =>
+    `relative py-2 text-sm font-medium transition-colors after:absolute after:inset-x-0 after:-bottom-0.5 after:h-0.5 after:origin-left after:bg-[#E4B04A] after:transition-transform ${
+      isActive
+        ? "text-[#2E7D6B] after:scale-x-100"
+        : "text-[#416f65] hover:text-[#2E7D6B] after:scale-x-0 hover:after:scale-x-100"
+    }`;
 
   return (
-    <header className="bg-white shadow-sm sticky top-0 z-50">
+    <header className="sticky top-0 z-50 border-b border-[#2E7D6B]/10 bg-white/95 shadow-[0_8px_30px_rgba(46,125,107,0.06)] backdrop-blur-lg">
       <div className="container mx-auto px-4 py-3">
         <div className="flex items-center justify-between">
           {/* Logo */}
@@ -25,15 +31,15 @@ export function Header() {
 
           {/* Desktop Menu */}
           <nav className="hidden md:flex items-center gap-6">
-            <Link to="/" className="text-[#2E7D6B] hover:text-[#E4B04A] transition-colors">
+            <NavLink to="/" end className={navClass}>
               Início
-            </Link>
-            <Link to="/animais" className="text-[#2E7D6B] hover:text-[#E4B04A] transition-colors">
+            </NavLink>
+            <NavLink to="/animais" className={navClass}>
               Animais
-            </Link>
-            <Link to="/contato" className="text-[#2E7D6B] hover:text-[#E4B04A] transition-colors">
+            </NavLink>
+            <NavLink to="/contato" className={navClass}>
               Contato
-            </Link>
+            </NavLink>
             <Link
               to="/animais"
               className="bg-[#E4B04A] text-white px-6 py-2 rounded-full hover:bg-[#d4a03a] transition-all shadow-md hover:shadow-lg"
@@ -46,6 +52,8 @@ export function Header() {
           <button
             onClick={() => setMenuOpen(!menuOpen)}
             className="md:hidden text-[#2E7D6B] p-2"
+            aria-label={menuOpen ? "Fechar menu" : "Abrir menu"}
+            aria-expanded={menuOpen}
           >
             {menuOpen ? <X size={24} /> : <Menu size={24} />}
           </button>

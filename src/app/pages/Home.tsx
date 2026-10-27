@@ -1,5 +1,5 @@
 import { Link } from "react-router";
-import { Heart, Users, Home as HomeIcon, Stethoscope, MapPin } from "lucide-react";
+import { Heart, Users, Home as HomeIcon, Stethoscope, MapPin, Lock } from "lucide-react";
 import { motion } from "motion/react";
 import { getAvailableAnimals } from "../data/animals";
 import { AnimalCard } from "../components/AnimalCard";
@@ -62,12 +62,20 @@ export function Home() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.7, duration: 0.5 }}
+              className="flex flex-col sm:flex-row gap-4 items-center justify-center"
             >
               <Link
                 to="/animais"
                 className="inline-block bg-[#E4B04A] text-white px-8 py-4 rounded-full font-semibold hover:bg-[#d4a03a] transition-all shadow-lg hover:shadow-xl hover:scale-105"
               >
                 Quero Adotar Agora
+              </Link>
+              <Link
+                to="/admin"
+                className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm text-white px-6 py-3 rounded-full font-semibold hover:bg-white/20 transition-all border border-white/30"
+              >
+                <Lock size={18} />
+                Área Administrativa
               </Link>
             </motion.div>
           </motion.div>

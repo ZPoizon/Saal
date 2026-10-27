@@ -1,8 +1,10 @@
 import { useState } from "react";
-import { Lock, PawPrint, Mail, Trash2, Edit, Plus, Heart, CheckCircle, X } from "lucide-react";
+import { Lock, PawPrint, Mail, Trash2, Edit, Plus, Heart, CheckCircle, X, UserCheck, UserX, Clock, ArrowLeft } from "lucide-react";
+import { Link } from "react-router";
 import { mockAnimals, Animal } from "../data/animals";
 import logoSaal from "../../imports/logo_fundo_0.png";
 import { AnimalForm } from "../components/admin/AnimalForm";
+import { useInterest } from "../contexts/InterestContext";
 
 export function Admin() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -11,6 +13,7 @@ export function Admin() {
   const [showForm, setShowForm] = useState(false);
   const [editingAnimal, setEditingAnimal] = useState<Animal | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const { interests, updateInterestStatus } = useInterest();
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,18 +69,26 @@ export function Admin() {
   if (!isLoggedIn) {
     return (
       <div className="min-h-screen bg-[#F5EFE6] flex items-center justify-center py-12 px-4">
-        <div className="bg-white rounded-2xl p-8 md:p-12 shadow-xl max-w-md w-full">
-          <div className="text-center mb-8">
-            <img
-              src={logoSaal}
-              alt="SAAL"
-              className="w-20 h-20 mx-auto mb-4 object-contain"
-            />
-            <h1 className="text-3xl font-bold text-[#2E7D6B] mb-2">
-              Área Administrativa
-            </h1>
-            <p className="text-[#6FAE9C]">SAAL - Santuário de Animais Anjos da Luz</p>
-          </div>
+        <div className="w-full max-w-md">
+          <Link
+            to="/"
+            className="inline-flex items-center gap-2 text-[#2E7D6B] hover:text-[#E4B04A] mb-6 transition-colors font-semibold"
+          >
+            <ArrowLeft size={20} />
+            Voltar ao Início
+          </Link>
+          <div className="bg-white rounded-2xl p-8 md:p-12 shadow-xl">
+            <div className="text-center mb-8">
+              <img
+                src={logoSaal}
+                alt="SAAL"
+                className="w-20 h-20 mx-auto mb-4 object-contain"
+              />
+              <h1 className="text-3xl font-bold text-[#2E7D6B] mb-2">
+                Área Administrativa
+              </h1>
+              <p className="text-[#6FAE9C]">SAAL - Santuário de Animais Anjos da Luz</p>
+            </div>
 
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
@@ -119,6 +130,7 @@ export function Admin() {
               Demo: usuário: <code className="bg-gray-100 px-1 rounded">admin</code> / senha: <code className="bg-gray-100 px-1 rounded">saal2026</code>
             </p>
           </form>
+          </div>
         </div>
       </div>
     );
@@ -142,7 +154,7 @@ export function Admin() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
           <div className="bg-white rounded-xl p-6 shadow-md">
             <div className="flex items-center justify-between mb-2">
               <span className="text-[#6FAE9C]">Total de Animais</span>
@@ -178,6 +190,16 @@ export function Admin() {
             </div>
             <p className="text-3xl font-bold text-[#2E7D6B]">
               {animals.filter(a => a.status === "adopted").length}
+            </p>
+          </div>
+
+          <div className="bg-white rounded-xl p-6 shadow-md">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[#6FAE9C]">Solicitações</span>
+              <Mail className="text-[#E4B04A]" size={20} />
+            </div>
+            <p className="text-3xl font-bold text-[#2E7D6B]">
+              {interests.filter(i => i.status === "pending").length}
             </p>
           </div>
         </div>
@@ -282,15 +304,116 @@ export function Admin() {
         {/* Interests Section */}
         <div className="bg-white rounded-2xl shadow-md overflow-hidden mt-8">
           <div className="p-6 border-b border-[#F5EFE6]">
-            <h2 className="text-xl font-bold text-[#2E7D6B] flex items-center gap-2">
-              <Mail size={20} className="text-[#E4B04A]" />
-              Manifestações de Interesse
-            </h2>
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-bold text-[#2E7D6B] flex items-center gap-2">
+                <Mail size={20} className="text-[#E4B04A]" />
+                Solicitações de Adoção
+              </h2>
+              <span className="bg-[#E4B04A] text-white px-3 py-1 rounded-full text-sm font-semibold">
+                {interests.filter(i => i.status === "pending").length} pendentes
+              </span>
+            </div>
           </div>
           <div className="p-6">
-            <p className="text-[#6FAE9C] text-center py-8">
-              Nenhuma manifestação de interesse registrada no momento.
-            </p>
+            {interests.length === 0 ? (
+              <p className="text-[#6FAE9C] text-center py-8">
+                Nenhuma solicitação de adoção registrada no momento.
+              </p>
+            ) : (
+              <div className="space-y-4">
+                {interests.map((interest) => (
+                  <div
+                    key={interest.id}
+                    className={`border rounded-xl p-4 transition-all ${
+                      interest.status === "pending"
+                        ? "border-[#E4B04A] bg-[#E4B04A]/5"
+                        : interest.status === "accepted"
+                        ? "border-green-300 bg-green-50"
+                        : "border-gray-300 bg-gray-50"
+                    }`}
+                  >
+                    <div className="flex flex-col md:flex-row gap-4">
+                      {/* Animal Info */}
+                      <div className="flex items-center gap-3 md:w-1/3">
+                        <img
+                          src={`${interest.animalImage}?w=60&h=60&fit=crop`}
+                          alt={interest.animalName}
+                          className="w-16 h-16 rounded-lg object-cover"
+                        />
+                        <div>
+                          <p className="font-semibold text-[#2E7D6B]">
+                            {interest.animalName}
+                          </p>
+                          <p className="text-xs text-[#6FAE9C]">
+                            {new Date(interest.date).toLocaleDateString("pt-BR", {
+                              day: "2-digit",
+                              month: "2-digit",
+                              year: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Person Info */}
+                      <div className="flex-1 md:w-1/3">
+                        <p className="font-semibold text-[#2E7D6B]">{interest.name}</p>
+                        <p className="text-sm text-[#6FAE9C]">{interest.email}</p>
+                        <p className="text-sm text-[#6FAE9C]">{interest.phone}</p>
+                        {interest.message && (
+                          <p className="text-sm text-gray-600 mt-2 italic line-clamp-2">
+                            "{interest.message}"
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex md:flex-col gap-2 md:w-1/3 md:justify-center">
+                        {interest.status === "pending" ? (
+                          <>
+                            <button
+                              onClick={() => updateInterestStatus(interest.id, "accepted")}
+                              className="flex-1 md:flex-none bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors flex items-center justify-center gap-2 font-semibold"
+                            >
+                              <UserCheck size={18} />
+                              Aceitar
+                            </button>
+                            <button
+                              onClick={() => updateInterestStatus(interest.id, "rejected")}
+                              className="flex-1 md:flex-none bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors flex items-center justify-center gap-2 font-semibold"
+                            >
+                              <UserX size={18} />
+                              Recusar
+                            </button>
+                          </>
+                        ) : (
+                          <div
+                            className={`px-4 py-2 rounded-lg font-semibold flex items-center justify-center gap-2 ${
+                              interest.status === "accepted"
+                                ? "bg-green-100 text-green-700"
+                                : "bg-gray-200 text-gray-700"
+                            }`}
+                          >
+                            {interest.status === "accepted" ? (
+                              <>
+                                <CheckCircle size={18} />
+                                Aceito
+                              </>
+                            ) : (
+                              <>
+                                <X size={18} />
+                                Recusado
+                              </>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>

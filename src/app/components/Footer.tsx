@@ -4,7 +4,7 @@ import logoSaal from "../../imports/logo_fundo_0.png";
 
 export function Footer() {
   return (
-    <footer className="bg-[#2E7D6B] text-white mt-20">
+    <footer className="bg-[#2E7D6B] text-white">
       <div className="container mx-auto px-4 py-12">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* Logo & Missão */}
@@ -37,6 +37,9 @@ export function Footer() {
               </Link>
               <Link to="/contato" className="text-sm text-[#F5EFE6] hover:text-[#E4B04A] transition-colors">
                 Contato
+              </Link>
+              <Link to="/admin" className="text-sm text-[#E4B04A] hover:text-white transition-colors font-semibold mt-2">
+                Área Administrativa
               </Link>
             </div>
           </div>

@@ -3,11 +3,13 @@ import { ArrowLeft, Heart, CheckCircle } from "lucide-react";
 import { motion } from "motion/react";
 import { getAnimalById } from "../data/animals";
 import { useState } from "react";
+import { useInterest } from "../contexts/InterestContext";
 
 export function Interest() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const animal = id ? getAnimalById(id) : undefined;
+  const { addInterest } = useInterest();
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -36,6 +38,17 @@ export function Interest() {
     setLoading(true);
 
     setTimeout(() => {
+      if (animal) {
+        addInterest({
+          animalId: animal.id,
+          animalName: animal.name,
+          animalImage: animal.images[0],
+          name: formData.name,
+          email: formData.email,
+          phone: formData.phone,
+          message: formData.message,
+        });
+      }
       setLoading(false);
       setSubmitted(true);
     }, 1500);
