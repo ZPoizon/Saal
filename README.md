@@ -65,6 +65,7 @@ integrações.
 ## Especificações e arquitetura
 
 - [Como trabalhar com as especificações](specs/README.md)
+- [Guia para contribuir em branches e Pull Requests](CONTRIBUTING.md)
 - [Arquitetura e estado atual](docs/architecture/ARCHITECTURE.md)
 - [Plano de qualidade e matriz de testes](docs/quality/QUALITY_PLAN.md)
 - [Política e checklist de segurança](docs/security/SECURITY_POLICY.md)
