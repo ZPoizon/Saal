@@ -621,8 +621,9 @@ iniciada.
 
 ## Sequência segura para integração do I0
 
-O PR #1 e o workflow `Quality checks` (run 40626776841) foram registrados como integrados à
-`main` no commit `8bb42b58deee54b02d3c0f592d783e148ee3e56c` em verificação anterior. As refs
-locais desta sessão permanecem na branch de trabalho e não foram sincronizadas nem
-modificadas; não houve push, merge ou alteração de configuração GitHub nesta execução. A
-proteção da branch não é presumida.
+Em conferência ao GitHub em 2026-10-28, o PR #1 consta mesclado à `main` no commit
+`8bb42b58deee54b02d3c0f592d783e148ee3e56c`; a ref `main` contém o workflow de qualidade.
+O run 40626776841 terminou com sucesso no commit do PR. A ref local `origin/main` desta
+cópia permanece em `e34e586f06b7e054c88dfce33a228218bc2956ca` e está desatualizada; não foi
+sincronizada nesta tarefa. A listagem de branches informa `protected=false` para `main`;
+regrasets não foram inspecionados. Não alterar configuração administrativa sem autorização.

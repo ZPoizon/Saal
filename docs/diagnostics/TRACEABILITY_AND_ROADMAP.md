@@ -74,12 +74,13 @@ integridade referencial; dados pessoais não indexados/retidos além do necessá
 
 ## Lacunas e inconsistências documentais/API
 
-- `REQUISITOS_FUNCIONAIS.md` declara filtro de catálogo por status, mas `Animals.tsx` só
+- [`../legacy/REQUISITOS_FUNCIONAIS.md`](../legacy/REQUISITOS_FUNCIONAIS.md) declara filtro de catálogo por status, mas `Animals.tsx` só
   busca nome/espécie e `getAvailableAnimals()` já exclui não disponíveis.
-- `CHECKUP_REPORT.md` e `VERIFICACAO_COMPLETA.md` declaram “100%”, testes de dispositivos,
+- [`../legacy/CHECKUP_REPORT.md`](../legacy/CHECKUP_REPORT.md) e
+  [`../legacy/VERIFICACAO_COMPLETA.md`](../legacy/VERIFICACAO_COMPLETA.md) declaram “100%”, testes de dispositivos,
   banco, persistência e upload; o código mostra mocks, estado em memória, upload Base64 local
   e timers de sucesso. Trate como documentação legada não verificada.
-- `DOCUMENTACAO_PROJETO.md` inclui afirmação “Produção Ready” junto de credenciais client-side
+- [`../legacy/DOCUMENTACAO_PROJETO.md`](../legacy/DOCUMENTACAO_PROJETO.md) inclui afirmação “Produção Ready” junto de credenciais client-side
   e operações de banco que não existem. Contradição crítica que precisa receber aviso antes
   de usar como runbook/status.
 - O contrato OpenAPI revisado não declara `bearerAuth` nem token como mecanismo aprovado.

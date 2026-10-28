@@ -28,10 +28,15 @@ Build verde é necessário, mas não basta para declarar uma funcionalidade conc
 
 ## 2. Estado comprovado dos controles I0
 
-O workflow `.github/workflows/quality.yml` foi integrado ao I0. A execução hospedada do PR
-#1, run [40626776841](https://github.com/ZPoizon/Saal/actions/runs/40626776841), terminou
-com `success`. A evidência confirma aquela execução e aquele commit, não a configuração de
-proteção da branch, nem checks obrigatórios para merges futuros.
+O workflow `.github/workflows/quality.yml` foi criado no commit I0
+`e74ddf5b5069a393f63bae4f2bf8aec6748b7590`. O run hospedado
+[40626776841](https://github.com/ZPoizon/Saal/actions/runs/40626776841) do PR #1 terminou
+com `success`. O PR #1 foi mesclado à `main` em 28/10/2026; o commit de merge é
+`8bb42b58deee54b02d3c0f592d783e148ee3e56c`, e o workflow foi confirmado nessa ref pelo
+GitHub. A ref local `origin/main` nesta cópia está desatualizada (`e34e586`), portanto não
+foi usada como evidência do estado remoto. A listagem de branches do GitHub informa
+`protected=false` para `main`; regrasets administrativos não foram inspecionados. A execução
+do run comprova aquele commit/teste, não checks obrigatórios para merges futuros.
 
 | Controle existente | Evidência/configuração | Limite conhecido |
 |---|---|---|

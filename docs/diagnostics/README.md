@@ -1,8 +1,8 @@
 # Diagnóstico de prontidão funcional do SAAL
 
 **Data da auditoria estática:** 27/10/2026
-**Escopo:** avaliação anterior à implementação funcional. Nenhum comportamento, dependência,
-backend ou dado foi alterado nesta etapa.
+**Escopo:** retrato documental de auditoria estática, anterior ao I0 de qualidade. Não
+representa uma validação de navegador ou implantação.
 
 **Atualização I1 (28/10/2026):** este é um retrato histórico anterior ao I0/às decisões
 técnicas atuais. Para CI/qualidade consulte `../quality/QUALITY_PLAN.md`; para decisões
@@ -19,12 +19,11 @@ estáticos, `useState` e `InterestContext` apenas em memória. Não há API, ser
 backend Java, banco de dados, migration, autenticação real ou integração de contato.
 
 **As especificações atuais e os ADRs são mais confiáveis que afirmações históricas de
-“100% funcional” ou “pronto para produção”.** Os documentos `CHECKUP_REPORT.md`,
-`VERIFICACAO_COMPLETA.md`, `DOCUMENTACAO_PROJETO.md` e trechos de
-`REQUISITOS_FUNCIONAIS.md` afirmam recursos e verificações que o código não sustenta
-(persistência, filtros, sessão, operações de banco, envio de formulários e produção). Eles
-devem ser claramente marcados como históricos/protótipo ou substituídos após revisão, não
-reutilizados como evidência de funcionamento.
+“100% funcional” ou “pronto para produção”.** Os documentos em
+[`../legacy/`](../legacy/README.md) preservam relatórios e requisitos antigos que afirmam
+recursos e verificações não sustentados pelo estado atual (persistência, filtros, sessão,
+operações de banco, envio de formulários e produção). Não os reutilize como evidência de
+funcionamento.
 
 ### Prioridades
 
@@ -32,16 +31,17 @@ reutilizados como evidência de funcionamento.
 |---|---|---|---|
 | **P0 — antes de uso real/produção** | Credenciais demonstrativas estão hardcoded e são comparadas no navegador; `/admin` não tem proteção de servidor. CRUD/solicitações e formulários não persistem. Confirmações de contato/interesse podem anunciar sucesso sem entrega. | `src/app/pages/Admin.tsx`, `src/app/contexts/InterestContext.tsx`, `src/app/pages/Interest.tsx`, `src/app/pages/Contact.tsx`; `specs/features/admin-authentication.md` | Backend, banco e autorização reais; remover credenciais demonstrativas antes de expor como sistema operacional; confirmar sucesso só após operação real; testes de acesso e regressão. |
 | **P1 — núcleo funcional** | CRUD admin não alimenta catálogo público; status/animal não são revalidados no interesse; envio público perde dados; endpoints, erros e estados remotos não existem; upload local/URL não é política segura; dados pessoais sem política operacional concluída. | `Admin.tsx`, `AnimalForm.tsx`, `Interest.tsx`, `Contact.tsx`, contratos atuais e pendências SDD | Fonte única persistida; validação/autorização no backend; erros recuperáveis; decisões de disponibilidade, retenção e upload. |
-| **P2 — UX, acessibilidade e operação** | Botão de ação dentro do link do card; Web Share sem fallback/tratamento; galeria sem estado acessível; modal sem semântica/foco/teclado implementados no código da feature; navegação “Voltar” depende de histórico; sem testes, CI de qualidade, lint ou auditoria automática. | `AnimalCard.tsx`, `AnimalDetail.tsx`, `AnimalForm.tsx`, `Interest.tsx`, workflow e scripts | Verificação WCAG 2.2 AA, teclado/leitor de tela, viewport manual/automatizado e testes de comportamento em cada incremento. |
+| **P2 — UX, acessibilidade e operação** | Há poucos testes unitários de helpers e CI frontend no I0; não há evidência de E2E, validação em navegador, leitor de tela ou revisão de viewports. Comportamentos de foco, share e retorno ainda requerem validação por feature. | `AnimalCard.tsx`, `AnimalDetail.tsx`, `AnimalForm.tsx`, `Interest.tsx`, `quality.yml` e matriz de testes | Verificação WCAG 2.2 AA, teclado/leitor de tela, viewport manual/automatizado e testes pertinentes por incremento. |
 | **P2 — publicação/metadados e ambiente local** | HTML produzido tem `lang="en"` e título “Figma Make App”, embora a interface esteja em português; `robots` é `noindex, nofollow`; servidor dev/preview vincula `0.0.0.0`. | `vite.figma.config.ts`, `.figma/make/site.json`, `dist/index.html` da última validação disponível | Definir metadados/SEO e indexação para o domínio aprovado; restringir dev/preview a rede confiável e não confundir com servidor de produção. |
 | **P3 — decisões/produto futuro** | Paginação/ordenação, política de exclusão, transições e significado de aceite/recusa, recuperação de senha, provedor de imagem/e-mail, consentimento/retenção e implantação não estão decididos. Tiles de doação/voluntariado/divulgação são textos sem ação. | `specs/README.md`, features e ADRs; `HelpBanner.tsx` | Decisão explícita da ONG por funcionalidade; não simular serviços nem aumentar escopo comercial sem requisito. |
 
-O primeiro incremento recomendado é **qualidade e CI mínimo (I0)**: baseline reproduzível de
-typecheck/build e seleção justificada de teste, lint, formato em modo check e scanners, com
-falha deliberada provando que o pipeline reporta falhas. Depois vêm aprovações humanas e
-alinhamento do modelo/contrato (I1), serviço separado, banco/migrations e autorização antes
-de operações. Flyway e sessão server-side são recomendações, não decisões aprovadas. A
-revisão detalhada, pendências, riscos e critérios estão em
+O workflow I0 foi mesclado à `main` pelo PR #1, e seu run terminou com sucesso. A listagem
+de branches indica `protected=false` para `main`; regrasets não foram inspecionados. Consulte
+`docs/quality/QUALITY_PLAN.md` para evidência e limites. O planejamento atual
+continua em I1: decisões técnicas aprovadas, condicionais e pendências da ONG estão
+registradas em `specs/decisions/I1-approval-register.md`. Flyway foi selecionado para uso
+futuro; sessão server-side permanece preferência condicionada à topologia. A revisão
+detalhada, pendências, riscos e critérios estão em
 [`ARCHITECTURE_REVIEW.md`](ARCHITECTURE_REVIEW.md); o OpenSpec executável está em
 [`tasks.md`](../../openspec/changes/saal-functional-readiness/tasks.md).
 
@@ -83,13 +83,13 @@ server-side não fecha cookies, CSRF, origens ou protocolo.
 - Auditoria **estática de código e documentos**. Não foi feita sessão de navegador,
   inspeção visual real, teclado/leitor de tela, teste em dispositivos, medição Lighthouse,
   pen-test, análise de infraestrutura ou validação de endpoints; não existem endpoints.
-- A configuração define `pnpm typecheck`, `pnpm build` e formatação, mas não testes, lint,
-  auditoria de dependências nem CI de produto. O workflow observado só prepara/verifica
-  OpenSpec para o agente Copilot. As alegações históricas de dispositivos, tempos e testes
-  não vieram acompanhadas de artefatos reprodutíveis.
-- A configuração Figma atual produz `lang="en"`, título default “Figma Make App” e
-  `noindex, nofollow`, apesar da interface em português; não é configuração SEO aprovada
-  para publicação indexável. O servidor de dev e preview usa `host: 0.0.0.0`, portanto fica
+- O I0 adicionou typecheck, Vitest, Oxlint, checagem de formatação, audit, Secretlint e build
+  ao workflow de qualidade frontend. Os testes cobrem somente dois casos iniciais de helpers;
+  backend, integração, browser e E2E não existem. As alegações históricas de dispositivos,
+  tempos e testes não vieram acompanhadas de artefatos reprodutíveis.
+- A configuração Figma mantém `noindex, nofollow` e idioma default `en`; o título atual é
+  configurado como “SAAL”. SEO/indexação ainda não é configuração aprovada para publicação.
+  O servidor de dev e preview usa `host: 0.0.0.0`, portanto fica
   disponível em todas as interfaces da máquina quando iniciado; validar firewall/rede de
   desenvolvimento. Isso não configura um deploy seguro de produção.
 - O manifesto contém dependências que não aparecem como imports diretos do app e vários

@@ -1,5 +1,11 @@
 # 🔍 CHECKUP COMPLETO - SAAL WEBSITE
 
+> **Documento histórico (10/05/2026):** este relatório registra alegações feitas na data
+> indicada, não uma verificação reproduzível do estado atual. As afirmações de funcionalidades
+> operacionais ou prontidão foram superadas: o projeto atual é um protótipo frontend sem
+> backend ou persistência. Consulte o [índice histórico](README.md) e
+> as [especificações SDD](../../specs/README.md).
+
 **Data:** 10 de Maio de 2026  
 **Status Geral:** ✅ **TODAS AS FUNCIONALIDADES OPERACIONAIS**
 

@@ -1,5 +1,11 @@
 # ✅ VERIFICAÇÃO COMPLETA - SAAL WEBSITE
 
+> **Documento histórico (10/05/2026):** os status, checklists e alegações de testes abaixo
+> descrevem um registro antigo e não são evidência de execução reproduzível nem do estado
+> atual. O SAAL neste repositório é um protótipo frontend sem backend ou persistência.
+> Consulte o [índice histórico](README.md) e o
+> [plano de qualidade](../quality/QUALITY_PLAN.md).
+
 **Data da Verificação:** 10 de Maio de 2026  
 **Hora:** Completo  
 **Status:** ✅ **TODAS AS FUNCIONALIDADES TESTADAS E APROVADAS**

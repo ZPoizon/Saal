@@ -1,5 +1,9 @@
 # 📋 REQUISITOS FUNCIONAIS E NÃO FUNCIONAIS
 
+> **Documento de requisitos legado:** caixas marcadas e status refletem um registro antigo,
+> não comprovam implementação atual nem substituem as especificações SDD em `specs/`.
+> Consulte o [índice histórico](README.md) antes de reutilizar este conteúdo.
+
 ## Projeto: SAAL - Santuário de Animais Anjos da Luz
 
 ---
