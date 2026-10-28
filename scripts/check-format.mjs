@@ -52,7 +52,7 @@ if (base && !/^0+$/.test(base)) {
 }
 
 const formattableFiles = [...new Set(changedFiles)].filter((file) =>
-  /\.(?:[cm]?[jt]sx?|jsonc?|css|scss|html)$/i.test(file),
+  /\.(?:[cm]?[jt]sx?|css|scss|html)$/i.test(file),
 )
 
 if (formattableFiles.length === 0) {

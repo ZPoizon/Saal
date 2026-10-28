@@ -6,10 +6,17 @@
 
 ## Tecnologia aprovada
 
-- Java + Spring Boot.
+- Java 21 LTS e Spring Boot 4.1.2, condicionado à compatibilidade/disponibilidade confirmadas
+  no início do I2.
+- Maven Wrapper.
 - API REST com JSON.
-- MySQL 8.
+- Spring Security, Spring Data JPA e Bean Validation.
+- JUnit 5, Spring Boot Test e Testcontainers com MySQL 8 para testes futuros.
+- Docker; respostas de erro estruturadas baseadas em RFC 9457.
 - Contrato inicial: `../contracts/openapi.yaml`.
+
+Escolhas documentais não significam implementação. O registro de evidência e condicionantes
+está em [`../decisions/I1-approval-register.md`](../decisions/I1-approval-register.md).
 
 ## Responsabilidades
 
@@ -43,10 +50,13 @@ não devem ser retornadas diretamente como DTOs públicos.
 - logs sem senhas, tokens ou conteúdo pessoal desnecessário;
 - migrations versionadas e segredos via ambiente/secret manager.
 
+Flyway foi escolhido para migrations versionadas. Nenhuma migration/schema de negócio foi
+aprovada ou criada nesta etapa.
+
 ## Pendências
 
-- `PENDENTE DE DECISÃO`: Maven ou Gradle.
-- `PENDENTE DE DECISÃO`: JWT ou sessão segura por cookie.
+- `PENDENTE DE DECISÃO`: desenho de sessão/autenticação e topologia de origem/proxy/CSRF;
+  sessão server-side revogável é a preferência, não decisão final.
 - `PENDENTE DE DECISÃO`: perfis administrativos.
 - `PENDENTE DE DECISÃO`: provedor de e-mail e storage.
-- `PENDENTE DE DECISÃO`: estratégia de deploy e observabilidade.
+- `PENDENTE DE DECISÃO`: hosting de produção, deploy e observabilidade.

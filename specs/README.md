@@ -1,8 +1,16 @@
 # Especificações SDD do SAAL
 
-Esta pasta é a fonte normativa para evolução incremental do SAAL. A documentação histórica
-na raiz continua útil, mas, em caso de divergência sobre estado implementado, prevalecem o
-código observado e estas especificações.
+Esta pasta é a fonte normativa para evolução incremental do SAAL. Documentos históricos
+preservados em [`docs/legacy/`](../docs/legacy/README.md) são contexto, não especificações
+normativas. Em caso de divergência sobre o estado implementado, prevalecem o código observado
+e estas especificações.
+
+As políticas permanentes que complementam as especificações estão em
+[`docs/architecture/ARCHITECTURE.md`](../docs/architecture/ARCHITECTURE.md),
+[`docs/security/SECURITY_POLICY.md`](../docs/security/SECURITY_POLICY.md),
+[`docs/security/SECURITY_CHECKLIST.md`](../docs/security/SECURITY_CHECKLIST.md) e
+[`docs/development/DEVELOPMENT_STANDARDS.md`](../docs/development/DEVELOPMENT_STANDARDS.md).
+Consulte-as antes de implementar e ao revisar alterações.
 
 ## Como trabalhar
 
@@ -12,7 +20,9 @@ código observado e estas especificações.
 4. Altere primeiro a especificação quando o comportamento desejado mudar.
 5. Implemente a menor mudança que cumpra os critérios Dado/Quando/Então.
 6. Atualize contrato, modelo e testes.
-7. Execute `pnpm typecheck` e `pnpm build`; execute testes/lint quando forem adicionados.
+7. Execute as verificações pertinentes disponíveis (`pnpm typecheck`, `pnpm test`,
+   `pnpm lint`, `pnpm format:check` e `pnpm build`); consulte
+   [`docs/quality/QUALITY_PLAN.md`](../docs/quality/QUALITY_PLAN.md) para escopo e limites.
 8. Registre evidências e limitações antes de marcar a feature como concluída.
 
 ## Estados
@@ -35,8 +45,8 @@ código observado e estas especificações.
 
 ## Rastreabilidade
 
-- Requisitos legados: `REQUISITOS_FUNCIONAIS.md`.
-- Documentação legada: `DOCUMENTACAO_PROJETO.md`.
+- [Requisitos legados](../docs/legacy/REQUISITOS_FUNCIONAIS.md).
+- [Documentação legada](../docs/legacy/DOCUMENTACAO_PROJETO.md).
 - Contrato futuro: `contracts/openapi.yaml`; ele descreve o alvo e **não endpoints ativos**.
 - Modelo conceitual: `contracts/data-model.md`.
 - Mudanças arquiteturais: novo ADR em `decisions/`.
@@ -47,5 +57,7 @@ código observado e estas especificações.
 - Definir ciclo de vida completo de uma solicitação de adoção.
 - Definir retenção, consentimento e exclusão de dados pessoais conforme LGPD.
 - Definir armazenamento, limites e moderação de imagens.
-- Adicionar infraestrutura de testes automatizados e lint.
+- Ampliar testes além da base Vitest/Oxlint de I0, incluindo integrações backend e browser.
+- Flyway está escolhido para uso futuro; schema/migrations continuam não implementados e
+  dependem do modelo de domínio aprovado.
 - Implementar backend Spring Boot e banco MySQL 8 em projeto próprio quando aprovado.

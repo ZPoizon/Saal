@@ -1,5 +1,11 @@
 # 📖 DOCUMENTAÇÃO DO PROJETO - SAAL WEBSITE
 
+> **Documento histórico (maio de 2026):** esta descrição preserva o registro original e
+> contém afirmações de “Produção Ready”, persistência e funcionalidades que não representam
+> o estado atual comprovado. O repositório contém um protótipo frontend sem backend ou
+> persistência real. Consulte o [índice histórico](README.md), o
+> [README principal](../../README.md) e as [specs atuais](../../specs/README.md).
+
 ## 🏢 Informações do Projeto
 
 **Nome do Projeto:** SAAL - Santuário de Animais Anjos da Luz  
@@ -315,6 +321,9 @@ Transitions: transition-all, transition-colors, transition-transform
 ---
 
 ## 📁 Estrutura do Projeto
+
+> A árvore abaixo é um snapshot da estrutura descrita no documento original, não o mapa
+> atual do repositório.
 
 ```
 saal-website/

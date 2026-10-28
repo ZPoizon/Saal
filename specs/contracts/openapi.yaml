@@ -1,123 +1,267 @@
 openapi: 3.0.3
 info:
   title: SAAL API planejada
-  version: 0.1.0
+  version: 0.2.0-draft
   description: |
-    Contrato-alvo para a futura API Spring Boot do SAAL.
-    Nenhum endpoint deste documento está implementado no frontend atual.
-servers:
-  - url: http://localhost:8080/api
-    description: Ambiente local futuro
+    RASCUNHO NÃO NORMATIVO. Nenhum endpoint está implementado. Operações candidatas marcadas
+    x-saal-status: blocked não podem ser implementadas até os gates indicados serem resolvidos.
+    Campos de domínio, enums, PII, limites e estados foram omitidos quando ainda dependem da
+    ONG. Não há security scheme porque sessão é apenas a preferência e a topologia ainda não
+    foi aprovada. Respostas de erro usam Problem Details (RFC 9457); não refletem runtime ativo.
 tags:
-  - name: Animals
-  - name: Adoption requests
-  - name: Authentication
-  - name: Contact
+  - name: Catálogo público
+    description: Operações públicas candidatas; publicação/elegibilidade dependem de ONG-02.
+  - name: Administração de animais
+    description: Operações admin bloqueadas por decisões de conta, domínio e visibilidade.
+  - name: Solicitações públicas
+    description: Recebimento bloqueado por decisões de dados, processo e abuso.
+  - name: Gestão administrativa de solicitações
+    description: Operações administrativas bloqueadas por ONG-01/04/05/08.
+  - name: Sessão administrativa
+    description: Rascunho bloqueado; protocolo/topologia não decididos.
+  - name: Contato
+    description: Operação bloqueada até destino e tratamento aprovados.
+x-saal-validation-policy:
+  server-authoritative: true
+  description: |
+    Validar conteúdo, formato e limites no servidor usando DTOs allowlist depois da aprovação
+    do modelo. Requisição inválida usa 400 Problem Details e pode conter somente ponteiro e
+    código estável do campo; nunca ecoar valor enviado, credencial ou PII. Limites numéricos,
+    required fields e valores de domínio permanecem bloqueados pelas decisões listadas em cada
+    operação. Respostas 413/429 são previstas sem fixar quota ou tamanho.
+x-saal-intentionally-omitted:
+  - Upload de imagem: fronteira/endpoint omitido até decisão ONG-06.
+  - Paginação/ordenação: sem semântica ou limites definidos; requer decisão de volume e API.
+  - Métricas públicas: não há endpoint ou fonte aprovada (ONG-11).
 paths:
   /animals:
     get:
-      tags: [Animals]
-      summary: Lista animais
+      tags: [Catálogo público]
+      operationId: listPublicAnimals
+      summary: Lista animais publicados e elegíveis
+      description: |
+        Candidato bloqueado até ONG-02/ONG-10 aprovarem publicação, elegibilidade e campos.
+        O servidor deve retornar somente a projeção pública aprovada; filtros/enums do mock
+        não são contrato. Erros de validação não devem refletir valores PII nem internos.
+        Paginação/ordenação não estão especificadas até decisão técnica de volume.
+      x-saal-status: blocked-by-business-approval
+      x-saal-blocked-by: [ONG-02, ONG-10]
       parameters:
         - in: query
-          name: status
+          name: search
+          description: Busca por nome; limites de tamanho ainda não aprovados.
           schema:
-            $ref: "#/components/schemas/AnimalStatus"
+            type: string
         - in: query
           name: species
-          schema:
-            $ref: "#/components/schemas/Species"
-        - in: query
-          name: search
+          description: Filtro opcional; valores dependem da aprovação do vocabulário de domínio.
           schema:
             type: string
       responses:
         "200":
-          description: Lista obtida
+          description: Resultado público, somente após aprovação do modelo de publicação
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/Animal"
-    post:
-      tags: [Animals]
-      summary: Cadastra animal
-      security:
-        - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/AnimalInput"
-      responses:
-        "201":
-          description: Animal cadastrado
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Animal"
+                  $ref: "#/components/schemas/PublicAnimal"
         "400":
-          $ref: "#/components/responses/ValidationError"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
+          $ref: "#/components/responses/BadRequest"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/ServerError"
+        default:
+          $ref: "#/components/responses/DefaultProblem"
   /animals/{animalId}:
     parameters:
       - $ref: "#/components/parameters/AnimalId"
     get:
-      tags: [Animals]
-      summary: Obtém detalhes de um animal
+      tags: [Catálogo público]
+      operationId: getPublicAnimal
+      summary: Obtém detalhe público de um animal
+      description: |
+        Candidato bloqueado até ONG-02/ONG-10 aprovarem elegibilidade, publicação e campos.
+        Nunca retornar campos administrativos, PII ou informação médica não aprovada.
+      x-saal-status: blocked-by-business-approval
+      x-saal-blocked-by: [ONG-02, ONG-10]
       responses:
         "200":
-          description: Animal encontrado
+          description: Projeção pública aprovada
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Animal"
+                $ref: "#/components/schemas/PublicAnimal"
         "404":
           $ref: "#/components/responses/NotFound"
-    put:
-      tags: [Animals]
-      summary: Atualiza animal
-      security:
-        - bearerAuth: []
+        "500":
+          $ref: "#/components/responses/ServerError"
+        default:
+          $ref: "#/components/responses/DefaultProblem"
+  /admin/animals:
+    get:
+      tags: [Administração de animais]
+      operationId: listAdminAnimals
+      summary: Lista animais para administração
+      description: |
+        Operação protegida no servidor, bloqueada até as decisões de conta, papel, domínio,
+        campos e visibilidade. Não confiar em rota protegida apenas no cliente.
+      x-saal-status: blocked-by-approval
+      x-saal-blocked-by: [ONG-01, ONG-02, ONG-10, TEC-04, TEC-05]
+      x-saal-auth-required: true
+      responses:
+        "200":
+          description: Projeção administrativa após aprovação de campos e permissões
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AdminAnimal"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/ServerError"
+        default:
+          $ref: "#/components/responses/DefaultProblem"
+    post:
+      tags: [Administração de animais]
+      operationId: createAdminAnimal
+      summary: Cadastra animal
+      description: Campos e regras de domínio não aprovados; validar no servidor antes de qualquer persistência.
+      x-saal-status: blocked-by-approval
+      x-saal-blocked-by: [ONG-01, ONG-02, ONG-10]
+      x-saal-auth-required: true
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/AnimalInput"
+              $ref: "#/components/schemas/AdminAnimalInput"
       responses:
-        "200":
-          description: Animal atualizado
+        "201":
+          description: Animal criado após persistência
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Animal"
+                $ref: "#/components/schemas/AdminAnimal"
         "400":
-          $ref: "#/components/responses/ValidationError"
+          $ref: "#/components/responses/BadRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/ServerError"
+        default:
+          $ref: "#/components/responses/DefaultProblem"
+  /admin/animals/{animalId}:
+    parameters:
+      - $ref: "#/components/parameters/AnimalId"
+    get:
+      tags: [Administração de animais]
+      operationId: getAdminAnimal
+      summary: Obtém registro para administração
+      description: Operação protegida, bloqueada até ONG-01/ONG-02/ONG-10 e auth/topologia aprovadas.
+      x-saal-status: blocked-by-approval
+      x-saal-blocked-by: [ONG-01, ONG-02, ONG-10, TEC-04, TEC-05]
+      x-saal-auth-required: true
+      responses:
+        "200":
+          description: Projeção administrativa aprovada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminAnimal"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/ServerError"
+        default:
+          $ref: "#/components/responses/DefaultProblem"
+    put:
+      tags: [Administração de animais]
+      operationId: updateAdminAnimal
+      summary: Atualiza animal
+      description: Campos e regras de domínio não aprovados; validar no servidor antes de qualquer persistência.
+      x-saal-status: blocked-by-approval
+      x-saal-blocked-by: [ONG-01, ONG-02, ONG-10]
+      x-saal-auth-required: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminAnimalInput"
+      responses:
+        "200":
+          description: Animal atualizado após persistência
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminAnimal"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/ServerError"
+        default:
+          $ref: "#/components/responses/DefaultProblem"
     delete:
-      tags: [Animals]
-      summary: Remove ou arquiva animal
-      description: "PENDENTE DE DECISÃO: exclusão física ou arquivamento."
-      security:
-        - bearerAuth: []
+      tags: [Administração de animais]
+      operationId: deleteOrArchiveAdminAnimal
+      summary: Executa operação de ciclo de vida do animal
+      description: ONG-03 não decidiu entre archive/delete; nenhum comportamento pode ser implementado com base neste rascunho.
+      x-saal-status: blocked-by-business-approval
+      x-saal-blocked-by: [ONG-01, ONG-03]
+      x-saal-auth-required: true
       responses:
         "204":
-          description: Operação concluída
+          description: Resposta candidata somente após definir operação e persistência
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "500":
+          $ref: "#/components/responses/ServerError"
+        default:
+          $ref: "#/components/responses/DefaultProblem"
   /adoption-requests:
     post:
-      tags: [Adoption requests]
+      tags: [Solicitações públicas]
+      operationId: createAdoptionRequest
       summary: Registra interesse em adoção
+      description: |
+        Bloqueado até aprovação de elegibilidade/processo, campos/finalidade/retention e
+        antiabuso. Não receber, armazenar ou ecoar PII a partir deste schema vazio.
+      x-saal-status: blocked-by-business-approval
+      x-saal-blocked-by: [ONG-02, ONG-04, ONG-05, ONG-09, ONG-10]
       requestBody:
         required: true
         content:
@@ -126,100 +270,156 @@ paths:
               $ref: "#/components/schemas/AdoptionRequestInput"
       responses:
         "201":
-          description: Solicitação registrada
+          description: Confirmação candidata somente após persistência aprovada e real
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/AdoptionRequest"
+                $ref: "#/components/schemas/AdoptionReceipt"
         "400":
-          $ref: "#/components/responses/ValidationError"
+          $ref: "#/components/responses/BadRequest"
         "404":
           $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "413":
+          $ref: "#/components/responses/PayloadTooLarge"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/ServerError"
+        default:
+          $ref: "#/components/responses/DefaultProblem"
+  /admin/adoption-requests:
     get:
-      tags: [Adoption requests]
+      tags: [Gestão administrativa de solicitações]
+      operationId: listAdminAdoptionRequests
       summary: Lista solicitações para administração
-      security:
-        - bearerAuth: []
-      parameters:
-        - in: query
-          name: status
-          schema:
-            $ref: "#/components/schemas/AdoptionRequestStatus"
-        - in: query
-          name: animalId
-          schema:
-            type: string
+      description: |
+        Operação protegida no servidor. Campos retornados e filtros dependem de aprovação
+        ONG-01/04/05/08; não expor PII a visitantes.
+      x-saal-status: blocked-by-approval
+      x-saal-blocked-by: [ONG-01, ONG-04, ONG-05, ONG-08, TEC-04, TEC-05]
+      x-saal-auth-required: true
       responses:
         "200":
-          description: Lista obtida
+          description: Projeção administrativa mínima aprovada
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/AdoptionRequest"
+                  $ref: "#/components/schemas/AdminAdoptionRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
-  /adoption-requests/{requestId}/status:
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/ServerError"
+        default:
+          $ref: "#/components/responses/DefaultProblem"
+  /admin/adoption-requests/{requestId}/status:
     patch:
-      tags: [Adoption requests]
+      tags: [Gestão administrativa de solicitações]
+      operationId: updateAdminAdoptionRequestStatus
       summary: Atualiza o status de uma solicitação
-      security:
-        - bearerAuth: []
+      description: Estados e transições ainda não foram aprovados; não implementar enum do mock.
+      x-saal-status: blocked-by-business-approval
+      x-saal-blocked-by: [ONG-01, ONG-04, ONG-08, TEC-04, TEC-05]
+      x-saal-auth-required: true
       parameters:
         - in: path
           name: requestId
           required: true
           schema:
             type: string
+            minLength: 1
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              required: [status]
-              properties:
-                status:
-                  $ref: "#/components/schemas/AdoptionRequestStatus"
+              $ref: "#/components/schemas/AdoptionStatusUpdate"
       responses:
         "200":
-          description: Status atualizado
+          description: Estado aprovado e persistido
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/AdoptionRequest"
+                $ref: "#/components/schemas/AdminAdoptionRequest"
         "400":
-          $ref: "#/components/responses/ValidationError"
+          $ref: "#/components/responses/BadRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
-  /auth/login:
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/ServerError"
+        default:
+          $ref: "#/components/responses/DefaultProblem"
+  /admin/session:
     post:
-      tags: [Authentication]
-      summary: Autentica administrador
-      description: "Formato definitivo de sessão/token: PENDENTE DE DECISÃO."
+      tags: [Sessão administrativa]
+      operationId: createAdminSession
+      summary: Solicita autenticação administrativa
+      description: |
+        Rascunho bloqueado. Credenciais, sessão/cookie, CSRF, respostas e origem dependem de
+        TEC-04/05 e ONG-01. Não há security scheme aprovado.
+      x-saal-status: blocked-by-approval
+      x-saal-blocked-by: [ONG-01, ONG-09, TEC-04, TEC-05]
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/LoginInput"
+              $ref: "#/components/schemas/AdminSessionInput"
       responses:
         "200":
-          description: Autenticação válida
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/AuthResult"
+          description: Sessão estabelecida pelo mecanismo ainda não decidido
+        "400":
+          $ref: "#/components/responses/BadRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/ServerError"
+        default:
+          $ref: "#/components/responses/DefaultProblem"
+    delete:
+      tags: [Sessão administrativa]
+      operationId: deleteAdminSession
+      summary: Encerra sessão administrativa
+      description: Logout deve invalidar credencial no servidor; protocolo/topologia pendentes.
+      x-saal-status: blocked-by-approval
+      x-saal-blocked-by: [ONG-01, TEC-04, TEC-05]
+      x-saal-auth-required: true
+      responses:
+        "204":
+          description: Sessão invalidada pelo servidor
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/ServerError"
+        default:
+          $ref: "#/components/responses/DefaultProblem"
   /contact-messages:
     post:
-      tags: [Contact]
+      tags: [Contato]
+      operationId: submitContactMessage
       summary: Envia mensagem de contato
-      description: "Persistência e entrega por e-mail: PENDENTE DE DECISÃO."
+      description: |
+        Bloqueado. Destino, campos, finalidade/retention e política antiabuso ainda não foram
+        aprovados; não coletar nem confirmar mensagem com este rascunho.
+      x-saal-status: blocked-by-business-approval
+      x-saal-blocked-by: [ONG-05, ONG-07, ONG-09]
       requestBody:
         required: true
         content:
@@ -228,16 +428,18 @@ paths:
               $ref: "#/components/schemas/ContactMessageInput"
       responses:
         "202":
-          description: Mensagem aceita para processamento
+          description: Aceite pelo destino efetivo, não significa lida ou respondida
         "400":
-          $ref: "#/components/responses/ValidationError"
+          $ref: "#/components/responses/BadRequest"
+        "413":
+          $ref: "#/components/responses/PayloadTooLarge"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/ServerError"
+        default:
+          $ref: "#/components/responses/DefaultProblem"
 components:
-  securitySchemes:
-    bearerAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
-      description: Mecanismo provisório; decisão arquitetural pendente.
   parameters:
     AnimalId:
       in: path
@@ -245,159 +447,144 @@ components:
       required: true
       schema:
         type: string
+        minLength: 1
   responses:
-    ValidationError:
-      description: Dados inválidos
+    BadRequest:
+      description: Requisição inválida; não ecoar valores sensíveis da entrada.
       content:
-        application/json:
+        application/problem+json:
           schema:
-            $ref: "#/components/schemas/Problem"
+            $ref: "#/components/schemas/ProblemDetails"
     Unauthorized:
-      description: Não autenticado ou credenciais inválidas
+      description: Credencial ausente ou inválida; mensagem genérica sem enumeração.
       content:
-        application/json:
+        application/problem+json:
           schema:
-            $ref: "#/components/schemas/Problem"
+            $ref: "#/components/schemas/ProblemDetails"
+    Forbidden:
+      description: Identidade autenticada sem autorização para a operação/recurso.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemDetails"
     NotFound:
-      description: Recurso não encontrado
+      description: Recurso não encontrado; não revelar recurso protegido.
       content:
-        application/json:
+        application/problem+json:
           schema:
-            $ref: "#/components/schemas/Problem"
+            $ref: "#/components/schemas/ProblemDetails"
+    Conflict:
+      description: Conflito de estado/concorrência; sem regra de transição presumida.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemDetails"
+    PayloadTooLarge:
+      description: Payload excede limite configurado, ainda pendente de decisão operacional.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemDetails"
+    TooManyRequests:
+      description: Requisição limitada por controle antiabuso a definir; sem detalhe que facilite abuso.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemDetails"
+    ServerError:
+      description: Erro interno genérico; sem stack trace, SQL, credenciais ou PII.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemDetails"
+    DefaultProblem:
+      description: Outro erro HTTP com formato Problem Details, sem detalhe interno.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemDetails"
   schemas:
-    Species:
-      type: string
-      enum: [DOG, CAT]
-    AnimalSize:
-      type: string
-      enum: [SMALL, MEDIUM, LARGE]
-    Sex:
-      type: string
-      enum: [MALE, FEMALE]
-    AnimalStatus:
-      type: string
-      enum: [AVAILABLE, TREATMENT, ADOPTED]
-    AdoptionRequestStatus:
-      type: string
-      enum: [PENDING, ACCEPTED, REJECTED]
-    AnimalInput:
+    PublicAnimal:
       type: object
-      required: [name, species, age, size, sex, status, description]
-      properties:
-        name:
-          type: string
-          minLength: 1
-        species:
-          $ref: "#/components/schemas/Species"
-        age:
-          type: string
-          minLength: 1
-        size:
-          $ref: "#/components/schemas/AnimalSize"
-        sex:
-          $ref: "#/components/schemas/Sex"
-        status:
-          $ref: "#/components/schemas/AnimalStatus"
-        description:
-          type: string
-          minLength: 1
-        personality:
-          type: array
-          items:
-            type: string
-        medicalInfo:
-          type: string
-        images:
-          type: array
-          items:
-            type: string
-            format: uri
-    Animal:
-      allOf:
-        - $ref: "#/components/schemas/AnimalInput"
-        - type: object
-          required: [id]
-          properties:
-            id:
-              type: string
-            createdAt:
-              type: string
-              format: date-time
-            updatedAt:
-              type: string
-              format: date-time
+      additionalProperties: false
+      description: |
+        Projeção sem propriedades de propósito: ONG-02/ONG-10 ainda não aprovaram campos
+        nem visibilidade. Não é um DTO implementável.
+    AdminAnimal:
+      type: object
+      additionalProperties: false
+      description: |
+        Projeção sem propriedades de propósito: ONG-01/ONG-02/ONG-10 ainda não aprovaram
+        permissões, campos ou visibilidade. Não é um DTO implementável.
+    AdminAnimalInput:
+      type: object
+      additionalProperties: false
+      description: Campos/validações bloqueados; não aceitar payload de negócio até aprovação.
     AdoptionRequestInput:
       type: object
-      required: [animalId, applicantName, email, phone]
-      properties:
-        animalId:
-          type: string
-        applicantName:
-          type: string
-          minLength: 1
-        email:
-          type: string
-          format: email
-        phone:
-          type: string
-          minLength: 1
-        message:
-          type: string
-    AdoptionRequest:
-      allOf:
-        - $ref: "#/components/schemas/AdoptionRequestInput"
-        - type: object
-          required: [id, status, createdAt]
-          properties:
-            id:
-              type: string
-            status:
-              $ref: "#/components/schemas/AdoptionRequestStatus"
-            createdAt:
-              type: string
-              format: date-time
-    LoginInput:
+      additionalProperties: false
+      description: |
+        Schema intencionalmente vazio. Campos PII, finalidade e validação estão bloqueados
+        por ONG-04/ONG-05/ONG-09/ONG-10.
+    AdoptionReceipt:
       type: object
-      required: [username, password]
-      properties:
-        username:
-          type: string
-        password:
-          type: string
-          format: password
-    AuthResult:
+      additionalProperties: false
+      description: Recibo sem campos definido; resposta de sucesso só após persistência real aprovada.
+    AdminAdoptionRequest:
       type: object
-      description: Estrutura provisória até decisão de autenticação.
-      properties:
-        accessToken:
-          type: string
-        expiresAt:
-          type: string
-          format: date-time
+      additionalProperties: false
+      description: |
+        Schema intencionalmente vazio; nenhum PII pode ser exposto até aprovação de campos,
+        finalidade e permissões. Não é um DTO implementável.
+    AdoptionStatusUpdate:
+      type: object
+      additionalProperties: false
+      description: Status e transições do mock não são aprovados; schema sem propriedades.
+    AdminSessionInput:
+      type: object
+      additionalProperties: false
+      description: Credenciais/identificador e formato de sessão dependem de TEC-04/05 e ONG-01.
     ContactMessageInput:
       type: object
-      required: [name, email, subject, message]
-      properties:
-        name:
-          type: string
-        email:
-          type: string
-          format: email
-        subject:
-          type: string
-        message:
-          type: string
-    Problem:
+      additionalProperties: false
+      description: Campos PII e destino de contato dependem de ONG-05/ONG-07/ONG-09.
+    ProblemDetails:
       type: object
-      required: [status, title]
+      description: |
+        Formato base RFC 9457. Extensão errors contém somente códigos e ponteiros de campo;
+        nunca incluir valores enviados, credenciais, stack trace, SQL ou PII.
+      required: [type, title, status]
       properties:
-        status:
-          type: integer
+        type:
+          type: string
+          format: uri-reference
+          description: URI que identifica a classe do problema.
         title:
           type: string
+          description: Resumo seguro e estável para a classe do problema.
+        status:
+          type: integer
+          minimum: 100
+          maximum: 599
+          description: Status HTTP da resposta.
         detail:
           type: string
-        fieldErrors:
-          type: object
-          additionalProperties:
-            type: string
+          description: Explicação segura, sem detalhe interno ou valores pessoais.
+        instance:
+          type: string
+          format: uri-reference
+          description: Identificador não sensível desta ocorrência.
+        errors:
+          type: array
+          description: Extensão local opcional com erros por campo sem refletir valores enviados.
+          items:
+            type: object
+            additionalProperties: false
+            required: [pointer, code]
+            properties:
+              pointer:
+                type: string
+                description: JSON Pointer do campo inválido.
+              code:
+                type: string
+                description: Código estável de validação, sem conteúdo do campo.
