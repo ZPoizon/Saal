@@ -40,7 +40,8 @@ orquestram carregamento; componentes visuais recebem props.
 - Typecheck: `pnpm typecheck`.
 - Build: `pnpm build`.
 - Formatação: `pnpm format`.
-- Testes e lint: não configurados; adoção de ferramentas é `PENDENTE DE DECISÃO`.
+- Testes Vitest e lint Oxlint são configurados pelo I0; a cobertura atual é limitada e não
+  representa testes de componentes, API, browser ou acessibilidade.
 
 ## Restrições
 

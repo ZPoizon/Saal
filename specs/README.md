@@ -4,6 +4,13 @@ Esta pasta é a fonte normativa para evolução incremental do SAAL. A documenta
 na raiz continua útil, mas, em caso de divergência sobre estado implementado, prevalecem o
 código observado e estas especificações.
 
+As políticas permanentes que complementam as especificações estão em
+[`docs/architecture/ARCHITECTURE.md`](../docs/architecture/ARCHITECTURE.md),
+[`docs/security/SECURITY_POLICY.md`](../docs/security/SECURITY_POLICY.md),
+[`docs/security/SECURITY_CHECKLIST.md`](../docs/security/SECURITY_CHECKLIST.md) e
+[`docs/development/DEVELOPMENT_STANDARDS.md`](../docs/development/DEVELOPMENT_STANDARDS.md).
+Consulte-as antes de implementar e ao revisar alterações.
+
 ## Como trabalhar
 
 1. Escolha uma feature em `features/`.
@@ -47,5 +54,7 @@ código observado e estas especificações.
 - Definir ciclo de vida completo de uma solicitação de adoção.
 - Definir retenção, consentimento e exclusão de dados pessoais conforme LGPD.
 - Definir armazenamento, limites e moderação de imagens.
-- Adicionar infraestrutura de testes automatizados e lint.
+- Ampliar testes além da base Vitest/Oxlint de I0, incluindo integrações backend e browser.
+- Flyway está escolhido para uso futuro; schema/migrations continuam não implementados e
+  dependem do modelo de domínio aprovado.
 - Implementar backend Spring Boot e banco MySQL 8 em projeto próprio quando aprovado.

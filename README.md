@@ -16,21 +16,26 @@ Site oficial da ONG de proteção animal SAAL, localizada em Capão Bonito - SP.
 
 ```bash
 pnpm install --frozen-lockfile
-cp .env.example .env.local
 pnpm dev
 ```
 
-Comandos de qualidade:
+Comandos de validação:
 
 ```bash
 pnpm typecheck
+pnpm test
+pnpm lint
+pnpm format:check
+pnpm audit --audit-level=moderate
+pnpm secrets:check
 pnpm build
-pnpm format
-pnpm preview
 ```
 
-Não há comando de teste ou lint configurado neste momento. `pnpm format` formata arquivos,
-mas não substitui lint nem testes.
+`pnpm format:check` verifica a formatação sem modificar arquivos. `pnpm format` aplica
+formatação e altera arquivos. O workflow `.github/workflows/quality.yml` executa os checks
+de qualidade no GitHub Actions; a existência do workflow não significa que esses checks
+sejam obrigatórios para merge. Para visualizar o build local, execute `pnpm preview` após
+`pnpm build`.
 
 ### IntelliJ IDEA
 
@@ -63,16 +68,16 @@ e não são necessários para executar o protótipo atual.
 
 ## Exportação para GitHub
 
+Este projeto já possui o remoto `origin` configurado. Antes de publicar alterações, confira
+a branch e revise cuidadosamente o escopo:
+
 ```bash
-git status
-git add .
-git commit -m "Prepare SAAL for spec-driven development"
-git remote add github https://github.com/SEU_USUARIO/SEU_REPOSITORIO.git
-git push -u github main
+git status --short --branch
+git diff
 ```
 
-Se o remoto `github` já existir, use `git remote set-url github <URL>`. Revise `git diff
---staged` antes do commit e nunca envie arquivos `.env`.
+Não inclua arquivos `.env` com credenciais; `VITE_*` também fica público no bundle do
+navegador.
 
 ## 🎨 Sobre o Projeto
 

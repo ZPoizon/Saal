@@ -36,20 +36,56 @@ Instruções permanentes para assistentes de IA que trabalhem neste repositório
 - Documentar decisões arquiteturais importantes em `specs/decisions/`.
 - Tratar dados pessoais conforme LGPD e aplicar menor privilégio na área administrativa.
 
+## Políticas de engenharia e segurança
+
+Antes de alterar código:
+
+1. Leia este arquivo, `specs/README.md`, a especificação da funcionalidade e os ADRs
+   relacionados.
+2. Consulte `docs/architecture/ARCHITECTURE.md`,
+   `docs/development/DEVELOPMENT_STANDARDS.md` e as partes aplicáveis de
+   `docs/security/SECURITY_POLICY.md`.
+3. Use `docs/security/SECURITY_CHECKLIST.md` para identificar ameaças e controles relevantes.
+   Não invente regras marcadas `PENDENTE DE DECISÃO`.
+4. Preserve alterações preexistentes no worktree e não amplie o escopo sem justificativa.
+
+Após cada alteração relevante, revise regressões e riscos de segurança e execute as
+verificações disponíveis para a mudança. Informe exatamente o que foi executado e o que
+permanece sem cobertura; não declare testes, lint, CI ou proteções do GitHub como existentes
+ou aprovados sem evidência.
+
+As políticas descrevem controles esperados, não garantem que estejam implementados. O
+frontend atual é um protótipo e autenticação, autorização, persistência e proteção de dados
+precisam ser aplicadas no backend quando ele for aprovado e construído.
+
 ## Comandos oficiais
 
 ```bash
 pnpm install --frozen-lockfile
 pnpm typecheck
+pnpm test
+pnpm lint
+pnpm format:check
+pnpm audit --audit-level=moderate
+pnpm secrets:check
 pnpm build
 pnpm format
 ```
 
-Não há suíte de testes ou lint configurados atualmente. Não afirmar que testes/lint passaram.
+Testes, lint, verificação de formatação em arquivos de código alterados, auditoria de
+dependências e scanner de segredos são executados pelo workflow
+`.github/workflows/quality.yml`. `pnpm format` modifica arquivos; usar `pnpm format:check`
+para validação sem escrita. A existência do workflow não prova que ele já executou no GitHub
+nem que seus checks sejam obrigatórios para merge; verificar a configuração da branch antes
+de fazer essa afirmação.
 
 ## Arquivos de referência
 
 - `specs/`: fonte normativa para desenvolvimento.
+- `docs/architecture/ARCHITECTURE.md`: arquitetura atual e direção aprovada.
+- `docs/security/SECURITY_POLICY.md`: política de segurança.
+- `docs/security/SECURITY_CHECKLIST.md`: revisão por mudança.
+- `docs/development/DEVELOPMENT_STANDARDS.md`: padrões, verificações e plano de automação.
 - `src/main.tsx`: entrada do navegador.
 - `src/app/routes.tsx`: rotas.
 - `src/app/data/animals.ts`: modelo e dados mockados atuais.
