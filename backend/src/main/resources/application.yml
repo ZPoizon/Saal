@@ -1,0 +1,28 @@
+spring:
+  application:
+    name: saal-api
+  mvc:
+    problemdetails:
+      enabled: true
+    log-request-details: false
+server:
+  port: ${PORT:8080}
+  error:
+    include-message: never
+    include-stacktrace: never
+    include-binding-errors: never
+    include-exception: false
+  shutdown: graceful
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+      probes:
+        enabled: true
+logging:
+  level:
+    root: INFO
