@@ -4,6 +4,15 @@ Esta matriz registra estado no código lido; endpoints e persistência são do O
 **planejados**, não serviços ativos. Testes mencionados são requisitos futuros, não foram
 executados nesta auditoria.
 
+**Atualização I1 (2026-10-29):** as respostas da responsável da ONG alteraram o escopo de
+negócio. O produto é catálogo + manifestação de interesse, com dois estados de animal
+(`AVAILABLE`/`ADOPTED`), 1–3 fotos, intake com nome/WhatsApp/cidade/e-mail, um administrador,
+avaliação manual e gestão somente leitura. As linhas abaixo que mencionam três estados,
+`TREATMENT`, transições de solicitação, histórico detalhado ou contato no primeiro incremento
+são históricas e estão superadas por `specs/decisions/I1-approval-register.md`,
+`specs/decisions/ADR-005-escopo-catalogo-e-interesse.md` e
+`I1-INTERACTION-TRACEABILITY.md`.
+
 O detalhamento I1 de todos os IDs do inventário, incluindo requisitos, endpoint ou N/A,
 persistência, teste e bloqueio, está em
 [`I1-INTERACTION-TRACEABILITY.md`](I1-INTERACTION-TRACEABILITY.md).
@@ -15,18 +24,18 @@ persistência, teste e bloqueio, está em
 | Navegação SPA, URLs e 404 | `routes.tsx`, `RootLayout.tsx`, `Header.tsx`, `Footer.tsx`, `NotFound.tsx` | N/A | N/A | E2E: cada link/rota, rota inválida, refresh e deep link | Parcialmente executável localmente; nenhum teste automatizado |
 | Navegação, links, conteúdo e acessibilidade compartilhados | `Header.tsx`, `Footer.tsx`, `HelpBanner.tsx`, `AnimalCard.tsx`, `AnimalDetail.tsx`, `NotFound.tsx`, `index.html` | N/A; depende das APIs de catálogo/contato | N/A | Testes de interação por ID; teclado/foco/semântica, share, destinos, estatísticas verificadas, viewport/zoom e metadata | Parcial/inconsistente; coberto por nova capability `public-experience` |
 | Home/indicadores | `Home.tsx` | **Não há endpoint de estatísticas** | Fonte autorizada a decidir; hoje literais | Teste de origem/definição do indicador ou retirada/rotulagem das cifras | Estático/simulado |
-| Catálogo público | `Animals.tsx`, `AnimalCard.tsx`, `data/animals.ts` | `GET /animals?status&species&search` | `animals`, `animal_images` futuros | API: só available; busca/filter combinados; vazio/erro/paginação se aprovada | Mock; sem API |
+| Catálogo público | `Animals.tsx`, `AnimalCard.tsx`, `data/animals.ts` | `GET /animals?species&search` | `animals`, `animal_images` futuros | API: só available; busca/filter combinados; vazio/erro/paginação se aprovada | Mock; sem API |
 | Detalhe / galeria / status | `AnimalDetail.tsx` | `GET /animals/{animalId}` | `animals`, `animal_images` | Contrato e UI: existente, 404, status, galeria e falha de foto | Mock |
 | Compartilhar detalhe | `AnimalDetail.tsx` | N/A | N/A | UI: nativo, não suportado, rejeição e alternativa acessível | Parcial; falha sem fallback |
 | Manifestar interesse | `Interest.tsx`, `InterestContext.tsx` | `POST /adoption-requests` | `adoption_requests` + FK animal (não implementado) | API/UI: campo inválido, animal indisponível, persistência/reload, timeout/retry duplicado | Simulado em estado volátil |
-| Autenticar/logout | `Admin.tsx` | `POST /auth/login`; **logout não consta** | `administrators` com hash e estado futuro | API: login válido/inválido, rate limit, sessão expirada/revogada, logout | Protótipo inseguro; endpoint não existe |
-| Leitura admin por recurso | `Admin.tsx`, `/admin` em `routes.tsx` | `GET /animals` é público; não existe operação admin específica | `animals` | Testes de 401/403, role e permissão do recurso em todos métodos | Ausente; rota pública |
-| Criar/editar animal | `Admin.tsx`, `AnimalForm.tsx` | `POST /animals`, `PUT /animals/{animalId}` | `animals`, `animal_images` | CRUD com autorização, validação, concorrência, falha e efeito público | Só array local separado |
-| Remoção animal | `Admin.tsx` | `DELETE /animals/{animalId}` (delete/archive pendente) | `animals`, relações/solicitações | Testar política aprovada, integridade referencial, confirmação/cancelamento | Só remove do array |
+| Autenticar/logout | `Admin.tsx` | `POST /admin/session`; `DELETE /admin/session` (bloqueados) | `administrators` com hash e estado futuro | API: login válido/inválido, rate limit, sessão expirada/revogada, logout | Protótipo inseguro; endpoint não existe |
+| Leitura admin por recurso | `Admin.tsx`, `/admin` em `routes.tsx` | `GET /admin/animals` (bloqueado) | `animals` | Testes de 401/403 e autorização server-side em todos métodos | Ausente; rota pública |
+| Criar/editar animal | `Admin.tsx`, `AnimalForm.tsx` | `POST /admin/animals`, `PUT /admin/animals/{animalId}` (bloqueados) | `animals`, `animal_images` | CRUD com autorização, validação, concorrência, falha e efeito público | Só array local separado |
+| Remoção animal | `Admin.tsx` | `DELETE /admin/animals/{animalId}` (deferred) | `animals`, relações/solicitações | Testar política aprovada, integridade referencial, confirmação/cancelamento | Só remove do array; fora do primeiro incremento |
 | Upload imagem | `AnimalForm.tsx` | **Nenhum endpoint de imagem** | `animal_images` com localização/meta; storage pendente | Tipo real, MIME/spoof, limite, dimensões, malware quando aplicável, acesso e falha storage | Base64/URL local |
-| Lista admin de solicitações | `Admin.tsx`, `InterestContext.tsx` | `GET /adoption-requests` + filtro status/animalId | `adoption_requests` | 401/403; PII; filtros; vazio/erro; paginação se aprovada | Parcial local |
-| Atualizar status da solicitação | `Admin.tsx`, `InterestContext.tsx` | `PATCH /adoption-requests/{requestId}/status` | `adoption_requests`; histórico pendente | Matriz de transições, idempotência/conflito, auditoria e contagem | Só Context local; regras pendentes |
-| Contato por formulário | `Contact.tsx` | `POST /contact-messages` (`202`) | Persistência/e-mail pendente | Aceitação real, erro, retry, rate limit e minimização/log sem PII | Sucesso falso sem envio |
+| Lista admin de solicitações | `Admin.tsx`, `InterestContext.tsx` | `GET /admin/adoption-requests` (somente leitura) | `adoption_requests` | 401/403; PII; filtros; vazio/erro; paginação se aprovada | Parcial local |
+| Atualizar status da solicitação | `Admin.tsx`, `InterestContext.tsx` | N/A — sem workflow de status aprovado | `adoption_requests` sem estado de aprovação | Nenhum endpoint ou ação de transição deve existir | Fora do escopo; protótipo local não aprovado |
+| Contato por formulário | `Contact.tsx` | `POST /contact-messages` (deferred) | Persistência/e-mail pendente | Aceitação real, erro, retry, rate limit e minimização/log sem PII | Sucesso falso sem envio; fora do primeiro incremento |
 | Links de contato externos | `Contact.tsx`, `Footer.tsx`, `WhatsAppButton.tsx` | N/A | N/A | Verificação manual dos destinos e abertura segura | Links codificados; destinos externos não verificados |
 | Segurança de entrada/saída | Forms atuais; React escaping padrão | Validação/error models OpenAPI incompletos | Validação de fronteira backend futura | Testes de payload inválido, XSS e erros sem detalhe | HTML client-side apenas |
 | Responsividade e acessibilidade | Tailwind nas páginas/componentes; nenhum test runner | N/A | N/A | E2E/axe + teclado/leitor/viewport para WCAG 2.2 AA | Não verificado em runtime |

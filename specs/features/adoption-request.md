@@ -20,19 +20,21 @@ Visitante interessado; equipe SAAL como destinatária futura.
 
 ## 5. Regras de negócio
 
-- Nome, e-mail e telefone são obrigatórios; mensagem é opcional.
-- Nova solicitação recebe status `pending` no protótipo.
-- O processo divulgado prevê contato, entrevista/visita e eventual aprovação.
-- Consentimento LGPD, duplicidade, prazo de resposta e elegibilidade:
-  `PENDENTE DE DECISÃO`.
+- Campos aprovados para coleta: nome, WhatsApp, cidade e e-mail, além da referência ao animal
+  (ONG-05, parcial).
+- O campo de mensagem do protótipo não foi aprovado e não deve ser persistido.
+- A avaliação é manual pela ONG; o contato é feito pelo WhatsApp. Não há workflow de status
+  nem transições de aprovação/recusa (ONG-04, parcial).
+- Obrigatoriedade individual, consentimento/base legal, finalidade, aviso de privacidade,
+  duplicidade, retenção, acesso e prazo de resposta: `PENDENTE DE DECISÃO`.
 
 ## 6. Fluxo principal
 
 1. Sistema mostra o animal selecionado.
-2. Visitante informa nome, e-mail, telefone e mensagem opcional.
-3. Navegador valida obrigatoriedade e formato de e-mail.
+2. Visitante informa nome, WhatsApp, cidade e e-mail.
+3. Navegador valida formato dos campos conforme decisão de obrigatoriedade.
 4. Visitante envia.
-5. Sistema registra e confirma o interesse.
+5. Sistema registra a manifestação e confirma o recebimento, sem afirmar aprovação da adoção.
 
 ## 7. Fluxos alternativos
 
@@ -43,17 +45,19 @@ Visitante interessado; equipe SAAL como destinatária futura.
 
 ## 8. Critérios de aceitação
 
-- **Dado** animal disponível e dados válidos, **quando** enviar, **então** uma solicitação
-  pendente será criada uma única vez e a confirmação será exibida.
-- **Dado** campo obrigatório vazio ou e-mail inválido, **quando** enviar, **então** o
-  navegador impedirá o envio.
+- **Dado** animal `AVAILABLE` e dados válidos, **quando** enviar, **então** uma manifestação
+  será registrada uma única vez e a confirmação de recebimento será exibida.
+- **Dado** campo aprovado inválido, **quando** enviar, **então** o navegador impedirá o envio
+  e o servidor repetirá a validação.
 - **Dado** falha do servidor, **quando** enviar, **então** não haverá confirmação falsa.
-- **Dado** animal inexistente, **quando** abrir o formulário, **então** haverá estado de erro.
+- **Dado** animal inexistente ou `ADOPTED`, **quando** abrir o formulário ou enviar,
+  **então** haverá estado de erro e nenhum registro será criado.
 
 ## 9. Dados necessários
 
-ID/nome/imagem do animal; nome, e-mail, telefone e mensagem do interessado; ID, status e
-data da solicitação.
+ID/referência do animal; nome, WhatsApp, cidade e e-mail do interessado; ID e timestamp
+técnico da manifestação. Não há status de aprovação nem mensagem. Finalidade, retenção e
+acesso continuam `PENDENTE DE DECISÃO` (ONG-05).
 
 ## 10. Contratos de API relacionados
 
@@ -61,8 +65,9 @@ Planejado: `POST /adoption-requests`. Não implementado.
 
 ## 11. Validações
 
-Cliente: required e formato de e-mail. Servidor futuro: todos os campos, limites de tamanho,
-animal existente/disponível e normalização de telefone. Limites são `PENDENTE DE DECISÃO`.
+Cliente: formato dos campos aprovados. Servidor futuro: todos os campos, limites de tamanho,
+animal existente e `AVAILABLE` e normalização de WhatsApp. Obrigatoriedade e limites são
+`PENDENTE DE DECISÃO`; a validação do servidor é autoritativa.
 
 ## 12. Requisitos de segurança
 

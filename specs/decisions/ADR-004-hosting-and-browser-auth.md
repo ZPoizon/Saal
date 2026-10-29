@@ -105,8 +105,9 @@ conta, região, domínio, preço final, disponibilidade, SLA ou operação real 
 - Aprovar secret manager/canal de provisionamento, rotação e acessos administrativos.
 - Definir política e operação de migrations, backup/restore, monitoramento e resposta a
   incidentes; validar custos e limites atuais com as contas reais.
-- Obter decisões ONG sobre contas/papéis, coleta e retenção de dados, publicação,
-  elegibilidade, imagens e conteúdo antes de transformar requisitos de negócio em contrato.
+- Obter decisões ONG sobre identidade/sessão do único administrador (sem papéis), coleta e
+  retenção de dados, publicação, elegibilidade, imagens e conteúdo antes de transformar
+  requisitos de negócio em contrato.
 
 ## Consequências
 

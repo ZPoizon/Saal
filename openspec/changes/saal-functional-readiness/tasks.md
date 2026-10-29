@@ -15,11 +15,11 @@ Registro formal de decisões e checklist de aprovação:
 Recomendações ali não são decisões aprovadas; manter os gates abaixo pendentes até
 registrar evidência ou bloqueio explícito.
 
-- [x] 2.1 Registrar ONG-01–ONG-11 sem inferir respostas: decisões e valores do protótipo permanecem pendentes, cada uma com função responsável, requisitos afetados e escopo explicitamente fora do contrato implementável. Evidência em `specs/decisions/I1-approval-register.md` (2026-10-28); a conclusão é documental, não aprovação de negócio.
-- [ ] 2.2 Consolidar escolhas técnicas autorizadas e manter propostas separadas: Java 21/Spring Boot 4.1.2 condicional, Maven Wrapper, Spring Security, JPA, Bean Validation, Flyway, testes, Docker, GitHub Actions e RFC 9457 foram registrados. Sessão/protocolo, origens/topologia e ferramenta OpenAPI para CI continuam pendentes de aprovação; revalidar a compatibilidade operacional do Spring Boot 4.1.2 antes do I2.
-- [ ] 2.3 Revisar o modelo: tecnologias e invariantes técnicas aprovadas foram separadas de entidades/campos candidatos. Como nenhuma decisão de domínio/PII da ONG foi recebida, os campos do mock foram explicitamente excluídos do modelo implementável; não há modelo final de domínio.
-- [x] 2.4 Reconciliar o rascunho OpenAPI com operações públicas e administrativas separadas, sem security scheme presumido, com Problem Details baseado em RFC 9457, códigos de erro e validação segura; campos/estados, limites operacionais, upload, intake, contato e operações admin permanecem bloqueados quando dependem de aprovação. Redocly CLI 2.72.0 foi validada localmente como candidata versionada; aprovação para incorporá-la ao CI continua pendente.
-- [x] 2.5 Associar cada ID de `docs/diagnostics/INTERACTION_INVENTORY.md` a requisito/capability, endpoint ou N/A, persistência, teste previsto e status/bloqueio em `docs/diagnostics/I1-INTERACTION-TRACEABILITY.md`; nenhum endpoint é declarado ativo.
+- [x] 2.1 Registrar ONG-01–ONG-11 sem inferir respostas. Respostas da responsável da ONG comunicadas pelo mantenedor foram registradas em `specs/decisions/I1-approval-register.md` em 2026-10-29: 9 decisões parciais e 2 pendentes (ONG-07, ONG-09). Nenhuma decisão foi declarada integralmente aprovada; o terceiro canal de contato não foi fixado porque a pergunta original não está no repositório.
+- [ ] 2.2 Consolidar escolhas técnicas autorizadas e manter propostas separadas: Java 21/Spring Boot 4.1.2 condicional, Maven Wrapper, Spring Security, JPA, Bean Validation, Flyway, testes, Docker, GitHub Actions e RFC 9457 foram registrados. Sessão/protocolo, origens/topologia e ferramenta OpenAPI para CI continuam pendentes de aprovação; revalidar a compatibilidade operacional do Spring Boot 4.1.2 antes do I2. O escopo de negócio não inclui papéis diferenciados.
+- [x] 2.3 Revisar o modelo: `specs/contracts/data-model.md` foi reconciliado com os estados `AVAILABLE`/`ADOPTED`, 1–3 fotos, campos de intake aprovados, um administrador e ausência de workflow/auditoria detalhada. Demais campos, visibilidade, retenção, storage e limites continuam pendentes; não há modelo final de domínio.
+- [x] 2.4 Reconciliar o rascunho OpenAPI com o escopo aprovado: estados, 1–3 fotos, intake com nome/WhatsApp/cidade/e-mail, gestão somente leitura e ausência de transições. Security scheme, demais campos, limites, upload e contato condicional permanecem bloqueados. Redocly CLI 2.72.0 validou a estrutura com `security-defined`, `no-empty-servers` e `info-license` desativados por ausência intencional de scheme/servidor/licença; aprovação para CI continua pendente.
+- [x] 2.5 Associar cada ID de `docs/diagnostics/INTERACTION_INVENTORY.md` a requisito/capability, endpoint ou N/A, persistência, teste previsto e status/bloqueio em `docs/diagnostics/I1-INTERACTION-TRACEABILITY.md`; nenhum endpoint é declarado ativo. Reconciliar a remoção do fluxo de status e o adiamento do contato.
 
 ## 3. Serviço backend mínimo — I2
 
@@ -36,54 +36,54 @@ registrar evidência ou bloqueio explícito.
 
 ## 5. Autenticação e autorização — I4
 
-- [ ] 5.1 Implementar provisionamento controlado de primeira conta, gestão de conta conforme papel aprovado e hash adaptativo de senha; verificar ausência de autoinscrição/admin/credenciais padrão não aprovados.
+- [ ] 5.1 Implementar provisionamento controlado da única conta administrativa e hash adaptativo de senha; verificar ausência de autoinscrição, papéis diferenciados e admin/credenciais padrão não aprovados. Identidade, revogação e recuperação continuam pendentes (ONG-01).
 - [ ] 5.2 Implementar login, sessão/token aprovado, expiração, revogação e logout; verificar credential anterior é negada após logout e não há segredo em URL, storage inseguro ou log.
 - [ ] 5.3 Aplicar CSRF, cookie/session flags, CORS allowlist, headers e rate limit segundo arquitetura/origens aprovadas; verificar requests válidos e forjados.
-- [ ] 5.4 Aplicar autorização server-side por operação e recurso a todo endpoint protegido, inclusive leitura e lista; verificar testes positivos, 401, 403 e tentativas IDOR.
+- [ ] 5.4 Aplicar autorização server-side por operação a todo endpoint protegido, inclusive leitura e lista, mesmo com um único administrador; verificar testes positivos, 401, 403 e tentativas IDOR. Não há matriz de papéis a implementar.
 - [ ] 5.5 Testar abuso, enumeração, autenticação inválida, expiração, revogação e proteção contra vazamento; verificar casos incluídos no CI e registrados na capability.
 
 ## 6. Operações administrativas de animais — I5
 
 - [ ] 6.1 Implementar leitura administrativa de animais com proteção e consulta pública separada; verificar admin autorizado pode consultar registros não públicos e visitante não os recebe.
 - [ ] 6.2 Implementar create/update com DTOs allowlist, validação server-side, consultas parametrizadas/ORM e concorrência definida; verificar dados aceitos persistem e inválidos não produzem gravação parcial.
-- [ ] 6.3 Implementar status, publicação e archive/delete conforme decisão aprovada; verificar referências de solicitações e histórico são preservados conforme política.
-- [ ] 6.4 Registrar alterações administrativas no escopo de auditoria aprovado, sem conteúdo PII desnecessário; verificar actor, ação, resultado e acesso restrito.
+- [ ] 6.3 Implementar somente os estados `AVAILABLE`/`ADOPTED` e a quantidade de 1–3 fotos; não implementar `TREATMENT`, publicação/rascunho, exclusão ou arquivamento no primeiro incremento. Verificar que animais adotados permanecem cadastrados e que referências não são removidas.
+- [ ] 6.4 Implementar logs mínimos de segurança no escopo aprovado, sem histórico administrativo detalhado nem PII desnecessária; verificar actor, ação, resultado e acesso restrito. Escopo/retenção pendentes (ONG-08).
 - [ ] 6.5 Implementar no painel estados de carregamento/vazio/erro, formulário/dialog acessível e feedback após confirmação do servidor; verificar edição/cancelamento/falha sem falso sucesso ou perda dos campos.
 
 ## 7. Imagens — I6
 
-- [ ] 7.1 Integrar storage aprovado e metadados/ordenação da imagem; verificar persistência, associação ao animal, descarte/orphan handling e acesso configurado.
+- [ ] 7.1 Integrar storage aprovado e metadados/ordenação da imagem, respeitando 1–3 fotos por animal; verificar persistência, associação ao animal, descarte/orphan handling e acesso configurado. Storage e formatos continuam pendentes (ONG-06).
 - [ ] 7.2 Validar conteúdo decodificado, formato allowlist, tamanho/dimensão, nomes gerados e metadata; verificar extensão/MIME spoofados, arquivo inválido e excedente não são publicados.
-- [ ] 7.3 Implementar preview e substituição acessíveis, falhas recuperáveis e remoção conforme permissão; verificar teclado, foco e upload sem simulação Base64 como persistência.
+- [ ] 7.3 Implementar preview e substituição acessíveis, falhas recuperáveis e remoção de foto conforme autorização administrativa, mantendo 1–3 fotos; verificar teclado, foco e upload sem simulação Base64 como persistência.
 - [ ] 7.4 Documentar custo, credenciais, retenção e limites operacionais sem expor segredos; verificar configuração segura em ambiente.
 
 ## 8. Catálogo e experiência pública — I7
 
-- [ ] 8.1 Implementar listagem/detalhe somente de registros publicados e campos públicos aprovados; verificar estados/visibilidade não expõem drafts, PII ou dados administrativos.
+- [ ] 8.1 Implementar listagem somente de animais `AVAILABLE` e detalhe com estado/fotos aprovados; verificar que `ADOPTED` não é oferecido para adoção, que a visibilidade pública de adotados segue ONG-02 e que PII/dados administrativos não são expostos.
 - [ ] 8.2 Implementar busca/filtros/apresentação aprovados, allowlist de ordenação e limites/paginação quando aprovados; verificar combinação, vazio, entrada inválida e SQL injection.
 - [ ] 8.3 Conectar home, catálogo e detalhe via serviço tipado sem fallback silencioso para mocks; verificar loading/erro/vazio/404 e reload refletem backend.
-- [ ] 8.4 Corrigir alvos de ação aninhados, share/fallback, navegação direta/back, links de contato e conteúdo estático conforme aprovação; verificar cada ID de interação correspondente.
+- [ ] 8.4 Corrigir alvos de ação aninhados, share/fallback, navegação direta/back, links de contato e conteúdo estático conforme aprovação; priorizar WhatsApp e telefone, não fixar o terceiro canal e verificar cada ID de interação correspondente.
 - [ ] 8.5 Implementar e verificar teclado, foco, semântica, imagem/gallery, metadata `pt-BR`, regra de indexação aprovada, breakpoints e zoom; preservar identidade visual e registrar testes objetivos de viewport.
 
 ## 9. Manifestação pública de adoção — I8
 
-- [ ] 9.1 Aprovar/registrar os campos mínimos, finalidade/aviso, retention, duplicidade/idempotência, prazo/forma de resposta e limites antiabuso antes de aceitar dados reais.
-- [ ] 9.2 Implementar POST transacional com validação server-side, animal publicado/elegível no momento da gravação, payload caps e rate limit; verificar indisponibilidade/concorrência não cria solicitação inconsistente.
-- [ ] 9.3 Integrar formulário acessível com preservação de dados após falha, loading e confirmação somente após resposta persistida; verificar reload e retry não duplicam fora da regra aprovada.
+- [ ] 9.1 Registrar campos aprovados (nome, WhatsApp, cidade, e-mail e referência ao animal) e fechar finalidade/aviso, retenção, duplicidade/idempotência, prazo/forma de resposta e limites antiabuso antes de aceitar dados reais. O campo de mensagem não foi aprovado.
+- [ ] 9.2 Implementar POST transacional com validação server-side, animal `AVAILABLE` no momento da gravação, payload caps e rate limit; verificar indisponibilidade/concorrência não cria manifestação inconsistente e que `ADOPTED` é rejeitado.
+- [ ] 9.3 Integrar formulário acessível com os campos aprovados, preservação de dados após falha, loading e confirmação somente após resposta persistida, sem afirmar aprovação da adoção; verificar reload e retry não duplicam fora da regra aprovada.
 - [ ] 9.4 Testar validação, abuso, CSRF conforme método, repetição, XSS, SQLi e redaction PII; verificar logs sem dados excedentes e resultados no CI.
 
 ## 10. Gestão administrativa de solicitações — I9
 
-- [ ] 10.1 Implementar leitura administrativa paginada/filtrada apenas nos critérios aprovados, com autorização por papel/recurso; verificar visitante e usuário sem permissão não acessam PII.
-- [ ] 10.2 Implementar transições aprovadas, controle de concorrência e trilha de estado; verificar transições válidas/inválidas, repetidas e conflitantes.
-- [ ] 10.3 Integrar lista, filtros aprovados, estados vazios/loading/erro, detalhes e ações com resposta do servidor; verificar reload e contagens consistentes.
-- [ ] 10.4 Testar escopo de acesso, campos sensíveis, auditoria, retention e logging; verificar suite API/UI e revisão AppSec registrada.
+- [ ] 10.1 Implementar leitura administrativa somente leitura e paginada/filtrada apenas nos critérios aprovados, com autorização server-side; verificar visitante e identidade sem autorização não acessam PII.
+- [ ] 10.2 Não implementar transições, aprovação, recusa ou workflow de status; verificar que nenhum endpoint ou ação administrativa altera o estado da manifestação.
+- [ ] 10.3 Integrar lista, filtros aprovados, estados vazios/loading/erro e detalhes em modo somente leitura; verificar reload e contagens consistentes.
+- [ ] 10.4 Testar escopo de acesso, campos sensíveis, retenção e logs mínimos de segurança; verificar suite API/UI e revisão AppSec registrada. Não há histórico administrativo detalhado.
 
 ## 11. Contato — I10
 
-- [ ] 11.1 Aprovar destino (persistência/encaminhamento), finalidade, retention, provider, limite, texto de confirmação e tratamento de falha; verificar ADR/contrato/spec alinhados.
-- [ ] 11.2 Implementar validação, payload/rate limit e entrega real escolhida com logging redigido; verificar confirmação reflete recebimento/aceite definido e não promete entrega não comprovada.
-- [ ] 11.3 Integrar loading/erro/retentativa acessíveis preservando campos; testar indisponibilidade, abuso, PII e operação de envio.
+- [ ] 11.1 **Adiado/fora do primeiro incremento.** Aprovar destino (persistência/encaminhamento), finalidade, retenção, provider, limite, texto de confirmação e tratamento de falha antes de implementar; verificar ADR/contrato/spec alinhados. Os canais WhatsApp e telefone permanecem como links.
+- [ ] 11.2 **Adiado/fora do primeiro incremento.** Implementar validação, payload/rate limit e entrega real escolhida com logging redigido; verificar confirmação reflete recebimento/aceite definido e não promete entrega não comprovada.
+- [ ] 11.3 **Adiado/fora do primeiro incremento.** Integrar loading/erro/retentativa acessíveis preservando campos; testar indisponibilidade, abuso, PII e operação de envio.
 
 ## 12. Integração, revisão AppSec e prontidão — I11
 

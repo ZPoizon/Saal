@@ -2,46 +2,45 @@
 
 ## Purpose
 
-Permite que a equipe autorizada consulte e acompanhe solicitações de adoção persistidas,
-sem expor dados pessoais a visitantes ou apresentar alterações voláteis como definitivas.
+Permite que o único administrador autorizado consulte as manifestações de interesse
+persistidas, em modo somente leitura, sem expor dados pessoais a visitantes. Não há transições
+de status, workflow de aprovação nem histórico administrativo detalhado.
 
 ## ADDED Requirements
 
-### Requirement: Solicitações persistidas são listadas com acesso autorizado
+### Requirement: Manifestações persistidas são listadas com acesso autorizado
 
-O serviço MUST listar solicitações persistidas somente para administradores autenticados e
-autorizados, oferecendo estados vazios e falhas recuperáveis na interface.
+O serviço MUST listar manifestações persistidas somente para o administrador autenticado e
+autorizado, oferecendo estados vazios e falhas recuperáveis na interface.
 
-#### Scenario: Administrador consulta solicitações
-- **WHEN** administrador autorizado abre a gestão de solicitações
-- **THEN** a interface apresenta dados persistidos e contagem consistente de pendências
+#### Scenario: Administrador consulta manifestações
+- **WHEN** o administrador autorizado abre a gestão de manifestações
+- **THEN** a interface apresenta dados persistidos e contagem consistente, sem sugerir aprovação ou recusa
 
 #### Scenario: Lista vazia ou falha
 - **WHEN** a lista está vazia ou o serviço falha
 - **THEN** a interface diferencia ausência de registros de falha e permite recuperação apropriada
 
-#### Scenario: Usuário sem autorização consulta solicitações
-- **WHEN** identidade sem permissão chama a consulta administrativa
+#### Scenario: Usuário sem autorização consulta manifestações
+- **WHEN** identidade sem autorização chama a consulta administrativa
 - **THEN** o serviço nega a requisição sem incluir dados pessoais
 
-### Requirement: Transições de solicitação são validadas e persistidas
+### Requirement: Gestão de manifestações é somente leitura
 
-O serviço MUST permitir somente transições de status aprovadas, verificar autorização no
-recurso e retornar o estado persistido; estados e transições finais dependem de decisão da ONG.
+O serviço MUST NOT expor transições de status, aprovação, recusa ou qualquer workflow de
+solicitação. A avaliação da adoção é manual e externa ao sistema; a ONG contata o interessado
+pelo WhatsApp.
 
-#### Scenario: Administrador atualiza uma transição aprovada
-- **WHEN** administrador autorizado envia transição permitida para solicitação existente
-- **THEN** o serviço persiste o novo estado e a interface exibe o resultado confirmado
+#### Scenario: Cliente tenta alterar estado da manifestação
+- **WHEN** uma requisição tenta aprovar, recusar ou alterar o estado de uma manifestação
+- **THEN** o serviço não oferece a operação e não persiste mudança de estado
 
-#### Scenario: Transição inválida, concorrente ou serviço indisponível
-- **WHEN** a transição não é permitida, a solicitação mudou ou o serviço falha
-- **THEN** a operação é rejeitada sem sucesso falso e a interface informa o estado recuperável
+### Requirement: Acesso preserva privacidade e logs mínimos
 
-### Requirement: Ações administrativas preservam privacidade e auditoria
+A consulta MUST limitar dados ao necessário e MUST NOT manter histórico administrativo
+detalhado. Logs mínimos de segurança continuam necessários, mas seu escopo, acesso e retenção
+dependem de ONG-08; logs MUST NOT copiar senha, token ou conteúdo pessoal desnecessário.
 
-A consulta e alteração de solicitações MUST limitar dados ao necessário e manter registro de
-auditoria sem senha, token ou conteúdo pessoal desnecessário.
-
-#### Scenario: Alterar estado de solicitação
-- **WHEN** uma mudança de estado é persistida
-- **THEN** a alteração pode ser auditada sem copiar dados pessoais sensíveis para logs
+#### Scenario: Consulta a manifestação
+- **WHEN** o administrador autorizado consulta uma manifestação
+- **THEN** os dados exibidos se limitam aos campos aprovados e nenhum histórico detalhado é criado

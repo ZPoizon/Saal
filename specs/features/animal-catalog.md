@@ -19,11 +19,15 @@ Visitante.
 
 ## 5. Regras de negócio
 
-- O catálogo público atual exibe somente animais com status `available`.
+- O catálogo público MUST exibir somente animais com estado `AVAILABLE` (“Disponível para
+  adoção”). Os estados aprovados são `AVAILABLE` e `ADOPTED`; adotados permanecem cadastrados,
+  mas não são oferecidos para adoção (ONG-02/ONG-03, parciais).
 - A busca por nome ignora diferença entre maiúsculas e minúsculas.
-- O filtro de espécie aceita todos, cachorro ou gato.
+- O filtro de espécie existente no protótipo aceita todos, cachorro ou gato; o vocabulário
+  definitivo depende de ONG-10.
 - Busca e espécie são aplicadas em conjunto.
-- Paginação, ordenação e publicação de cadastros futuros: `PENDENTE DE DECISÃO`.
+- Publicação/rascunho, visibilidade pública de adotados, paginação e ordenação:
+  `PENDENTE DE DECISÃO`.
 
 ## 6. Fluxo principal
 
@@ -50,15 +54,20 @@ Visitante.
 
 ## 9. Dados necessários
 
-`Animal`: id, nome, espécie, idade, sexo, porte, status, descrição e imagem principal.
+Decisão aprovada: `Animal.status` (`AVAILABLE`/`ADOPTED`) e 1–3 fotografias. Nome, espécie,
+idade, sexo, porte, descrição, imagem principal e demais campos públicos continuam
+`PENDENTE DE DECISÃO` (ONG-10); não inferir o DTO público do protótipo.
 
 ## 10. Contratos de API relacionados
 
-Planejado: `GET /animals?status=AVAILABLE&species=&search=`. Não implementado.
+Planejado: `GET /animals?species=&search=`. O servidor MUST filtrar `AVAILABLE`
+independentemente de parâmetro do cliente. Não implementado.
 
 ## 11. Validações
 
-Normalizar busca sem alterar o texto digitado; aceitar apenas espécies conhecidas.
+Normalizar busca sem alterar o texto digitado; aceitar apenas espécies conhecidas quando o
+vocabulário for aprovado por ONG-10. O cliente não pode solicitar estados diferentes de
+`AVAILABLE` no catálogo público.
 
 ## 12. Requisitos de segurança
 

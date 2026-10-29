@@ -4,23 +4,27 @@ info:
   version: 0.2.0-draft
   description: |
     RASCUNHO NÃO NORMATIVO. Nenhum endpoint está implementado. Operações candidatas marcadas
-    x-saal-status: blocked não podem ser implementadas até os gates indicados serem resolvidos.
-    Campos de domínio, enums, PII, limites e estados foram omitidos quando ainda dependem da
-    ONG. Não há security scheme porque sessão é apenas a preferência e a topologia ainda não
-    foi aprovada. Respostas de erro usam Problem Details (RFC 9457); não refletem runtime ativo.
+    x-saal-status: blocked ou deferred não podem ser implementadas até os gates indicados serem
+    resolvidos. O escopo de negócio aprovado em 2026-10-29 é catálogo de animais + manifestação
+    de interesse, com avaliação manual pela ONG. Estados aprovados: AVAILABLE e ADOPTED; cada
+    animal tem 1–3 fotos; o intake coleta nome, WhatsApp, cidade e e-mail. Não há workflow de
+    status de solicitação nem histórico administrativo detalhado. Campos de domínio, PII,
+    limites e o terceiro canal de contato permanecem omitidos quando dependem da ONG. Não há
+    security scheme porque sessão é apenas a preferência e a topologia ainda não foi aprovada.
+    Respostas de erro usam Problem Details (RFC 9457); não refletem runtime ativo.
 tags:
   - name: Catálogo público
-    description: Operações públicas candidatas; publicação/elegibilidade dependem de ONG-02.
+    description: Operações públicas candidatas; estados AVAILABLE/ADOPTED aprovados, demais campos pendentes.
   - name: Administração de animais
-    description: Operações admin bloqueadas por decisões de conta, domínio e visibilidade.
+    description: Operações admin bloqueadas por identidade, campos e visibilidade pendentes.
   - name: Solicitações públicas
-    description: Recebimento bloqueado por decisões de dados, processo e abuso.
+    description: Intake com campos aprovados; privacidade, retenção e antiabuso pendentes.
   - name: Gestão administrativa de solicitações
-    description: Operações administrativas bloqueadas por ONG-01/04/05/08.
+    description: Consulta somente leitura; sem transições de status ou histórico detalhado.
   - name: Sessão administrativa
-    description: Rascunho bloqueado; protocolo/topologia não decididos.
+    description: Rascunho bloqueado; um único administrador, protocolo/topologia não decididos.
   - name: Contato
-    description: Operação bloqueada até destino e tratamento aprovados.
+    description: Formulário geral fora do primeiro incremento; canais públicos são links.
 x-saal-validation-policy:
   server-authoritative: true
   description: |
@@ -30,9 +34,15 @@ x-saal-validation-policy:
     required fields e valores de domínio permanecem bloqueados pelas decisões listadas em cada
     operação. Respostas 413/429 são previstas sem fixar quota ou tamanho.
 x-saal-intentionally-omitted:
-  - Upload de imagem: fronteira/endpoint omitido até decisão ONG-06.
+  - Upload de imagem: fronteira/endpoint omitido até decisão ONG-06; quantidade 1–3 já aprovada.
   - Paginação/ordenação: sem semântica ou limites definidos; requer decisão de volume e API.
   - Métricas públicas: não há endpoint ou fonte aprovada (ONG-11).
+  - Transições de status de solicitação: não há workflow aprovado; avaliação manual pela ONG.
+  - Histórico administrativo detalhado: dispensado pela ONG (ONG-08).
+  - Exclusão/arquivamento de animais: fora do primeiro incremento até decisão ONG-03.
+  - Formulário de contato geral: fora do primeiro incremento até decisão ONG-07.
+  - Matriz de papéis administrativos: um único administrador, sem papéis diferenciados.
+  - Terceiro canal de contato: não fixado porque a pergunta original não está disponível.
 paths:
   /animals:
     get:
@@ -40,10 +50,12 @@ paths:
       operationId: listPublicAnimals
       summary: Lista animais publicados e elegíveis
       description: |
-        Candidato bloqueado até ONG-02/ONG-10 aprovarem publicação, elegibilidade e campos.
-        O servidor deve retornar somente a projeção pública aprovada; filtros/enums do mock
-        não são contrato. Erros de validação não devem refletir valores PII nem internos.
-        Paginação/ordenação não estão especificadas até decisão técnica de volume.
+        O catálogo deve retornar somente animais com estado AVAILABLE. Os estados aprovados
+        são AVAILABLE e ADOPTED; animais adotados permanecem cadastrados, mas não são
+        oferecidos para manifestação de interesse. Campos públicos além do estado e da
+        quantidade de fotos continuam bloqueados por ONG-10. Erros de validação não devem
+        refletir valores PII nem internos. Paginação/ordenação não estão especificadas até
+        decisão técnica de volume.
       x-saal-status: blocked-by-business-approval
       x-saal-blocked-by: [ONG-02, ONG-10]
       parameters:
@@ -82,8 +94,10 @@ paths:
       operationId: getPublicAnimal
       summary: Obtém detalhe público de um animal
       description: |
-        Candidato bloqueado até ONG-02/ONG-10 aprovarem elegibilidade, publicação e campos.
-        Nunca retornar campos administrativos, PII ou informação médica não aprovada.
+        Detalhe deve identificar o estado aprovado. Para ADOPTED, não oferecer manifestação de
+        interesse. Campos públicos além do estado e da quantidade de fotos continuam pendentes
+        por ONG-10; nunca retornar campos administrativos, PII ou informação médica não
+        aprovada. Visibilidade pública de animais adotados permanece pendente por ONG-02.
       x-saal-status: blocked-by-business-approval
       x-saal-blocked-by: [ONG-02, ONG-10]
       responses:
@@ -105,8 +119,10 @@ paths:
       operationId: listAdminAnimals
       summary: Lista animais para administração
       description: |
-        Operação protegida no servidor, bloqueada até as decisões de conta, papel, domínio,
-        campos e visibilidade. Não confiar em rota protegida apenas no cliente.
+        Operação protegida no servidor, bloqueada até as decisões de identidade/sessão,
+        campos e visibilidade. Há um único administrador e não há matriz de papéis; a
+        autorização server-side continua obrigatória. Não confiar em rota protegida apenas no
+        cliente.
       x-saal-status: blocked-by-approval
       x-saal-blocked-by: [ONG-01, ONG-02, ONG-10, TEC-04, TEC-05]
       x-saal-auth-required: true
@@ -233,8 +249,11 @@ paths:
       tags: [Administração de animais]
       operationId: deleteOrArchiveAdminAnimal
       summary: Executa operação de ciclo de vida do animal
-      description: ONG-03 não decidiu entre archive/delete; nenhum comportamento pode ser implementado com base neste rascunho.
-      x-saal-status: blocked-by-business-approval
+      description: |
+        Fora do primeiro incremento. Animais adotados permanecem cadastrados; exclusão e
+        arquivamento de animais não adotados continuam pendentes (ONG-03). Nenhum
+        comportamento destrutivo pode ser implementado com base neste rascunho.
+      x-saal-status: deferred
       x-saal-blocked-by: [ONG-01, ONG-03]
       x-saal-auth-required: true
       responses:
@@ -258,10 +277,13 @@ paths:
       operationId: createAdoptionRequest
       summary: Registra interesse em adoção
       description: |
-        Bloqueado até aprovação de elegibilidade/processo, campos/finalidade/retention e
-        antiabuso. Não receber, armazenar ou ecoar PII a partir deste schema vazio.
+        Registra uma manifestação de interesse para animal AVAILABLE. Campos aprovados:
+        animalId, nome, WhatsApp, cidade e e-mail. Não há workflow de status nem campo de
+        mensagem aprovado. O registro não implica aprovação da adoção: a ONG contata pelo
+        WhatsApp e avalia manualmente. A operação continua bloqueada até decisões de
+        finalidade/retenção/acesso (ONG-05) e antiabuso (ONG-09).
       x-saal-status: blocked-by-business-approval
-      x-saal-blocked-by: [ONG-02, ONG-04, ONG-05, ONG-09, ONG-10]
+      x-saal-blocked-by: [ONG-05, ONG-09]
       requestBody:
         required: true
         content:
@@ -295,10 +317,12 @@ paths:
       operationId: listAdminAdoptionRequests
       summary: Lista solicitações para administração
       description: |
-        Operação protegida no servidor. Campos retornados e filtros dependem de aprovação
-        ONG-01/04/05/08; não expor PII a visitantes.
+        Consulta somente leitura das manifestações recebidas. Não há transições de status,
+        workflow de aprovação nem histórico administrativo detalhado. Campos aprovados:
+        nome, WhatsApp, cidade, e-mail e referência ao animal; finalidade, retenção, acesso e
+        autorização continuam pendentes (ONG-01/ONG-05). Não expor PII a visitantes.
       x-saal-status: blocked-by-approval
-      x-saal-blocked-by: [ONG-01, ONG-04, ONG-05, ONG-08, TEC-04, TEC-05]
+      x-saal-blocked-by: [ONG-01, ONG-05, TEC-04, TEC-05]
       x-saal-auth-required: true
       responses:
         "200":
@@ -319,58 +343,14 @@ paths:
           $ref: "#/components/responses/ServerError"
         default:
           $ref: "#/components/responses/DefaultProblem"
-  /admin/adoption-requests/{requestId}/status:
-    patch:
-      tags: [Gestão administrativa de solicitações]
-      operationId: updateAdminAdoptionRequestStatus
-      summary: Atualiza o status de uma solicitação
-      description: Estados e transições ainda não foram aprovados; não implementar enum do mock.
-      x-saal-status: blocked-by-business-approval
-      x-saal-blocked-by: [ONG-01, ONG-04, ONG-08, TEC-04, TEC-05]
-      x-saal-auth-required: true
-      parameters:
-        - in: path
-          name: requestId
-          required: true
-          schema:
-            type: string
-            minLength: 1
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/AdoptionStatusUpdate"
-      responses:
-        "200":
-          description: Estado aprovado e persistido
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/AdminAdoptionRequest"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "409":
-          $ref: "#/components/responses/Conflict"
-        "429":
-          $ref: "#/components/responses/TooManyRequests"
-        "500":
-          $ref: "#/components/responses/ServerError"
-        default:
-          $ref: "#/components/responses/DefaultProblem"
   /admin/session:
     post:
       tags: [Sessão administrativa]
       operationId: createAdminSession
       summary: Solicita autenticação administrativa
       description: |
-        Rascunho bloqueado. Credenciais, sessão/cookie, CSRF, respostas e origem dependem de
+        Rascunho bloqueado. Há um único administrador, sem papéis diferenciados; identidade,
+        provisionamento, credenciais, sessão/cookie, CSRF, respostas e origem dependem de
         TEC-04/05 e ONG-01. Não há security scheme aprovado.
       x-saal-status: blocked-by-approval
       x-saal-blocked-by: [ONG-01, ONG-09, TEC-04, TEC-05]
@@ -416,9 +396,11 @@ paths:
       operationId: submitContactMessage
       summary: Envia mensagem de contato
       description: |
-        Bloqueado. Destino, campos, finalidade/retention e política antiabuso ainda não foram
-        aprovados; não coletar nem confirmar mensagem com este rascunho.
-      x-saal-status: blocked-by-business-approval
+        Fora do primeiro incremento. Os canais públicos aprovados são WhatsApp e telefone,
+        com um terceiro canal ainda não definido; eles são links, não este endpoint. Destino,
+        campos, finalidade/retenção e política antiabuso do formulário geral continuam
+        pendentes (ONG-05/ONG-07/ONG-09). Não coletar nem confirmar mensagem com este rascunho.
+      x-saal-status: deferred
       x-saal-blocked-by: [ONG-05, ONG-07, ONG-09]
       requestBody:
         required: true
@@ -504,50 +486,139 @@ components:
           schema:
             $ref: "#/components/schemas/ProblemDetails"
   schemas:
+    AnimalStatus:
+      type: string
+      enum: [AVAILABLE, ADOPTED]
+      description: |
+        Estados aprovados pela ONG em 2026-10-29: AVAILABLE (“Disponível para adoção”) e
+        ADOPTED (“Adotado”). Animais adotados permanecem cadastrados e identificados.
+    AnimalPhoto:
+      type: string
+      description: |
+        Referência de fotografia. Quantidade aprovada: 1–3 por animal. Formato, tamanho,
+        storage, URL publicável, EXIF e retenção continuam pendentes (ONG-06).
     PublicAnimal:
       type: object
       additionalProperties: false
       description: |
-        Projeção sem propriedades de propósito: ONG-02/ONG-10 ainda não aprovaram campos
-        nem visibilidade. Não é um DTO implementável.
+        Projeção pública parcial. Somente status e fotos têm decisão aprovada; os demais
+        campos públicos continuam pendentes por ONG-10. Não é um DTO implementável completo.
+      required: [status, photos]
+      properties:
+        status:
+          $ref: "#/components/schemas/AnimalStatus"
+        photos:
+          type: array
+          minItems: 1
+          maxItems: 3
+          items:
+            $ref: "#/components/schemas/AnimalPhoto"
     AdminAnimal:
       type: object
       additionalProperties: false
       description: |
-        Projeção sem propriedades de propósito: ONG-01/ONG-02/ONG-10 ainda não aprovaram
-        permissões, campos ou visibilidade. Não é um DTO implementável.
+        Projeção administrativa parcial. Status e fotos estão aprovados; demais campos,
+        identidade/sessão e visibilidade continuam pendentes (ONG-01/ONG-02/ONG-10).
+      required: [status, photos]
+      properties:
+        status:
+          $ref: "#/components/schemas/AnimalStatus"
+        photos:
+          type: array
+          minItems: 1
+          maxItems: 3
+          items:
+            $ref: "#/components/schemas/AnimalPhoto"
     AdminAnimalInput:
       type: object
       additionalProperties: false
-      description: Campos/validações bloqueados; não aceitar payload de negócio até aprovação.
+      description: |
+        Entrada administrativa parcial. Somente status e fotos têm decisão aprovada; campos
+        de domínio, validações e limites continuam pendentes por ONG-10. Não aceitar payload
+        de negócio até a aprovação restante.
+      required: [status, photos]
+      properties:
+        status:
+          $ref: "#/components/schemas/AnimalStatus"
+        photos:
+          type: array
+          minItems: 1
+          maxItems: 3
+          items:
+            $ref: "#/components/schemas/AnimalPhoto"
     AdoptionRequestInput:
       type: object
       additionalProperties: false
       description: |
-        Schema intencionalmente vazio. Campos PII, finalidade e validação estão bloqueados
-        por ONG-04/ONG-05/ONG-09/ONG-10.
+        Campos aprovados para coleta: animalId, nome, WhatsApp, cidade e e-mail. O campo de
+        mensagem do protótipo não foi aprovado. Obrigatoriedade individual, finalidade,
+        aviso, limites, retenção e acesso continuam pendentes (ONG-05/ONG-09).
+      properties:
+        animalId:
+          type: string
+          minLength: 1
+          description: Referência ao animal; formato/FK pendente.
+        name:
+          type: string
+          description: Nome do interessado; limite pendente.
+        whatsapp:
+          type: string
+          description: WhatsApp do interessado; formato/limite pendentes.
+        city:
+          type: string
+          description: Cidade do interessado; limite pendente.
+        email:
+          type: string
+          format: email
+          description: E-mail do interessado; limite pendente.
     AdoptionReceipt:
       type: object
       additionalProperties: false
-      description: Recibo sem campos definido; resposta de sucesso só após persistência real aprovada.
+      description: |
+        Confirmação após persistência real. Campos do recibo continuam pendentes; não usar
+        este schema para prometer aprovação da adoção.
     AdminAdoptionRequest:
       type: object
       additionalProperties: false
       description: |
-        Schema intencionalmente vazio; nenhum PII pode ser exposto até aprovação de campos,
-        finalidade e permissões. Não é um DTO implementável.
-    AdoptionStatusUpdate:
-      type: object
-      additionalProperties: false
-      description: Status e transições do mock não são aprovados; schema sem propriedades.
+        Consulta administrativa somente leitura. Campos aprovados para coleta: nome,
+        WhatsApp, cidade, e-mail e referência ao animal. Não há status, workflow de aprovação
+        nem histórico detalhado. Finalidade, retenção, acesso e autorização continuam
+        pendentes (ONG-01/ONG-05).
+      properties:
+        id:
+          type: string
+          minLength: 1
+          description: Identificador técnico da manifestação; formato pendente.
+        animalId:
+          type: string
+          minLength: 1
+          description: Referência ao animal; formato/FK pendente.
+        name:
+          type: string
+          description: Nome do interessado.
+        whatsapp:
+          type: string
+          description: WhatsApp do interessado.
+        city:
+          type: string
+          description: Cidade do interessado.
+        email:
+          type: string
+          format: email
+          description: E-mail do interessado.
     AdminSessionInput:
       type: object
       additionalProperties: false
-      description: Credenciais/identificador e formato de sessão dependem de TEC-04/05 e ONG-01.
+      description: |
+        Credenciais/identificador e formato de sessão dependem de TEC-04/05 e ONG-01. Há um
+        único administrador; não há papéis diferenciados.
     ContactMessageInput:
       type: object
       additionalProperties: false
-      description: Campos PII e destino de contato dependem de ONG-05/ONG-07/ONG-09.
+      description: |
+        Fora do primeiro incremento. Campos PII e destino do formulário de contato geral
+        dependem de ONG-05/ONG-07/ONG-09. Os canais públicos de WhatsApp e telefone são links.
     ProblemDetails:
       type: object
       description: |

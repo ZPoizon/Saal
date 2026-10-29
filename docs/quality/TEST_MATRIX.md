@@ -75,11 +75,11 @@ ser registrada. Usar fixtures sintéticas.
 
 | ID | Fonte OpenSpec | Cenários/asserções | Camada |
 |---|---|---|---|
-| Q-I8-01 | `adoption-requests/spec.md`: animal e submissão | Animal elegível no momento da gravação; inválido/indisponível não persiste; campos mínimos e PII somente conforme decisão ONG. | API + transaction/MySQL |
-| Q-I8-02 | `adoption-requests/spec.md`: persistência/falha/privacidade | Confirmação só após persistência; timeout/erro preserva campos, retry/duplicidade conforme política aprovada; visitante não lê PII. | API + UI + E2E |
-| Q-I9-01 | `adoption-management/spec.md`: lista autorizada | Admin autorizado vê persistidos e contagem consistente; vazio distinto de erro; visitante/role sem permissão recebe negação sem PII. | API auth + DB + UI |
-| Q-I9-02 | `adoption-management/spec.md`: transições/auditoria | Transições válidas/inválidas, concorrentes e repetidas; persistência/estado consistente; auditoria mínima sem conteúdo sensível. | API + transaction + log review |
-| Q-I10-01 | `contact-messages/spec.md` | Só confirmar serviço ter aceitado; falha conserva dados; limites e conteúdo conforme ONG; logs redigidos. | API + UI + abuse tests |
+| Q-I8-01 | `adoption-requests/spec.md`: animal e submissão | Animal `AVAILABLE` no momento da gravação; inexistente/`ADOPTED` não persiste; campos nome/WhatsApp/cidade/e-mail e PII somente conforme decisão ONG. | API + transaction/MySQL |
+| Q-I8-02 | `adoption-requests/spec.md`: persistência/falha/privacidade | Confirmação só após persistência, sem afirmar aprovação; timeout/erro preserva campos, retry/duplicidade conforme política aprovada; visitante não lê PII. | API + UI + E2E |
+| Q-I9-01 | `adoption-management/spec.md`: lista autorizada | Admin autorizado vê persistidos em modo somente leitura; vazio distinto de erro; visitante/identidade sem autorização recebe negação sem PII. | API auth + DB + UI |
+| Q-I9-02 | `adoption-management/spec.md`: ausência de transições | Nenhum endpoint/ação altera estado; tentativa de aprovar/recusar não persiste; logs mínimos sem conteúdo sensível ou histórico detalhado. | API + log review |
+| Q-I10-01 | `contact-messages/spec.md` | **Adiado/fora do primeiro incremento** até ONG-07/ONG-09; WhatsApp e telefone permanecem links. | N/A até aprovação |
 | Q-I11-01 | `tasks.md` 12.1 | Jornadas públicas/admin contra API + MySQL: persistência, autorização, erros, retry e reload. | E2E + integração |
 | Q-I11-02 | `tasks.md` 12.2–12.3 | WCAG 2.2 AA como referência, axe/equivalente, teclado/leitor de tela e viewports definidos; achados e exceções com risco/aprovação. | A11y tooling + manual |
 | Q-I11-03 | `tasks.md` 12.4 | Revisão AppSec cobre auth/IDOR, injeções, XSS, CSRF, rate, upload, PII, logs, CORS, segredos e dependências; P0 não permanece aberto. | AppSec review + CI evidence |
