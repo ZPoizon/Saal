@@ -1,0 +1,36 @@
+#!/bin/sh
+# Launcher Maven reproduzivel para Linux/macOS (mesmo Maven do mvnw.cmd).
+set -eu
+SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+PROPS="$SCRIPT_DIR/.mvn/wrapper/maven-wrapper.properties"
+URL=$(sed -n 's/^distributionUrl=//p' "$PROPS" | head -n 1)
+HASH=$(sed -n 's/^distributionSha512Sum=//p' "$PROPS" | head -n 1)
+[ -n "$URL" ] && [ -n "$HASH" ] || { echo 'Wrapper Maven incompleto' >&2; exit 1; }
+MAVEN_HOME="${HOME}/.m2/wrapper/dists/apache-maven-3.9.11"
+if [ ! -x "$MAVEN_HOME/bin/mvn" ]; then
+  TMP=$(mktemp -d)
+  trap 'rm -rf "$TMP"' EXIT HUP INT TERM
+  if command -v curl >/dev/null 2>&1; then
+    curl --fail --location --silent --show-error "$URL" -o "$TMP/maven.zip"
+  elif command -v wget >/dev/null 2>&1; then
+    wget -q "$URL" -O "$TMP/maven.zip"
+  else
+    echo 'Instale curl ou wget para baixar o Maven na primeira execucao.' >&2
+    exit 1
+  fi
+  if command -v sha512sum >/dev/null 2>&1; then
+    ACTUAL=$(sha512sum "$TMP/maven.zip" | awk '{print $1}')
+  elif command -v shasum >/dev/null 2>&1; then
+    ACTUAL=$(shasum -a 512 "$TMP/maven.zip" | awk '{print $1}')
+  else
+    echo 'Verificacao SHA-512 indisponivel. Instalacao abortada.' >&2
+    exit 1
+  fi
+  [ "$ACTUAL" = "$HASH" ] || { echo 'SHA-512 invalido. Instalacao abortada.' >&2; exit 1; }
+  mkdir -p "$(dirname "$MAVEN_HOME")"
+  unzip -q "$TMP/maven.zip" -d "$TMP"
+  if [ ! -x "$MAVEN_HOME/bin/mvn" ]; then
+    mv "$TMP/apache-maven-3.9.11" "$MAVEN_HOME"
+  fi
+fi
+exec "$MAVEN_HOME/bin/mvn" "$@"
