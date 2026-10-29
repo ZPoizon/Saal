@@ -10,6 +10,12 @@ aprovadas, condicionais e bloqueios ONG consulte
 `../../specs/decisions/I1-approval-register.md`. O contrato OpenAPI atual não contém
 `bearerAuth` nem token aprovado.
 
+**Atualização de escopo (29/10/2026):** respostas da responsável da ONG definiram catálogo +
+manifestação de interesse, dois estados de animal, 1–3 fotos, intake com nome/WhatsApp/cidade/
+e-mail, um administrador sem papéis, avaliação manual e gestão somente leitura. O formulário de
+contato geral, exclusão/arquivamento, métricas e conteúdo institucional ficam fora do primeiro
+incremento. Consulte `I1-INTERACTION-TRACEABILITY.md` e o registro I1 para o estado vigente.
+
 ## Resumo executivo
 
 O SAAL é uma SPA navegável de protótipo, não um sistema de adoção pronto para produção.

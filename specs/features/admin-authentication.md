@@ -21,7 +21,9 @@ Administrador ativo cadastrado no backend futuro.
 - Credenciais nunca podem ficar no código ou ser comparadas no navegador.
 - Senhas devem ser armazenadas somente como hash adequado.
 - Operações administrativas exigem autorização no servidor.
-- Sessão/token, duração, bloqueio, recuperação e perfis: `PENDENTE DE DECISÃO`.
+- Há um único administrador; não há papéis diferenciados (ONG-01, parcial).
+- Identidade, provisionamento, revogação, recuperação, sessão/token, duração e bloqueio:
+  `PENDENTE DE DECISÃO`.
 
 ## 6. Fluxo principal
 
@@ -49,11 +51,13 @@ Administrador ativo cadastrado no backend futuro.
 
 ## 9. Dados necessários
 
-Identificador, hash de senha, estado, permissões e timestamps. Modelo exato pendente.
+Identificador, hash de senha, estado e timestamps. Não há permissões/papéis diferenciados.
+Modelo exato, lifecycle e provisionamento pendentes (ONG-01).
 
 ## 10. Contratos de API relacionados
 
-Planejado: `POST /auth/login`; endpoints de logout/renovação dependem da decisão de sessão.
+Planejado: `POST /admin/session` e `DELETE /admin/session`; protocolo, renovação e topologia
+dependem da decisão de sessão.
 
 ## 11. Validações
 
@@ -62,7 +66,9 @@ Campos obrigatórios, limites de entrada e credenciais validadas no servidor.
 ## 12. Requisitos de segurança
 
 HTTPS, hash forte, rate limiting, menor privilégio, proteção contra enumeração/fixação/CSRF
-conforme mecanismo, cookies `HttpOnly/Secure/SameSite` se usados, rotação e auditoria.
+conforme mecanismo, cookies `HttpOnly/Secure/SameSite` se usados, rotação e logs mínimos de
+segurança. Histórico administrativo detalhado não é requisito (ONG-08); escopo e retenção dos
+logs continuam pendentes.
 
 ## 13. Cenários de teste
 

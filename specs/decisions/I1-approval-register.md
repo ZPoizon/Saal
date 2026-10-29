@@ -1,9 +1,10 @@
 # Registro de decisões e aprovações — I1
 
 **Change:** `saal-functional-readiness`
-**Estado deste registro:** decisões técnicas expressamente autorizadas, recomendações
-condicionais e bloqueios pendentes; este registro não aprova decisões da ONG.
-**Última revisão técnica:** 2026-10-28
+**Estado deste registro:** decisões técnicas expressamente autorizadas, respostas parciais da
+ONG, recomendações condicionais e bloqueios pendentes. As respostas da ONG registradas em
+2026-10-29 não aprovam automaticamente os temas que não foram respondidos.
+**Última revisão:** 2026-10-29
 
 ## Finalidade e regras de governança
 
@@ -26,6 +27,52 @@ data, referência verificável à ata/ADR/aprovação e escopo autorizado. Se n�
 registrar explicitamente o bloqueio, a pessoa/função responsável e quais requisitos
 permanecem fora do contrato. Conversa informal ou recomendação técnica não é evidência
 suficiente.
+
+## Respostas da responsável da ONG — 2026-10-29
+
+**Proveniência:** respostas da responsável da ONG comunicadas pelo mantenedor. Esta é a
+evidência disponível; não há ata nominal, assinatura ou documento externo versionado. O
+registro abaixo limita cada aprovação ao texto efetivamente respondido e mantém pendente o que
+a resposta não cobriu.
+
+| Resposta | Conteúdo registrado | Decisões ONG relacionadas | Efeito no escopo |
+|---|---|---|---|
+| 1 | Apenas uma pessoa administrará o sistema. | ONG-01 | Parcial: elimina a necessidade de papéis diferenciados; identidade, provisionamento, recuperação e sessão continuam pendentes. |
+| 2 | Os animais terão os estados “Disponível para adoção” e “Adotado”; adotados permanecem cadastrados e identificados como adotados. | ONG-02, ONG-03, ONG-10 | Parcial: vocabulário de dois estados aprovado e retenção do adotado aprovada; publicação/visibilidade, transições e demais campos continuam pendentes. |
+| 3 | Ao receber uma manifestação de interesse, a ONG entra em contato pelo WhatsApp e avalia manualmente a possibilidade de adoção. | ONG-04, ONG-07 | Parcial: avaliação manual e contato por WhatsApp aprovados; não há workflow de aprovação no sistema; destino do formulário de contato geral continua pendente. |
+| 4 | O formulário do interessado deverá coletar nome, WhatsApp, cidade e e-mail. | ONG-05 | Parcial: campos de coleta aprovados; obrigatoriedade individual, finalidade, base legal, aviso, retenção, acesso e limites continuam pendentes. O campo de mensagem do protótipo não foi aprovado. |
+| 5 | Cada animal deverá possuir no mínimo uma e no máximo três fotografias. | ONG-06 | Parcial: quantidade 1–3 aprovada; formatos, tamanho, storage, moderação, EXIF e retenção continuam pendentes. |
+| 6 | Manter as três opções de contato consultadas, priorizando WhatsApp e telefone. | ONG-11, ONG-07 | Parcial: WhatsApp e telefone são prioritários; o terceiro canal não foi fixado porque a pergunta original não está disponível no repositório. O processamento do formulário de contato geral continua pendente. |
+| 7 | A ONG não necessita de histórico administrativo detalhado. | ONG-08 | Parcial: histórico administrativo detalhado não é requisito; logs mínimos de segurança e sua retenção/acesso continuam obrigatórios e pendentes de detalhamento. |
+| 8 | O SAAL será essencialmente um catálogo de animais com manifestação de interesse; a avaliação da adoção será manual, sem workflow complexo de aprovação. | ONG-04, escopo geral | Aprovado no escopo: catálogo + manifestação de interesse; sem workflow complexo. A gestão administrativa de solicitações fica limitada a consulta; não há transições de status aprovadas. |
+
+### Síntese dos estados
+
+- **Aprovadas integralmente:** nenhuma das onze decisões foi respondida em todos os seus
+  elementos.
+- **Parcialmente aprovadas:** ONG-01, ONG-02, ONG-03, ONG-04, ONG-05, ONG-06, ONG-08, ONG-10 e
+  ONG-11.
+- **Pendentes:** ONG-07 e ONG-09.
+- **Fora do escopo aprovado para o primeiro incremento:** transições de status de solicitação,
+  histórico administrativo detalhado, exclusão/arquivamento de animais, gestão de papéis e
+  formulário de contato geral como serviço persistido. Esses itens só podem retornar com
+  decisão e análise de impacto.
+
+### Pendências que continuam bloqueando implementação
+
+| Decisão | O que ainda falta decidir |
+|---|---|
+| ONG-01 | Identidade nominal ou conta compartilhada, provisionamento, revogação, recuperação de acesso e mecanismo de sessão/topologia. |
+| ONG-02 | Publicação/visibilidade, existência de rascunho, regra de retorno de “Adotado” para “Disponível” e visibilidade pública de animais adotados. |
+| ONG-03 | Exclusão/arquivamento de animais não adotados, retenção de imagens e referências. |
+| ONG-04 | Se alguma informação de estado da manifestação será persistida; duplicidade, retirada e prazo de resposta. Não há workflow de aprovação. |
+| ONG-05 | Obrigatoriedade, finalidade/base legal, aviso de privacidade, retenção, exclusão/anonimização, acesso e limites de validação. |
+| ONG-06 | Formatos, tamanho/dimensões, storage, acesso, moderação, EXIF e retenção. |
+| ONG-07 | Destino, persistência/encaminhamento, campos, confirmação e retenção do formulário de contato geral. |
+| ONG-08 | Escopo, acesso e retenção de logs mínimos de segurança, sem histórico administrativo detalhado. |
+| ONG-09 | Limites de abuso, rate limit, idempotência, CAPTCHA e tratamento de repetição. |
+| ONG-10 | Campos do animal além de estado e quantidade de fotos, vocabulário, visibilidade, limites e informação médica. |
+| ONG-11 | Terceiro canal de contato, conteúdo institucional, métricas, horários e destinos externos. |
 
 ## Arquitetura já aceita
 
@@ -337,13 +384,20 @@ assessoria apropriada, sem declarar conformidade LGPD automaticamente.
   expõem PII e permitem alteração/exclusão não autorizadas.
 - **Responsável pela aprovação:** representante da ONG com autoridade administrativa,
   incluindo responsável por cadastro de contas.
-- **Status:** pendente.
-- **Evidência da aprovação:** nenhuma; opções não escolhidas.
+- **Status:** parcialmente aprovada.
+- **Decisão registrada:** apenas uma pessoa administrará o sistema; não são necessários papéis
+  diferenciados. A aprovação não define se a conta será nominal ou compartilhada, nem como
+  será provisionada, revogada ou recuperada.
+- **Evidência da aprovação:** resposta 1 da responsável da ONG, 2026-10-29, comunicada pelo
+  mantenedor; proveniência registrada na seção “Respostas da responsável da ONG”.
+- **Pendente:** identidade, provisionamento, revogação, recuperação de acesso, mecanismo de
+  sessão e topologia. A autorização server-side continua obrigatória mesmo com um único
+  administrador.
 - **Impacto:** requisito/capability `admin-authentication`, entidade Administrator,
-  matriz server-side de autorização, OpenAPI admin, auditoria e tarefas 2.1/2.3/2.4; gate
-  obrigatório antes de I4.
-- **Escopo desbloqueado se aprovada:** especificar as identidades e permissões efetivamente
-  aprovadas em 2.3/2.4; implementação ainda depende de I2–I4.
+  autorização server-side por operação, OpenAPI admin, logs mínimos de segurança e tarefas
+  2.1/2.3/2.4; gate obrigatório antes de I4.
+- **Escopo desbloqueado:** especificar um único ator administrativo sem matriz de papéis;
+  identidade e sessão ainda dependem de decisão própria.
 
 ### ONG-02 — Estados, elegibilidade e publicação de animais
 
@@ -360,12 +414,19 @@ assessoria apropriada, sem declarar conformidade LGPD automaticamente.
 - **Riscos:** um enum ambíguo pode expor animais não publicados ou aceitar interesse em
   animal inelegível; mudança posterior afeta API e migração.
 - **Responsável pela aprovação:** coordenação de adoção/animais da ONG.
-- **Status:** pendente.
-- **Evidência da aprovação:** nenhuma; enums existentes são apenas observados.
+- **Status:** parcialmente aprovada.
+- **Decisão registrada:** os animais terão exatamente dois estados: “Disponível para adoção”
+  (`AVAILABLE`) e “Adotado” (`ADOPTED`). Animais adotados permanecem cadastrados e
+  identificados como adotados. O estado `TREATMENT` do protótipo não foi aprovado.
+- **Evidência da aprovação:** resposta 2 da responsável da ONG, 2026-10-29, comunicada pelo
+  mantenedor.
+- **Pendente:** publicação/visibilidade, existência de rascunho, visibilidade pública de
+  animais adotados e eventual retorno de “Adotado” para “Disponível”.
 - **Impacto:** Animal, campos públicos, filtros, OpenAPI catálogo/admin, critérios de
-  elegibilidade e tarefas 2.1/2.3/2.4; bloqueia contrato final e I5/I7/I8.
-- **Escopo desbloqueado se aprovada:** tornar normativos somente os estados, publicação e
-  elegibilidade aprovados no modelo/contrato; não inicia CRUD nem catálogo implementado.
+  elegibilidade e tarefas 2.1/2.3/2.4; I5/I7/I8 podem usar os dois estados, mas publicação e
+  campos continuam bloqueados por ONG-10.
+- **Escopo desbloqueado:** usar somente `AVAILABLE` e `ADOPTED` no modelo/contrato e impedir
+  manifestação de interesse para `ADOPTED`; não inicia CRUD nem catálogo implementado.
 
 ### ONG-03 — Arquivamento, exclusão e referências de animais
 
@@ -381,12 +442,17 @@ assessoria apropriada, sem declarar conformidade LGPD automaticamente.
 - **Riscos:** exclusão pode destruir contexto/auditoria; arquivamento indefinido pode reter
   dados além da finalidade.
 - **Responsável pela aprovação:** coordenação da ONG e responsável por privacidade/dados.
-- **Status:** pendente.
-- **Evidência da aprovação:** nenhuma; não presumir archive ou delete.
+- **Status:** parcialmente aprovada.
+- **Decisão registrada:** animais adotados permanecem cadastrados e identificados; a adoção
+  não autoriza remover o registro.
+- **Evidência da aprovação:** resposta 2 da responsável da ONG, 2026-10-29, comunicada pelo
+  mantenedor.
+- **Pendente:** exclusão/arquivamento de animais não adotados, retenção de imagens e efeito
+  sobre referências. Exclusão/arquivamento fica fora do primeiro incremento.
 - **Impacto:** constraints e lifecycle de Animal/AnimalImage/AdoptionRequest, endpoint,
-  autorização e auditoria; tarefas 2.1/2.3/2.4, I3 e I5.
-- **Escopo desbloqueado se aprovada:** especificar a operação e restrições de referência em
-  modelo/OpenAPI; não autoriza migration destrutiva nem exclusão real.
+  autorização e logs mínimos; tarefas 2.1/2.3/2.4, I3 e I5.
+- **Escopo desbloqueado:** registrar que `ADOPTED` é retido; não autoriza delete/archive nem
+  migration destrutiva.
 
 ### ONG-04 — Ciclo de vida e transições da adoção
 
@@ -402,12 +468,21 @@ assessoria apropriada, sem declarar conformidade LGPD automaticamente.
 - **Riscos:** status ambíguos podem comunicar decisão incorreta ao candidato e corromper
   métricas/histórico; alterações retroativas complicam dados.
 - **Responsável pela aprovação:** coordenação de adoções da ONG.
-- **Status:** pendente.
-- **Evidência da aprovação:** nenhuma; status do mock não é ciclo aprovado.
-- **Impacto:** AdoptionRequest, transições/API, histórico, UI e auditoria; tarefas
-  2.1/2.3/2.4, I8 e I9.
-- **Escopo desbloqueado se aprovada:** documentar o lifecycle e suas transições na capability,
-  modelo e OpenAPI; intake e gestão seguem bloqueados até seus incrementos.
+- **Status:** parcialmente aprovada.
+- **Decisão registrada:** a avaliação da adoção é manual e feita pelos responsáveis da ONG;
+  não haverá workflow complexo de aprovação nem múltiplos estados de solicitação. O contato
+  inicial ocorre pelo WhatsApp informado no formulário.
+- **Evidência da aprovação:** respostas 3 e 8 da responsável da ONG, 2026-10-29, comunicadas
+  pelo mantenedor.
+- **Pendente:** se alguma informação de estado da manifestação será persistida, duplicidade,
+  retirada e prazo de resposta. Os estados `PENDING/ACCEPTED/REJECTED` do protótipo não foram
+  aprovados.
+- **Impacto:** AdoptionRequest, API de intake, consulta administrativa somente leitura,
+  histórico (não detalhado) e tarefas 2.1/2.3/2.4, I8 e I9. Transições de status ficam fora
+  do escopo.
+- **Escopo desbloqueado:** modelar a manifestação como registro recebido, sem máquina de
+  estados de aprovação; intake e consulta seguem bloqueados por PII/antiabuso e seus
+  incrementos.
 
 ### ONG-05 — Dados pessoais, finalidade, transparência e retenção
 
@@ -426,13 +501,19 @@ assessoria apropriada, sem declarar conformidade LGPD automaticamente.
   causam dano a titulares e risco regulatório.
 - **Responsável pela aprovação:** representante da ONG responsável pelo tratamento, com
   encarregado/assessoria de privacidade ou jurídica quando aplicável.
-- **Status:** pendente.
-- **Evidência da aprovação:** nenhuma; campos do protótipo não são autorização de coleta.
-- **Impacto:** todos os campos PII, schemas/request/response, permissões, logs, retenção e
-  solicitações de titulares; tarefas 2.1/2.3/2.4, I8–I10 e I11.
-- **Escopo desbloqueado se aprovada:** definir somente coleta, finalidade, transparência,
-  acesso e retenção confirmados para atualizar modelo/contrato; habilitar intake depende de
-  implementação e testes posteriores.
+- **Status:** parcialmente aprovada.
+- **Decisão registrada:** o formulário do interessado coletará nome, WhatsApp, cidade e
+  e-mail. O campo de mensagem do protótipo não foi aprovado e não deve ser persistido como
+  requisito.
+- **Evidência da aprovação:** resposta 4 da responsável da ONG, 2026-10-29, comunicada pelo
+  mantenedor.
+- **Pendente:** obrigatoriedade individual, finalidade/base legal, aviso de privacidade,
+  retenção, exclusão/anonimização, acesso, limites de validação e tratamento de titulares.
+  A coleta aprovada não dispensa esses controles.
+- **Impacto:** campos PII, schemas/request/response, permissões, logs, retenção e solicitações
+  de titulares; tarefas 2.1/2.3/2.4, I8–I10 e I11.
+- **Escopo desbloqueado:** usar somente os quatro campos aprovados no modelo/contrato de
+  intake; habilitar coleta real continua condicionado a privacidade, retenção e antiabuso.
 
 ### ONG-06 — Imagens: formatos, limites, armazenamento e moderação
 
@@ -449,12 +530,16 @@ assessoria apropriada, sem declarar conformidade LGPD automaticamente.
   exposta, dados de localização em EXIF e órfãs.
 - **Responsável pela aprovação:** coordenação da ONG para operação, custos e publicação;
   Tech Lead/Infra/AppSec aprovam desenho técnico e controles.
-- **Status:** pendente.
-- **Evidência da aprovação:** nenhuma; provider, formatos e quotas não definidos.
+- **Status:** parcialmente aprovada.
+- **Decisão registrada:** cada animal deve possuir no mínimo uma e no máximo três fotografias.
+- **Evidência da aprovação:** resposta 5 da responsável da ONG, 2026-10-29, comunicada pelo
+  mantenedor.
+- **Pendente:** formatos, tamanho/dimensões, storage, acesso, metadados/EXIF, moderação,
+  retenção e custo aceitável.
 - **Impacto:** AnimalImage, fronteira de upload OpenAPI, storage, CORS se aplicável, retenção
   e UI; tarefas 2.1/2.3/2.4 e I6.
-- **Escopo desbloqueado se aprovada:** especificar formatos/limites e fronteira do upload no
-  contrato; storage/upload continuam aguardando I5/I6 e validação de segurança.
+- **Escopo desbloqueado:** validar quantidade 1–3 no modelo/contrato; storage/upload continuam
+  aguardando I5/I6 e validação de segurança.
 
 ### ONG-07 — Contato, encaminhamento, confirmação e histórico
 
@@ -472,11 +557,14 @@ assessoria apropriada, sem declarar conformidade LGPD automaticamente.
 - **Responsável pela aprovação:** responsável de atendimento da ONG e responsável por
   privacidade; mantenedor técnico aprova integração.
 - **Status:** pendente.
-- **Evidência da aprovação:** nenhuma; entrega/persistência são explicitamente pendentes.
+- **Evidência da aprovação:** nenhuma. As respostas 3 e 6 tratam do contato da ONG com o
+  interessado e dos canais públicos, não do processamento do formulário de contato geral.
+- **Pendente:** destino, persistência/encaminhamento, campos, texto de confirmação, prazo e
+  retenção. O formulário de contato geral fica fora do primeiro incremento.
 - **Impacto:** ContactMessage condicional, POST e resposta OpenAPI, configuração de provider,
-  logs e retention; tarefas 2.1/2.3/2.4 e I10.
-- **Escopo desbloqueado se aprovada:** definir o destino e o texto de confirmação para
-  contrato; não envia mensagem nem configura provider.
+  logs e retenção; tarefas 2.1/2.3/2.4 e I10.
+- **Escopo desbloqueado:** manter os canais públicos como links; nenhum envio ou provider é
+  autorizado.
 
 ### ONG-08 — Escopo, acesso e retenção de auditoria
 
@@ -492,12 +580,17 @@ assessoria apropriada, sem declarar conformidade LGPD automaticamente.
   amplia superfície de vazamento e custo.
 - **Responsável pela aprovação:** direção/coordenação da ONG e responsável por privacidade;
   AppSec define controles técnicos.
-- **Status:** pendente.
-- **Evidência da aprovação:** nenhuma; evento/retention/access não foram especificados.
-- **Impacto:** entidades/eventos de audit, policy de acesso, logs, testes e contratos de
-  operações admin; tarefas 2.1/2.3/2.4, I5/I9/I11.
-- **Escopo desbloqueado se aprovada:** registrar eventos, acesso e retention mínimos nos
-  requisitos e desenho; não cria tabela nem coleta logs reais.
+- **Status:** parcialmente aprovada.
+- **Decisão registrada:** a ONG não necessita de histórico administrativo detalhado. Não será
+  exigida trilha de negócio por mutação, transição ou leitura de PII.
+- **Evidência da aprovação:** resposta 7 da responsável da ONG, 2026-10-29, comunicada pelo
+  mantenedor.
+- **Pendente:** escopo, acesso e retenção de logs mínimos de segurança. Esses logs continuam
+  necessários independentemente da simplificação do histórico administrativo.
+- **Impacto:** logs de segurança, policy de acesso, testes e contratos de operações admin;
+  tarefas 2.1/2.3/2.4, I5/I9/I11. Entidades de histórico detalhado ficam fora do escopo.
+- **Escopo desbloqueado:** remover requisito de histórico administrativo detalhado; manter
+  somente logging mínimo de segurança a detalhar.
 
 ### ONG-09 — Abuso, spam e limites de submissão
 
@@ -516,11 +609,12 @@ assessoria apropriada, sem declarar conformidade LGPD automaticamente.
 - **Responsável pela aprovação:** coordenação da ONG para experiência e limites operacionais;
   AppSec/Infra para eficácia e implantação.
 - **Status:** pendente.
-- **Evidência da aprovação:** nenhuma; limite, política e UX não foram aprovados.
+- **Evidência da aprovação:** nenhuma; a resposta 8 não define limites, política de
+  duplicidade ou tratamento antiabuso.
 - **Impacto:** limites/429, payloads, idempotência e observabilidade no OpenAPI; configurações
   de ambiente e dados; tarefas 2.1/2.4, I4, I8 e I10.
-- **Escopo desbloqueado se aprovada:** especificar políticas/valores autorizados e mapear
-  resposta antiabuso; controles ativos só podem ser implementados nos incrementos próprios.
+- **Escopo desbloqueado:** controles básicos de segurança continuam obrigatórios; valores,
+  política e UX antiabuso permanecem pendentes.
 
 ### ONG-10 — Campos de domínio, idade e informação pública
 
@@ -538,12 +632,17 @@ assessoria apropriada, sem declarar conformidade LGPD automaticamente.
   informação interna e abuso de payload.
 - **Responsável pela aprovação:** responsável por cadastro/saúde animal da ONG e
   coordenação de adoções; AppSec revisa fronteiras de saída.
-- **Status:** pendente.
-- **Evidência da aprovação:** nenhuma; campos do mock são observados, não domínio final.
+- **Status:** parcialmente aprovada.
+- **Decisão registrada:** o vocabulário de estado fica limitado a “Disponível para adoção” e
+  “Adotado”; cada animal tem 1–3 fotografias.
+- **Evidência da aprovação:** respostas 2 e 5 da responsável da ONG, 2026-10-29, comunicadas
+  pelo mantenedor.
+- **Pendente:** demais campos do animal, vocabulário de espécie/sexo/porte, idade,
+  descrição, personalidade, informação médica, visibilidade, limites e DTOs público/admin.
 - **Impacto:** data model, DTOs públicos/admin, filtros, validação e OpenAPI; tarefas
   2.1/2.3/2.4 e I5/I7.
-- **Escopo desbloqueado se aprovada:** incluir campos e visibilidade aprovados nos contratos;
-  campos controversos ou sem finalidade permanecem excluídos/bloqueados.
+- **Escopo desbloqueado:** incluir somente estado e quantidade de fotos aprovados; campos
+  controversos ou sem finalidade permanecem excluídos/bloqueados.
 
 ### ONG-11 — Métricas, conteúdo institucional e destinos de ações públicas
 
@@ -558,35 +657,40 @@ assessoria apropriada, sem declarar conformidade LGPD automaticamente.
 - **Riscos:** informação desatualizada, redirecionamento para canal errado e expansão
   silenciosa de escopo para doações/voluntariado.
 - **Responsável pela aprovação:** comunicação/direção da ONG.
-- **Status:** pendente.
-- **Evidência da aprovação:** nenhuma; conteúdo atualmente observado no diagnóstico não é
-  validação institucional.
+- **Status:** parcialmente aprovada.
+- **Decisão registrada:** manter as três opções de contato consultadas, priorizando WhatsApp
+  e telefone. A resposta não nomeia o terceiro canal e a pergunta original não está
+  disponível no repositório; o terceiro canal não será fixado por inferência.
+- **Evidência da aprovação:** resposta 6 da responsável da ONG, 2026-10-29, comunicada pelo
+  mantenedor.
+- **Pendente:** terceiro canal, conteúdo institucional, métricas, horários, alegações e
+  destinos externos. Não criar fluxos de doação, voluntariado ou serviços adicionais.
 - **Impacto:** capability `public-experience`, conteúdo, links e critérios de teste; tarefas
   2.1/2.5 e I7. Não cria requisito comercial novo.
-- **Escopo desbloqueado se aprovada:** associar conteúdo/destinos validados a requisitos e
-  critérios de aceite; não cria fluxos de doação, voluntariado ou serviços adicionais.
+- **Escopo desbloqueado:** manter WhatsApp e telefone como canais prioritários e preservar
+  espaço para o terceiro canal sem definir seu destino.
 
 ## Bloqueios explícitos de requisitos de negócio
 
-Não houve resposta da responsável pela ONG nesta execução. Os itens abaixo permanecem
-**pendentes de decisão e bloqueados**, e os valores observados no protótipo não podem ser
-implementados como regras definitivas. A coluna “excluído do contrato implementável” delimita
-o que não pode ser tratado como aprovado; os requisitos de segurança/resultado geral das
-capabilities continuam sendo metas, não autorização para escolher valores.
+As respostas da responsável da ONG foram recebidas em 2026-10-29 e registradas acima. Elas
+**não encerram** todas as decisões: os itens abaixo mostram o que já pode entrar no contrato e
+o que continua bloqueado. Valores observados no protótipo não se tornam regras definitivas por
+terem sido mantidos na interface. Os requisitos de segurança/resultado geral das capabilities
+continuam sendo metas, não autorização para escolher valores.
 
-| Decisão | Requisitos OpenSpec afetados | Excluído do contrato implementável até aprovação |
-|---|---|---|
-| ONG-01 | `admin-authentication`: provisionamento, perfis e permissões; `animal-management` e `adoption-management`: escopo de acesso administrativo | Identidades, cadastro/provisionamento de contas, papéis, matriz de permissões e acesso por recurso. |
-| ONG-02 | `public-animal-catalog`: elegibilidade, estados e publicação; `animal-management`: status/visibilidade; `adoption-requests`: animal elegível | Enum/status do mock, regra de publicação, elegibilidade e efeitos públicos/CTA. |
-| ONG-03 | `animal-management`: remoção/ciclo de vida e referências | Delete físico/lógico, archive, retenção de imagens e efeito em solicitações/histórico. |
-| ONG-04 | `adoption-requests`: estado inicial; `adoption-management`: transições persistidas | Estados e transições definitivos, significado de aceite/recusa, retirada, entrevista e conclusão. |
-| ONG-05 | `adoption-requests`: campos, finalidade e acesso; `contact-messages`: campos/destino; `adoption-management`: PII e direitos | Campos PII, obrigatoriedade, finalidade/base legal/aviso, retenção, exclusão/anonimização e solicitação de titular. |
-| ONG-06 | `animal-management`: upload e publicação de imagem | Formatos, limites, dimensões, quantidade, storage, moderação, retenção e URLs publicáveis. |
-| ONG-07 | `contact-messages`: processamento, aceite e falha | Persistência ou e-mail, destinatário, texto de confirmação, prazo de resposta e retenção. |
-| ONG-08 | `adoption-management`: auditoria e privacidade; `animal-management`: operações auditadas | Eventos de auditoria, acesso e retenção; não registrar payloads/PII integral como default. |
-| ONG-09 | `admin-authentication`: abuso de login; `adoption-requests` e `contact-messages`: abuso público | Quotas numéricas, política de duplicidade/retry, CAPTCHA/mitigação e efeitos de bloqueio. |
-| ONG-10 | `animal-management`: campos/validação; `public-animal-catalog`: DTO público e filtros | Vocabulário, idade, sexo, porte, limites e visibilidade de descrição, personalidade e dados médicos. |
-| ONG-11 | `public-experience`: conteúdo, links e ações; home/indicadores observados | Estatísticas, alegações atuais, horários, destinos externos e ações de doação/voluntariado. |
+| Decisão | Requisitos OpenSpec afetados | Aprovado ou parcialmente aprovado | Excluído do contrato implementável até nova aprovação |
+|---|---|---|---|
+| ONG-01 | `admin-authentication`: provisionamento e permissões; `animal-management` e `adoption-management`: acesso administrativo | Um único administrador; sem papéis diferenciados. | Identidade, provisionamento, revogação, recuperação, sessão e topologia. |
+| ONG-02 | `public-animal-catalog`: estados e publicação; `animal-management`: status; `adoption-requests`: animal elegível | Estados `AVAILABLE` e `ADOPTED`; adotados permanecem cadastrados e identificados. | Publicação/visibilidade, rascunho, retorno a disponível e visibilidade pública de adotados. |
+| ONG-03 | `animal-management`: remoção/ciclo de vida e referências | Adotados não são removidos pela adoção. | Delete físico/lógico, archive, retenção de imagens e efeito em referências de animais não adotados. |
+| ONG-04 | `adoption-requests`: intake; `adoption-management`: consulta | Avaliação manual, contato por WhatsApp e ausência de workflow complexo. | Estados de solicitação, transições, aceite/recusa no sistema, retirada, entrevista e conclusão. |
+| ONG-05 | `adoption-requests`: campos; `contact-messages`: campos/destino; `adoption-management`: PII e direitos | Coleta de nome, WhatsApp, cidade e e-mail. | Obrigatoriedade, finalidade/base legal/aviso, retenção, exclusão/anonimização, acesso e limites. |
+| ONG-06 | `animal-management`: upload e publicação de imagem | Quantidade de 1 a 3 fotografias por animal. | Formatos, tamanho/dimensões, storage, moderação, EXIF, retenção e URLs publicáveis. |
+| ONG-07 | `contact-messages`: processamento, aceite e falha | Canais públicos de WhatsApp e telefone priorizados; formulário de contato geral fora do primeiro incremento. | Persistência ou e-mail, destinatário, texto de confirmação, prazo de resposta e retenção. |
+| ONG-08 | `adoption-management`: privacidade; `animal-management`: logs | Sem histórico administrativo detalhado. | Escopo, acesso e retenção de logs mínimos de segurança; não registrar payloads/PII integral. |
+| ONG-09 | `admin-authentication`: abuso de login; `adoption-requests` e `contact-messages`: abuso público | Controles básicos de segurança continuam obrigatórios. | Quotas numéricas, política de duplicidade/retry, CAPTCHA/mitigação e efeitos de bloqueio. |
+| ONG-10 | `animal-management`: campos/validação; `public-animal-catalog`: DTO público e filtros | Estado com dois valores e quantidade de fotos. | Demais campos, vocabulário, idade, sexo, porte, limites e visibilidade de descrição, personalidade e dados médicos. |
+| ONG-11 | `public-experience`: conteúdo, links e ações; home/indicadores observados | WhatsApp e telefone prioritários; manter três opções de contato. | Terceiro canal, estatísticas, alegações atuais, horários, destinos externos e ações de doação/voluntariado. |
 
 ## Checklist de aprovação e gates do I1
 
@@ -596,28 +700,46 @@ contrato implementável.
 
 | Tarefa OpenSpec | Gate e evidência exigida | Responsável(is) | O que fica desbloqueado após aprovação/registro | Estado |
 |---|---|---|---|---|
-| **2.1** | Registrar ONG-01–ONG-11 como aprovados ou explicitamente bloqueados, com funções responsáveis, evidência disponível, impacto e requisitos excluídos. Nenhuma resposta da ONG foi inventada. | Representantes da ONG por domínio e responsável de privacidade/jurídico conforme aplicável. | Somente requisitos sem dependência da ONG podem seguir; todos os itens da tabela acima permanecem fora do contrato implementável. | [x] Concluída documentalmente: 11 decisões continuam pendentes e os requisitos bloqueados foram mapeados; respostas não recebidas. |
+| **2.1** | Registrar ONG-01–ONG-11 como aprovados ou explicitamente bloqueados, com funções responsáveis, evidência disponível, impacto e requisitos excluídos. Nenhuma resposta da ONG foi inventada. | Representantes da ONG por domínio e responsável de privacidade/jurídico conforme aplicável. | Somente requisitos efetivamente respondidos podem seguir; os itens pendentes permanecem fora do contrato implementável. | [x] Concluída documentalmente em 2026-10-29: respostas registradas com proveniência; 9 decisões parciais e 2 pendentes; nenhuma aprovação integral. |
 | **2.2** | Consolidar decisões técnicas expressamente autorizadas, registrar evidência/limites, revalidar compatibilidade do Boot 4.1.2 antes do I2 e manter autenticação/topologia/provider e validação OpenAPI com estado correto. | Tech Lead/arquitetura; mantenedores backend/CI/DB; AppSec e Infra conforme tema. | Baseline documental parcial para I2/I3; desenho final de auth/proxy permanece bloqueado pela topologia e AppSec. | [ ] Parcial: tecnologias aprovadas registradas; auth/topologia e Redocly ainda aguardam decisão própria. |
-| **2.3** | Separar invariantes técnicas aprovadas de entidade/campos candidatos; cada campo pendente deve indicar finalidade/visibilidade/validação/retention como bloqueados e ficar fora do contrato implementável. | Tech Lead/API owner, ONG e privacy/AppSec para PII. | Apenas estrutura conceitual e invariantes técnicas podem orientar trabalho; nenhuma entidade/field de negócio libera migrations. | [ ] Parcial: modelo revisado e candidato excluído da implementação; decisões ONG impedem modelo final de domínio. |
-| **2.4** | Separar operações públicas/admin; não atribuir protocolo de auth; usar Problem Details RFC 9457, explicitar códigos/validação genéricos e bloquear schemas/valores não aprovados; validar OpenAPI 3.0.3 com ferramenta versionada candidata. | API owner/Tech Lead, AppSec e mantenedor do CI; responsáveis ONG para domínio. | Contrato documental para validação/planejamento, com operações bloqueadas; nenhuma implementação autorizada por ele. | [x] Concluída documentalmente; `pnpm.cmd --package=@redocly/cli@2.72.0 dlx redocly lint --extends=spec specs/contracts/openapi.yaml` passou. Aprovação para uso no CI ainda pendente. |
-| **2.5** | Para todo ID do inventário, registrar capability/requisito, endpoint ou N/A, persistência ou N/A, teste e status/bloqueio. | Tech Lead/QA e donos de capability; ONG para decisões funcionais. | Matriz completa delimita escopo; não autoriza por si só I2–I11. | [x] Concluída documentalmente em `docs/diagnostics/I1-INTERACTION-TRACEABILITY.md`; 42 IDs mapeados; validação de cobertura realizada. |
+| **2.3** | Separar invariantes técnicas aprovadas de entidade/campos candidatos; cada campo pendente deve indicar finalidade/visibilidade/validação/retention como bloqueados e ficar fora do contrato implementável. | Tech Lead/API owner, ONG e privacy/AppSec para PII. | Apenas estrutura conceitual e invariantes técnicas podem orientar trabalho; nenhuma entidade/field de negócio libera migrations. | [x] Concluída documentalmente: modelo atualizado com dois estados, 1–3 fotos, quatro campos de intake e um administrador; campos pendentes continuam fora do contrato. |
+| **2.4** | Separar operações públicas/admin; não atribuir protocolo de auth; usar Problem Details RFC 9457, explicitar códigos/validação genéricos e bloquear schemas/valores não aprovados; validar OpenAPI 3.0.3 com ferramenta versionada candidata. | API owner/Tech Lead, AppSec e mantenedor do CI; responsáveis ONG para domínio. | Contrato documental para validação/planejamento, com operações bloqueadas; nenhuma implementação autorizada por ele. | [x] Concluída documentalmente; contrato reconciliado com o escopo simplificado e validado com Redocly CLI 2.72.0. Aprovação para uso no CI ainda pendente. |
+| **2.5** | Para todo ID do inventário, registrar capability/requisito, endpoint ou N/A, persistência ou N/A, teste e status/bloqueio. | Tech Lead/QA e donos de capability; ONG para decisões funcionais. | Matriz completa delimita escopo; não autoriza por si só I2–I11. | [x] Concluída documentalmente em `docs/diagnostics/I1-INTERACTION-TRACEABILITY.md`; 42 IDs mapeados e revisados para o escopo simplificado. |
 
 ### Ordem recomendada para fechar I1
 
-1. 2.1 está concluída documentalmente ao explicitar os onze bloqueios; respostas da ONG
-   continuam necessárias antes de implementar requisitos dependentes.
+1. 2.1 foi atualizada com as respostas da ONG; as pendências remanescentes continuam
+   bloqueando os requisitos dependentes.
 2. 2.2 permanece parcial até decisão de autenticação/topologia e aprovação de TEC-07 para CI;
    confirmar Spring Boot 4.1.2 e runtime antes de I2.
-3. 2.3 permanece parcial: campos e regras de negócio estão fora do modelo implementável; a
-   finalização depende das decisões ONG correspondentes.
+3. 2.3 foi atualizada no escopo documental: modelo distingue aprovado de pendente; schema e
+   migrations continuam bloqueados até o incremento próprio.
 4. 2.4 e 2.5 estão concluídas documentalmente com OpenAPI válido e matriz completa, sem
    aprovar as operações bloqueadas.
 5. A validação OpenSpec estrita e as revisões de links/consistência/security continuam como
    evidências requeridas antes de declarar o I1 encerrado.
 
-Esta execução conclui 2.1, 2.4 e 2.5 apenas no escopo documental. 2.2 e 2.3 seguem parciais;
+Esta execução conclui 2.1, 2.3, 2.4 e 2.5 apenas no escopo documental. 2.2 segue parcial;
 portanto, o I1 não está integralmente concluído e nenhuma implementação I2 ou funcional foi
 iniciada.
+
+## Análise de impacto da simplificação
+
+As respostas permitem reduzir escopo sem remover segurança ou proteção de dados:
+
+- **Gestão de solicitações:** passa de transições de status para consulta somente leitura das
+  manifestações recebidas. Os botões de aceitar/recusar do protótipo continuam existindo, mas
+  não representam fluxo aprovado e não devem ser conectados a API sem nova decisão.
+- **Histórico administrativo:** deixa de ser requisito. Logs mínimos de segurança continuam
+  necessários; não há autorização para registrar payloads ou PII em excesso.
+- **Exclusão/arquivamento de animais:** fica fora do primeiro incremento. Animais adotados são
+  retidos; nenhuma operação destrutiva é autorizada.
+- **Formulário de contato geral:** fica fora do primeiro incremento. Os canais públicos de
+  WhatsApp e telefone são preservados; o terceiro canal permanece indefinido.
+- **Papéis administrativos:** não há matriz de papéis; permanece um único administrador. A
+  autenticação e a autorização server-side continuam obrigatórias.
+- **Intake:** o campo de mensagem do protótipo não foi aprovado; a coleta futura fica limitada
+  a nome, WhatsApp, cidade e e-mail, sujeita a privacidade, retenção e antiabuso.
 
 ## Sequência segura para integração do I0
 

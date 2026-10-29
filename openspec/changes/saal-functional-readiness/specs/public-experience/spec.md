@@ -43,6 +43,21 @@ Links para canais externos MUST usar destinos verificados e tratamento seguro de
 - **WHEN** um bloco informativo não possui ação aprovada pela ONG
 - **THEN** ele não aparenta ser um botão nem apresenta resultado de operação inexistente
 
+### Requirement: Canais de contato usam destinos aprovados
+
+A experiência pública MUST manter as três opções de contato existentes, priorizando WhatsApp e
+telefone. O terceiro canal MUST NOT ser fixado até decisão da ONG; a pergunta original sobre
+ele não está disponível no repositório. Links externos MUST usar destinos verificados e
+tratamento seguro de nova janela.
+
+#### Scenario: Visitante aciona WhatsApp ou telefone
+- **WHEN** o visitante seleciona um dos canais prioritários aprovados
+- **THEN** a interface abre o destino verificado correspondente sem simular operação interna
+
+#### Scenario: Terceiro canal ainda não definido
+- **WHEN** o terceiro canal de contato não possui decisão registrada
+- **THEN** a interface não inventa destino nem apresenta o canal como funcional
+
 ### Requirement: Experiência pública preserva acessibilidade e adaptação de viewport
 
 As páginas públicas e seus componentes interativos MUST ser operáveis por teclado, expor nome,

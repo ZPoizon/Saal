@@ -97,9 +97,10 @@ implementação de funcionalidade.
 
 ## 6. Gate para produção utilizada pela ONG
 
-- [ ] Requisitos de negócio, contas/papéis, publicação, fluxo de adoção, PII, retention,
-  imagens, contato e auditoria estão aprovados por responsáveis da ONG e, quando aplicável,
-  privacidade/jurídico.
+- [ ] Requisitos de negócio do escopo aprovado (catálogo + manifestação de interesse), conta
+  administrativa única, publicação/visibilidade, PII, retenção, imagens, contato condicional e
+  logs mínimos estão aprovados por responsáveis da ONG e, quando aplicável, privacidade/
+  jurídico. Não há papéis diferenciados nem workflow de status de solicitação.
 - [ ] Avaliação operacional confirmou provedor, região, domínio, quotas, disponibilidade,
   suporte, segurança, custos, monitoramento e processo de incidente; plano gratuito não é
   usado como garantia de produção.

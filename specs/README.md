@@ -41,7 +41,8 @@ Consulte-as antes de implementar e ao revisar alterações.
 | Solicitação de adoção | `features/adoption-request.md` | Protótipo |
 | Gestão de animais | `features/animal-management.md` | Protótipo |
 | Autenticação admin | `features/admin-authentication.md` | Protótipo inseguro |
-| Gestão de adoções | `features/adoption-management.md` | Protótipo |
+| Gestão de adoções | `features/adoption-management.md` | Protótipo (workflow não aprovado) |
+| Contato geral | — | Fora do primeiro incremento (ONG-07) |
 
 ## Rastreabilidade
 
@@ -53,10 +54,18 @@ Consulte-as antes de implementar e ao revisar alterações.
 
 ## Pendências transversais
 
-- Definir política de autenticação, sessão, perfis e recuperação de acesso.
-- Definir ciclo de vida completo de uma solicitação de adoção.
-- Definir retenção, consentimento e exclusão de dados pessoais conforme LGPD.
-- Definir armazenamento, limites e moderação de imagens.
+- Definir identidade, provisionamento, sessão e recuperação do único administrador; não há
+  papéis diferenciados (ONG-01/TEC-04/TEC-05).
+- Não há workflow de status de manifestação; a avaliação é manual e a gestão é somente leitura
+  (ONG-04). Definir duplicidade e antiabuso (ONG-09).
+- Definir finalidade, consentimento/base legal, aviso, acesso, retenção e exclusão dos dados
+  pessoais conforme LGPD (ONG-05).
+- Definir publicação/visibilidade de adotados e exclusão/arquivamento de animais (ONG-02/ONG-03).
+- Definir formatos, limites, storage, EXIF e moderação das 1–3 imagens (ONG-06).
+- Definir demais campos do animal e vocabulário de espécie/sexo/porte (ONG-10).
+- Definir o terceiro canal de contato, métricas e conteúdo institucional (ONG-11). O formulário
+  de contato geral está fora do primeiro incremento (ONG-07).
+- Escopo e retenção de logs mínimos de segurança (ONG-08).
 - Ampliar testes além da base Vitest/Oxlint de I0, incluindo integrações backend e browser.
 - Flyway está escolhido para uso futuro; schema/migrations continuam não implementados e
   dependem do modelo de domínio aprovado.

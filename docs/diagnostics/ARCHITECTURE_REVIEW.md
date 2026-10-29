@@ -13,6 +13,30 @@ opções apenas para teste/demonstração. Sessão server-side permanece prefer�
 estados de aprovação abaixo são o registro histórico anterior e não substituem o registro
 atual.
 
+**Atualização de escopo (29/10/2026):** as respostas da responsável da ONG, comunicadas pelo
+mantenedor e registradas no `I1-approval-register.md`, prevalecem sobre as opções ainda
+abertas nesta revisão e sobre o protótipo:
+
+- O produto é **catálogo + manifestação de interesse**, com avaliação manual e sem workflow
+  complexo. Não há transições de status de solicitação nem histórico administrativo detalhado.
+- Animais têm exatamente dois estados: `AVAILABLE` e `ADOPTED`; adotados permanecem
+  cadastrados e identificados. `TREATMENT`, rascunho e publicação não foram aprovados.
+- Cada animal tem 1–3 fotos. Formatos, limites, storage, EXIF e retenção continuam pendentes.
+- O intake coleta nome, WhatsApp, cidade e e-mail; o campo de mensagem não foi aprovado.
+- Há um único administrador, sem papéis diferenciados. Identidade, provisionamento, sessão,
+  revogação e recuperação continuam pendentes.
+- A gestão administrativa de manifestações é somente leitura. Não há aprovar/recusar.
+- WhatsApp e telefone são os canais prioritários; o terceiro canal não foi fixado porque a
+  pergunta original não está no repositório.
+- Exclusão/arquivamento de animais, formulário de contato geral, métricas e conteúdo
+  institucional ficam fora do primeiro incremento.
+- Segurança, privacidade, autorização server-side, validação, rate limiting básico e logs
+  mínimos continuam obrigatórios; seus detalhes seguem pendentes.
+
+As linhas da matriz abaixo que sugerem papéis, três estados, workflow de solicitação, histórico
+detalhado ou contato no primeiro incremento estão superadas por esta atualização e pelo
+`ADR-005-escopo-catalogo-e-interesse.md`.
+
 ## Conclusão executiva
 
 A direção arquitetural aprovada nos ADRs é coerente e deve ser preservada:
@@ -189,12 +213,12 @@ sem aprovação.
 | **I2 — Backend vazio/configuração** | I1; Java/Spring e build tooling aprovados. | Serviço `backend/` separado compila via wrapper fixado, health não vaza config, perfil local/test aceita valores não secretos, startup falha explicitamente sem datasource necessário e nenhum pseudo-endpoint de negócio/mocks. CI constrói projeto sem incluir credenciais. |
 | **I3 — MySQL/Flyway/migrations** | I2; schema e tool aprovados. Recomendação Flyway SQL versionado. | CI sobe banco de teste MySQL compatível e migration limpa. Teste update desde baseline conhecida, constraints/FKs e restore do backup aprovados; tabela/owner de schema e least privilege verificadas. Não é exigido rollback SQL de DDL; migration publicada corrige-se forward. |
 | **I4 — Auth/session e autorização base** | I3; ADR de sessão/atores aprovado e origem/ambiente definido. | Testes de login genérico, sessão regenerada/expirada/revogada, logout inválida cookie, CSRF aprovado, cookie atributos, CORS allowlist, rate limit, primeira conta provisionada externamente, ausência de self-signup; todos endpoints admin retornam 401/403 sem vazamento e verificam permission server-side. |
-| **I5 — Operação administrativa Animal** | I4; status, visibilidade e política de archive/delete aprovados. O público não depende ainda do novo endpoint. | GET admin distingue all records de public list e exige permissão; CRUD validado por recurso/versão/autor, SQL/JPA parametrizado, texto validado/escapado; delete/archive impede perda de referências; consulta e mutações negativas/positivas são auditadas no escopo aprovado; integração e reload comprovam MySQL. |
+| **I5 — Operação administrativa Animal** | I4; identidade/sessão e campos de domínio restantes aprovados. O público não depende ainda do novo endpoint. | GET admin distingue registros públicos e exige autorização; create/update validados, SQL/JPA parametrizado, texto validado/escapado; somente `AVAILABLE`/`ADOPTED` e 1–3 fotos; delete/archive não implementado no primeiro incremento; logs mínimos no escopo aprovado; integração e reload comprovam MySQL. |
 | **I6 — Imagem segura** | I5; storage, formatos, limites, acesso a bucket e retenção aprovados. | Conteúdo decodificado/validado contra allowlist, limites antes/durante de upload, nomes aleatórios, sem SVG por default, stripping de metadata definido, armazenamento isolado e URL pública somente de imagem publicada; testes de spoof/MIME inválido/oversize/falha/revogação e orphan cleanup. |
-| **I7 — Catálogo/detalhe público** | I5/I6 e semântica de public visibility aprovada. | `GET` apresenta somente campos e registros publicados/permitidos; busca/filter combinados com allowlist, limite/ordenação/página bounded; card tem interação semântica; loading/empty/404/erro e image/share falhas; integração após reload mostra CRUD persistido; nenhuma fallback silenciosa a mocks. |
-| **I8 — Manifestação pública** | I3–I4/I7; campos, purpose/notice, retention e anti-abuso aprovados. | POST valida no servidor; transação rejeita animal indisponível e repetição conforme regra; quotas/payload caps/rate; sem mensagem de sucesso antes de commit; falha mantém dados; testes de payload invalid, spam, CSRF applicable, replay/retry, SQL injection e armazenamento sem PII além do aprovado. |
-| **I9 — Gestão de solicitações** | I4/I8; transições finais e papeis aprovados. | `GET/PATCH` exige autorização por papel e recurso, protege campos e logs de PII; transições válidas/invalidas auditadas conforme retention; conflito/retry mantém consistência; filtros/page só aprovados e testados. |
-| **I10 — Contato** | I0–I4; destino de entrega, retention e erros de provider aprovados. | Mensagem é aceita/entregue de acordo com contrato; formulário não mostra sucesso de entrega por mero enqueue salvo wording explícito; validação, rate/payload caps, logs redigidos, timeout/retry testados. |
+| **I7 — Catálogo/detalhe público** | I5/I6; campos públicos restantes e visibilidade de adotados aprovados. | `GET` lista somente `AVAILABLE` e o detalhe identifica `ADOPTED` sem CTA; busca/filtro combinados com allowlist; card sem interação aninhada; loading/empty/404/erro e image/share falhas; integração após reload mostra CRUD persistido; nenhuma fallback silenciosa a mocks. |
+| **I8 — Manifestação pública** | I3–I4/I7; purpose/notice, retention e antiabuso aprovados. Campos nome/WhatsApp/cidade/e-mail já aprovados. | POST valida no servidor; transação rejeita animal não `AVAILABLE`; quotas/payload caps/rate; sem mensagem de sucesso antes de commit; falha mantém dados; sem campo de mensagem ou status; testes de payload inválido, spam, CSRF aplicável, replay/retry, SQL injection e armazenamento sem PII além do aprovado. |
+| **I9 — Gestão de manifestações** | I4/I8; retenção/acesso de PII aprovados. | `GET` somente leitura exige autorização server-side e protege PII; não há `PATCH`/transição de status; filtros/page só aprovados e testados; logs mínimos sem histórico detalhado. |
+| **I10 — Contato** | **Adiado/fora do primeiro incremento** até ONG-07/ONG-09. | Nenhum formulário geral é implementado; WhatsApp e telefone permanecem links. Quando aprovado, mensagem só é confirmada conforme contrato real, com validação, rate/payload caps, logs redigidos, timeout/retry testados. |
 | **I11 — Testes integrados/AppSec/UX/deploy readiness** | Increments aplicáveis concluídos; environment escolhido. | Browser journeys públicos/admin MySQL integration pass; security reviewer conclui checklist sem P0; testes de OWASP controle (authZ/IDOR/CSRF/SQLi/XSS/uploads/rate/secrets/PII/errors), WCAG 2.2 AA/teclado/leitor, matriz de viewport e metadata/lang, backup/restore e deployment runbook evidenciados; nenhum P0 nem decisão crítica pendente. Não equivale a autorização automática para produção. |
 
 ## Controles de segurança e testes que devem acompanhar os incrementos

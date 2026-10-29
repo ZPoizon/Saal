@@ -2,29 +2,37 @@
 
 ## Purpose
 
-Permite que pessoas entrem em contato com a ONG por um fluxo verificável, sem confirmar
-ficticiamente mensagens que não foram aceitas ou entregues.
+Registra o formulário de contato geral como **fora do primeiro incremento**. A ONG aprovou
+manter três opções de contato, priorizando WhatsApp e telefone; o terceiro canal permanece
+pendente porque a pergunta original não está disponível no repositório. Nenhuma mensagem pode
+ser confirmada ficticiamente.
 
 ## ADDED Requirements
 
-### Requirement: Mensagem de contato é processada pelo serviço
+### Requirement: Formulário de contato geral está fora do primeiro incremento
 
-O envio MUST validar no servidor os campos mínimos aprovados e só confirmar aceite depois da
-resposta real do serviço; entrega, persistência, campos coletados e encaminhamento dependem
-da decisão operacional registrada pela ONG.
+O formulário de contato geral MUST NOT ser implementado até que a ONG aprove destino,
+persistência/encaminhamento, campos, confirmação, prazo, acesso e retenção (ONG-07), além de
+finalidade/base legal (ONG-05) e política antiabuso (ONG-09). Os canais públicos de WhatsApp e
+telefone são links externos e não dependem deste endpoint.
 
-#### Scenario: Mensagem válida aceita
-- **WHEN** visitante envia os campos aprovados e o serviço confirma o recebimento
-- **THEN** a interface confirma que a mensagem foi recebida pelo serviço
+#### Scenario: Visitante procura contato geral
+- **WHEN** a ONG ainda não aprovou o tratamento do formulário geral
+- **THEN** a interface oferece somente os canais de contato aprovados e não simula envio ou recebimento
+
+#### Scenario: Mensagem válida aceita no futuro
+- **WHEN** o formulário for aprovado e o serviço confirmar o recebimento
+- **THEN** a interface confirma que a mensagem foi recebida pelo serviço, sem prometer entrega não verificada
 
 #### Scenario: Falha de serviço
-- **WHEN** serviço não aceita a mensagem
+- **WHEN** o serviço não aceita a mensagem
 - **THEN** a interface não informa sucesso e mantém os dados para nova tentativa
 
 ### Requirement: Abuso de formulário público é mitigado
 
-O serviço MUST aplicar limites de entrada e medidas proporcionais contra abuso no endpoint
-público de contato, sem registrar conteúdo pessoal desnecessário.
+Quando o formulário for aprovado, o serviço MUST aplicar limites de entrada e medidas
+proporcionais contra abuso, sem registrar conteúdo pessoal desnecessário. Limites concretos
+dependem de ONG-09.
 
 #### Scenario: Entrada excessiva ou abuso
 - **WHEN** envio excede os limites aprovados ou a política de taxa
