@@ -7,13 +7,21 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
+import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@Import(SystemStatusHttpTest.InternalErrorTestConfiguration.class)
 class SystemStatusHttpTest {
     @LocalServerPort
     private int port;
@@ -47,5 +55,40 @@ class SystemStatusHttpTest {
     void endpointDeNegocioNaoImplementadoNaoEhSimulado() throws Exception {
         HttpResponse<String> response = get("/api/v1/animals");
         assertEquals(404, response.statusCode());
+        assertEquals(
+                MediaType.APPLICATION_PROBLEM_JSON_VALUE,
+                response.headers().firstValue("Content-Type").orElse(null));
+        assertTrue(response.body().contains("\"status\":404"));
+        assertTrue(response.body().contains("\"title\":\"Recurso nao encontrado\""));
+    }
+
+    @Test
+    void erroInternoRetornaProblemDetailSanitizado() throws Exception {
+        HttpResponse<String> response = get("/__test/internal-error");
+        assertEquals(500, response.statusCode());
+        assertEquals(
+                MediaType.APPLICATION_PROBLEM_JSON_VALUE,
+                response.headers().firstValue("Content-Type").orElse(null));
+        assertTrue(response.body().contains("\"status\":500"));
+        assertTrue(response.body().contains("\"title\":\"Erro interno\""));
+        assertTrue(response.body().contains("Nao foi possivel concluir a operacao."));
+        assertFalse(response.body().contains("sensitive-internal-marker"));
+        assertFalse(response.body().contains("IllegalStateException"));
+    }
+
+    @TestConfiguration(proxyBeanMethods = false)
+    static class InternalErrorTestConfiguration {
+        @Bean
+        InternalErrorTestController internalErrorTestController() {
+            return new InternalErrorTestController();
+        }
+    }
+
+    @RestController
+    static class InternalErrorTestController {
+        @GetMapping("/__test/internal-error")
+        void fail() {
+            throw new IllegalStateException("sensitive-internal-marker");
+        }
     }
 }
