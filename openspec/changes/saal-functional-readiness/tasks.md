@@ -29,10 +29,10 @@ registrar evidência ou bloqueio explícito.
 
 ## 4. MySQL e migrations — I3
 
-- [ ] 4.1 Aplicar a ferramenta selecionada Flyway, com credencial de migration separada da conta runtime; aprovação do tool não autoriza ainda schema ou migration sem decisões de domínio e aprovação do I3.
-- [ ] 4.2 Implementar migrations versionadas para o modelo aprovado, com FK, constraints e índices justificados; verificar criação em MySQL 8 limpo e integridade referencial.
-- [ ] 4.3 Adicionar testes de integração reprodutíveis de schema, constraints e compatibilidade; verificar banco em CI do zero e de uma versão anterior conhecida.
-- [ ] 4.4 Documentar backup/restore ensaiado e estratégia de correção forward; verificar que DDL MySQL não depende de rollback transacional e operação destrutiva exige aprovação explícita.
+- [x] 4.1 Aplicar a ferramenta selecionada Flyway, com credencial de migration separada da conta runtime; aprovação do tool não autoriza ainda schema ou migration sem decisões de domínio e aprovação do I3. Flyway configurado com URL/usuário/senha próprios; a aplicação falha se usuário ou senha coincidirem. Teste MySQL 8.4 prova migration com conta restrita e conta runtime sem acesso ao schema de teste. A configuração local também cria usuários distintos e mantém root fora da aplicação.
+- [ ] 4.2 Implementar migrations versionadas para o modelo aprovado, com FK, constraints e índices justificados; verificar criação em MySQL 8 limpo e integridade referencial. **Bloqueada:** não há modelo de negócio/schema aprovado. ONG-02/03/05/06/08/10 mantêm pendentes visibilidade/ciclo de vida, campos, PII/retenção, storage e logs; criar entidades ou constraints agora inferiria requisitos. Nenhuma migration de produto foi criada.
+- [ ] 4.3 Adicionar testes de integração reprodutíveis de schema, constraints e compatibilidade; verificar banco em CI do zero e de uma versão anterior conhecida. Testcontainers executa MySQL 8.4 limpo, valida Flyway e demonstra upgrade sintético v1→v2 com preservação de dado sintético. **Parcial/bloqueada:** testes de constraints/FK do schema de produto dependem da aprovação 4.2; não foram substituídos por constraints inventadas.
+- [x] 4.4 Documentar backup/restore ensaiado e estratégia de correção forward; verificar que DDL MySQL não depende de rollback transacional e operação destrutiva exige aprovação explícita. `backend/docs/mysql-backup-restore.md` documenta o procedimento e limites. Teste MySQL 8.4 executa mysqldump de tabela sintética e restaura em schema isolado; a documentação registra forward-fix, ausência de rollback transacional presumido e aprovação explícita para operações destrutivas. Política operacional de produção (retenção, agenda, criptografia/RPO e hosting) permanece pendente.
 
 ## 5. Autenticação e autorização — I4
 

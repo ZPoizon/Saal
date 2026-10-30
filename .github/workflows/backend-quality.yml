@@ -17,9 +17,9 @@ permissions:
 
 jobs:
   backend:
-    name: API build and tests (Java 21)
+    name: API build and tests (Java 21 + MySQL)
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     defaults:
       run:
         working-directory: backend
@@ -37,5 +37,7 @@ jobs:
           cache-dependency-path: backend/pom.xml
       - name: Maven Wrapper
         run: chmod +x mvnw
-      - name: Build and unit/integration tests
-        run: ./mvnw -B -ntp verify
+      - name: Docker ready for Testcontainers
+        run: docker info --format '{{.ServerVersion}}'
+      - name: Unit and real-MySQL integration tests
+        run: ./mvnw -B -ntp -Pdb-integration verify

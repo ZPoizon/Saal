@@ -10,12 +10,24 @@ import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 /** Resposta generica para falhas nao tratadas, sem expor mensagens internas. */
 @RestControllerAdvice
 @Order(Ordered.LOWEST_PRECEDENCE)
 public class GlobalErrorHandler {
     private static final Logger LOG = LoggerFactory.getLogger(GlobalErrorHandler.class);
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ProblemDetail> resourceNotFound(NoResourceFoundException error) {
+        ProblemDetail body = ProblemDetail.forStatusAndDetail(
+                HttpStatus.NOT_FOUND,
+                "O recurso solicitado nao foi encontrado.");
+        body.setTitle("Recurso nao encontrado");
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .contentType(MediaType.APPLICATION_PROBLEM_JSON)
+                .body(body);
+    }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ProblemDetail> unexpected(Exception error) {

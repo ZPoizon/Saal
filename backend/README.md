@@ -1,80 +1,100 @@
-# SAAL API — incremento I2 (fundacao executavel)
+# SAAL API — I3: conectividade MySQL e regras de dominio
 
-O backend e **real** e executa um servidor HTTP Spring Boot 4.1.2 com Java 21. Ainda **nao** tem banco,
-login, CRUD de animais nem formulario de interesse. Esses recursos dependem de decisoes e incrementos
-I3–I10 do OpenSpec. Nenhuma confirmacao falsa nem armazenamento de dados pessoais foi implementado.
+**Este incremento adiciona persistencia infraestrutural real (MySQL + Flyway), nao implementa ainda
+CRUD de animais nem aceita dados pessoais.** Campos e regras ainda pendentes da ONG nao sao inventados.
 
-## Rodar no Windows (PowerShell / IntelliJ)
+## Preparacao
 
-Abra a pasta `backend/` como projeto Maven, configure o JDK 21 e execute:
+- JDK 21 ativo (`java -version` e `javac -version`)
+- Docker Desktop aberto e integrado ao Windows (ou um MySQL 8 acessivel)
+- PowerShell e acesso ao Maven Central para baixar novas dependencias
+- `backend/` ja existe e foi integrado pelo PR I2
+
+### Windows: iniciar MySQL local com Docker
+
+Em PowerShell, use senhas pessoais SOMENTE locais. Nao publique em commit nem screenshots:
 
 ```powershell
-cd backend
+cd C:\Users\leona\IdeaProjects\Saal-i3\backend
+$env:SAAL_DB_RUNTIME_PASSWORD = Read-Host 'Senha runtime local'
+$env:SAAL_DB_MIGRATION_PASSWORD = Read-Host 'Senha de migration local'
+$env:SAAL_DB_ROOT_PASSWORD = Read-Host 'Senha root somente local'
+docker compose -f compose.dev.yaml up -d
+docker compose -f compose.dev.yaml ps
+$env:SAAL_DB_RUNTIME_URL = 'jdbc:mysql://127.0.0.1:3307'
+$env:SAAL_DB_MIGRATION_URL = 'jdbc:mysql://127.0.0.1:3307/saal'
+$env:SAAL_DB_USER = 'saal_runtime'
+$env:SAAL_DB_PASSWORD = $env:SAAL_DB_RUNTIME_PASSWORD
+$env:SAAL_DB_MIGRATION_USER = 'saal_migrator'
 .\mvnw.cmd -B -ntp test
 .\mvnw.cmd spring-boot:run
 ```
 
-O Maven 3.9.11 sera baixado no primeiro uso, com verificacao SHA-512.
+O MySQL tem volume persistente Docker (`saal_mysql_data`); o backend falha ao iniciar se faltarem
+configuracoes ou se credenciais de runtime e migration forem iguais. A conta runtime local
+conecta sem schema selecionado e sem grants de leitura/escrita; a conta Flyway recebe
+privilegios de migration apenas nos schemas configurados. Nenhuma delas e a conta root.
+A inicializacao de usuarios ocorre somente em volume vazio;
+nao remova um volume existente para reaplicar grants.
 
-Em outro terminal:
+**IMPORTANTE:** `docker compose down` para o container sem apagar volume. **Nao** execute
+`docker compose down -v`, pois remove o volume e seus dados.
 
-```powershell
-Invoke-RestMethod http://localhost:8080/actuator/health
-Invoke-RestMethod http://localhost:8080/api/v1/system/status
-```
+### Verificar conectividade
 
-Respostas esperadas (o servidor precisa estar no ar):
-- `GET /actuator/health` → `200` e `{"status":"UP"}`
-- `GET /api/v1/system/status` → `200` e `{"service":"saal-api","status":"RUNNING"}`
-- `GET /api/v1/animals` → `404` (nao implementado; nao existe catalogo falso)
-
-Se a porta 8080 estiver ocupada, configure `$env:PORT="8081"` antes de `spring-boot:run`.
-
-## Testes e build
+Em outro terminal PowerShell:
 
 ```powershell
-.\mvnw.cmd -B -ntp verify
-.\mvnw.cmd -B -ntp package
-java -jar target/saal-api-0.1.0-SNAPSHOT.jar
+Invoke-RestMethod 'http://localhost:8080/actuator/health'
+Invoke-RestMethod 'http://localhost:8080/api/v1/system/status'
 ```
 
-Na raiz do SAAL, `pnpm dev` continua executando o frontend em outra porta. A integracao React↔API
-**nao existe ainda**; apenas iniciar os dois processos nao os conecta.
+Health deve retornar `UP`; o Actuator verifica tambem a conexao quando o `DataSource` esta ativo.
+Nao envia senha, nomes de banco ou detalhes internos na resposta publica.
 
-## Docker (opcional)
+## Testes
 
-```bash
-cd backend
-docker build -t saal-api:i2 .
-docker run --rm -p 8080:8080 saal-api:i2
+```powershell
+.\mvnw.cmd -B -ntp test
+# Com Docker Desktop ativo:
+.\mvnw.cmd -B -ntp -Pdb-integration verify
 ```
 
-A configuracao nao usa banco e nao deve ser publicada como aplicacao de adocao pronta. `PORT` e a unica
-variavel necessaria atualmente. Nenhuma senha, token ou dado pessoal deve entrar no codigo ou logs.
+`test` usa banco H2 **somente para testes basicos** e preserva os testes da API I2.
+O teste `MySqlFlywayIT` usa Testcontainers com MySQL 8.4 verdadeiro; cria uma tabela
+**APENAS em test/resources**, conferindo a migration do Flyway, credenciais separadas,
+privilegios limitados, upgrade com preservacao de dados sinteticos e backup/restauracao em
+schema isolado.
+O CI executa obrigatoriamente ambos os tipos de teste; o Docker Desktop local e opcional para
+os testes unitarios, mas obrigatorio para o teste de integracao.
 
-## Arquivos essenciais
+## Regras de negocio ja implementadas sem inventar campos
 
-- `system/SystemStatusController`: endpoint tecnico de comprovacao HTTP.
-- `domain/AnimalStatus`: estados `AVAILABLE`, `ADOPTED` informados pela ONG.
-- `domain/AdoptionEligibilityPolicy`: regra verdadeira de nao aceitar interesse por animal adotado.
-- `error/GlobalErrorHandler`: resposta sanitizada para excecoes nao previstas.
-- `application.yml`: health, erros e porta configuravel.
-- `src/test`: tres testes da regra de dominio, tres testes HTTP reais e um teste de erro sanitizado.
+- AnimalStatus: AVAILABLE/ADOPTED (I2)
+- AdoptionEligibilityPolicy: animal ADOPTED nao recebe interesse (I2)
+- AnimalPhotoPolicy: entre 1 e 3 fotos, inclusive (I3)
 
-## Verificacoes antes de aceitar I2
+## O que NAO foi implementado
 
-- Build/testes locais em ambiente com Maven Central disponivel e JDK 21.
-- GitHub Actions backend verde apos PR (arquivo `.github/workflows/backend-quality.yml`).
-- Health e status verificados via HTTP local (e log limpo).
-- Conferir OpenSpec tasks 3.1–3.3, atualizar contrato/documentacao se necessario, sem declarar I2
-  concluido apenas por compilar.
+- Nenhuma tabela real Animal, AnimalImage, AdoptionRequest ou Administrator;
+  os campos, a privacidade e o storage continuam pendentes. Nao executar uma migration de
+  dados de negocio com suposicoes do prototipo.
+- Nao ha endpoint novo `/api/v1/animals` nem POST administrativo inseguro.
+- Nao ha upload, envio de interessados, auth, deploy ou armazenamento de PII.
+- O frontend React continua separado e seus mocks ainda nao foram removidos.
 
-## O que fica explicitamente fora desta entrega
+O ensaio de backup/restauracao e somente mecanico e usa dados sinteticos num container
+descartavel. Consulte [`docs/mysql-backup-restore.md`](docs/mysql-backup-restore.md) para
+o procedimento validado e os gates operacionais antes de qualquer dado real.
 
-- Spring Security: entra na fase de autenticacao autorizada (I4), nao criar admin ficticio.
-- Spring Data JPA/MySQL/Flyway: entram em I3 quando modelo, campos e policies forem aprovados.
-- Catalogo persistente e solicitacoes: I5–I9, apos definicoes de dados e privacidade.
-- Hosting, cookies e CORS: precisam de topologia aprovada; nada sera exposto automaticamente.
+## Quando as regras da ONG forem destravadas
 
-O projeto usa inicializadores Maven fixados 3.9.11 com verificacao de integridade e configuracao no
-layout `.mvn/wrapper/`. A distribuicao Maven e publicada pela Apache Software Foundation.
+Adicionar migrations de negocio em `src/main/resources/db/migration` somente apos aprovacao
+dos campos/modelo, com FK/indices/restricoes e testes MySQL. O registro atual ainda nao aprova
+schema de produto. Nunca usar `ddl-auto=update` para schema em producao.
+
+## Referencias de escopo
+
+- `../specs/decisions/I1-approval-register.md`
+- `../openspec/changes/saal-functional-readiness/tasks.md`
+- `../docs/quality/RELEASE_GATES.md`

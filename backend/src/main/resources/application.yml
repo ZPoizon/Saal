@@ -5,6 +5,23 @@ spring:
     problemdetails:
       enabled: true
     log-request-details: false
+  datasource:
+    # Sem fallback para senhas/hosts em producao. O backend deve falhar se nao houver config.
+    url: ${SAAL_DB_RUNTIME_URL}
+    username: ${SAAL_DB_USER}
+    password: ${SAAL_DB_PASSWORD}
+    hikari:
+      maximum-pool-size: 4
+      minimum-idle: 0
+      connection-timeout: 10000
+  flyway:
+    enabled: true
+    clean-disabled: true
+    validate-on-migrate: true
+    url: ${SAAL_DB_MIGRATION_URL}
+    # Exige identidade e senha distintas da conta de runtime.
+    user: ${SAAL_DB_MIGRATION_USER}
+    password: ${SAAL_DB_MIGRATION_PASSWORD}
 server:
   port: ${PORT:8080}
   error:
