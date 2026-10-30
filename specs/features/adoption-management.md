@@ -92,6 +92,7 @@ de aprovação no escopo.
 
 ## 15. Estado atual
 
-**Protótipo parcial.** Solicitações criadas na sessão aparecem no painel e podem mudar de
-status em memória. Esse workflow não foi aprovado; não há backend, filtro, resposta,
-exportação, histórico ou persistência.
+**Protótipo parcial.** O painel não oferece transições de status; quando há dados fornecidos,
+apresenta ações manuais de WhatsApp, telefone e e-mail. O contexto atual não cria nem armazena
+solicitações e retorna uma lista vazia até integração com backend. Não há persistência,
+filtros, resposta, exportação ou histórico.

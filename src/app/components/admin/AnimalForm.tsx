@@ -1,131 +1,275 @@
-import { useState } from "react";
-import { X, Upload, Image as ImageIcon } from "lucide-react";
-import { Animal, AnimalStatus } from "../../data/animals";
+import { useEffect, useRef, useState } from "react"
+
+import { X, Upload, Image as ImageIcon } from "lucide-react"
+
+import { Animal, AnimalStatus } from "../../data/animals"
 
 interface AnimalFormProps {
-  animal?: Animal;
-  onSave: (animal: Partial<Animal>) => void;
-  onCancel: () => void;
+  animal?: Animal
+
+  onSave: (animal: Partial<Animal>) => void
+
+  onCancel: () => void
 }
 
 export function AnimalForm({ animal, onSave, onCancel }: AnimalFormProps) {
   const [formData, setFormData] = useState({
     name: animal?.name || "",
+
     species: animal?.species || "dog",
+
     age: animal?.age || "",
+
     size: animal?.size || "médio",
+
     sex: animal?.sex || "macho",
+
     status: animal?.status || "available",
+
     description: animal?.description || "",
+
     personality: animal?.personality?.join(", ") || "",
+
     medicalInfo: animal?.medicalInfo || "",
-  });
+  })
 
-  const [imagePreview, setImagePreview] = useState<string>(animal?.images?.[0] || "");
-  const [imageUrl, setImageUrl] = useState<string>(animal?.images?.[0] || "");
+  const [selectedImages, setSelectedImages] = useState<Array<{
+    file: File
+    url: string
+  }>>([])
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+  const [removedImages, setRemovedImages] = useState<string[]>([])
+
+  const [photoError, setPhotoError] = useState("")
+
+  const previewUrls = useRef(new Set<string>())
+
+  const previewsTransferred = useRef(false)
+
+  const currentImages = (animal?.images ?? []).filter(
+    (image) => !removedImages.includes(image),
+  )
+
+  useEffect(() => {
+    return () => {
+      if (!previewsTransferred.current) {
+        previewUrls.current.forEach((url) => URL.revokeObjectURL(url))
+      }
+    }
+  }, [])
+
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>,
+  ) => {
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
-    });
-  };
 
-  const handleImageUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const url = e.target.value;
-    setImageUrl(url);
-    setImagePreview(url);
-  };
+      [e.target.name]: e.target.value,
+    })
+  }
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const result = reader.result as string;
-        setImagePreview(result);
-        setImageUrl(result);
-      };
-      reader.readAsDataURL(file);
+    const files = Array.from(e.currentTarget.files ?? [])
+
+    const availableSlots = Math.max(
+      0,
+
+      3 - currentImages.length - selectedImages.length,
+    )
+
+    const imageFiles = files.filter((file) => file.type.startsWith("image/"))
+
+    const acceptedFiles = imageFiles.slice(0, availableSlots)
+
+    if (imageFiles.length !== files.length) {
+      setPhotoError("Selecione somente arquivos de imagem.")
+    } else if (files.length > availableSlots) {
+      setPhotoError("Cada animal pode ter no máximo 3 fotos.")
+    } else {
+      setPhotoError("")
     }
-  };
+
+    const previews = acceptedFiles.map((file) => {
+      const url = URL.createObjectURL(file)
+
+      previewUrls.current.add(url)
+
+      return { file, url }
+    })
+
+    setSelectedImages((current) => [...current, ...previews])
+
+    e.currentTarget.value = ""
+  }
+
+  const handleRemoveSelectedImage = (url: string) => {
+    URL.revokeObjectURL(url)
+
+    previewUrls.current.delete(url)
+
+    setSelectedImages((current) => current.filter((image) => image.url !== url))
+
+    setPhotoError("")
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+    e.preventDefault()
+
+    const images = [
+      ...currentImages,
+      ...selectedImages.map((image) => image.url),
+    ]
+
+    if (images.length < 1 || images.length > 3) {
+      setPhotoError("Selecione entre 1 e 3 fotos para o animal.")
+
+      return
+    }
 
     const animalData: Partial<Animal> = {
       ...formData,
-      personality: formData.personality.split(",").map(p => p.trim()).filter(p => p),
-      images: imageUrl ? [imageUrl] : [],
-      species: formData.species as "dog" | "cat",
-      size: formData.size as "pequeno" | "médio" | "grande",
-      sex: formData.sex as "macho" | "fêmea",
-      status: formData.status as AnimalStatus,
-    };
 
-    if (animal) {
-      animalData.id = animal.id;
+      personality: formData.personality
+        .split(",")
+        .map((p) => p.trim())
+        .filter((p) => p),
+
+      images,
+
+      species: formData.species as "dog" | "cat",
+
+      size: formData.size as "pequeno" | "médio" | "grande",
+
+      sex: formData.sex as "macho" | "fêmea",
+
+      status: formData.status as AnimalStatus,
     }
 
-    onSave(animalData);
-  };
+    if (animal) {
+      animalData.id = animal.id
+    }
+
+    previewsTransferred.current = true
+
+    onSave(animalData)
+  }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-      <div className="bg-white rounded-2xl max-w-2xl w-full my-8">
-        <div className="p-6 border-b border-[#F5EFE6] flex items-center justify-between">
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/50 p-4">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="animal-form-title"
+        className="my-auto flex max-h-[calc(100dvh-2rem)] w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-white"
+      >
+        <div className="flex shrink-0 items-center justify-between border-b border-[#F5EFE6] p-4 sm:p-6">
           <h2 className="text-2xl font-bold text-[#2E7D6B]">
-            {animal ? "Editar Animal" : "Adicionar Novo Animal"}
+            <span id="animal-form-title">
+              {animal ? "Editar Animal" : "Adicionar Novo Animal"}
+            </span>
           </h2>
           <button
+            type="button"
             onClick={onCancel}
+            aria-label="Fechar formulário"
             className="p-2 hover:bg-[#F5EFE6] rounded-lg transition-colors"
           >
             <X className="text-[#6FAE9C]" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
-          {/* Upload de Foto */}
-          <div>
-            <label className="block text-[#2E7D6B] mb-2">Foto do Animal</label>
-            <div className="space-y-3">
-              {imagePreview && (
-                <div className="relative w-full h-48 bg-[#F5EFE6] rounded-lg overflow-hidden">
+        <form
+          onSubmit={handleSubmit}
+          className="min-h-0 space-y-4 overflow-y-auto overscroll-contain p-4 sm:p-6"
+        >
+          <fieldset>
+            <legend className="mb-2 font-semibold text-[#2E7D6B]">
+              Fotos do animal ({currentImages.length + selectedImages.length}/3)
+            </legend>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {currentImages.map((image, index) => (
+                <div
+                  key={image}
+                  className="relative aspect-square overflow-hidden rounded-lg bg-[#F5EFE6]"
+                >
                   <img
-                    src={imagePreview}
-                    alt="Preview"
-                    className="w-full h-full object-cover"
+                    src={
+                      image.startsWith("blob:")
+                        ? image
+                        : `${image}?w=300&h=300&fit=crop`
+                    }
+                    alt={`Foto ${index + 1} de ${animal?.name ?? "prévia do animal"}`}
+                    className="h-full w-full object-cover"
                   />
+                  <button
+                    type="button"
+                    aria-label={`Remover foto ${index + 1}`}
+                    onClick={() =>
+                      setRemovedImages((current) => [...current, image])
+                    }
+                    className="absolute right-2 top-2 rounded-full bg-white/95 p-2 text-red-600 shadow hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#E4B04A]"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+              ))}
+              {selectedImages.map((image, index) => (
+                <div
+                  key={image.url}
+                  className="relative aspect-square overflow-hidden rounded-lg bg-[#F5EFE6]"
+                >
+                  <img
+                    src={image.url}
+                    alt={`Prévia local da foto ${currentImages.length + index + 1}`}
+                    className="h-full w-full object-cover"
+                  />
+                  <button
+                    type="button"
+                    aria-label={`Remover prévia de ${image.file.name}`}
+                    onClick={() => handleRemoveSelectedImage(image.url)}
+                    className="absolute right-2 top-2 rounded-full bg-white/95 p-2 text-red-600 shadow hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#E4B04A]"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+              ))}
+              {currentImages.length + selectedImages.length === 0 && (
+                <div className="col-span-full flex min-h-32 flex-col items-center justify-center rounded-lg border-2 border-dashed border-[#6FAE9C]/50 bg-[#F5EFE6]/60 p-4 text-center text-[#6FAE9C]">
+                  <ImageIcon size={28} aria-hidden="true" />
+                  <span className="mt-2 text-sm">
+                    Selecione de 1 a 3 fotos para visualizar
+                  </span>
                 </div>
               )}
-
-              <div className="flex gap-2">
-                <div className="flex-1">
-                  <input
-                    type="text"
-                    value={imageUrl}
-                    onChange={handleImageUrlChange}
-                    placeholder="URL da imagem (ex: https://...)"
-                    className="w-full px-4 py-3 bg-[#F5EFE6] rounded-lg border-none focus:outline-none focus:ring-2 focus:ring-[#E4B04A]"
-                  />
-                </div>
-                <label className="bg-[#6FAE9C] text-white px-4 py-3 rounded-lg cursor-pointer hover:bg-[#2E7D6B] transition-colors flex items-center gap-2">
-                  <Upload size={20} />
-                  Upload
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleFileUpload}
-                    className="hidden"
-                  />
-                </label>
-              </div>
-              <p className="text-xs text-[#6FAE9C]">
-                Cole uma URL de imagem ou faça upload de um arquivo
-              </p>
             </div>
-          </div>
+
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-[#6FAE9C] px-4 py-3 font-semibold text-white transition-colors hover:bg-[#2E7D6B] focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[#E4B04A]">
+                <Upload size={20} />
+                Escolher fotos
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  disabled={currentImages.length + selectedImages.length >= 3}
+                  onChange={handleFileUpload}
+                  className="sr-only"
+                />
+              </label>
+              <span className="text-xs text-[#6FAE9C]">
+                Selecione arquivos ou escolha imagens da galeria do celular.
+              </span>
+            </div>
+            <p role="status" className="mt-2 text-xs text-[#416f65]">
+              As prévias são locais. As fotos não são enviadas nem salvas no
+              servidor nesta versão.
+            </p>
+            {photoError && (
+              <p role="alert" className="mt-2 text-sm text-red-600">
+                {photoError}
+              </p>
+            )}
+          </fieldset>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Nome */}
@@ -230,7 +374,6 @@ export function AnimalForm({ animal, onSave, onCancel }: AnimalFormProps) {
                 className="w-full px-4 py-3 bg-[#F5EFE6] rounded-lg border-none focus:outline-none focus:ring-2 focus:ring-[#E4B04A]"
               >
                 <option value="available">Disponível</option>
-                <option value="treatment">Em Tratamento</option>
                 <option value="adopted">Adotado</option>
               </select>
             </div>
@@ -285,7 +428,7 @@ export function AnimalForm({ animal, onSave, onCancel }: AnimalFormProps) {
           </div>
 
           {/* Botões */}
-          <div className="flex gap-3 pt-4">
+          <div className="flex flex-col-reverse gap-3 pt-4 sm:flex-row">
             <button
               type="button"
               onClick={onCancel}
@@ -303,5 +446,5 @@ export function AnimalForm({ animal, onSave, onCancel }: AnimalFormProps) {
         </form>
       </div>
     </div>
-  );
+  )
 }
