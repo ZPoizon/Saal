@@ -13,6 +13,8 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -23,6 +25,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Import(SystemStatusHttpTest.InternalErrorTestConfiguration.class)
 class SystemStatusHttpTest {
+    @DynamicPropertySource
+    static void adminCredentials(DynamicPropertyRegistry registry) {
+        br.org.saal.api.auth.TestAdminProperties.register(registry);
+    }
+
     @LocalServerPort
     private int port;
 
@@ -58,8 +65,9 @@ class SystemStatusHttpTest {
         assertEquals(
                 MediaType.APPLICATION_PROBLEM_JSON_VALUE,
                 response.headers().firstValue("Content-Type").orElse(null));
-        assertTrue(response.body().contains("\"status\":404"));
-        assertTrue(response.body().contains("\"title\":\"Recurso nao encontrado\""));
+        assertTrue(response.body().contains("\"status\":404"), response.body());
+        assertTrue(response.body().contains("\"instance\":\"/api/v1/animals\""), response.body());
+        assertFalse(response.body().contains("\"animals\":"));
     }
 
     @Test

@@ -40,7 +40,7 @@ Consulte-as antes de implementar e ao revisar alterações.
 | Detalhes | `features/animal-details.md` | Protótipo |
 | Solicitação de adoção | `features/adoption-request.md` | Protótipo |
 | Gestão de animais | `features/animal-management.md` | Protótipo |
-| Autenticação admin | `features/admin-authentication.md` | Protótipo inseguro |
+| Autenticação admin | `features/admin-authentication.md` | Parcial somente nas branches de implementação; `main` ainda não integrado |
 | Gestão de adoções | `features/adoption-management.md` | Protótipo (workflow não aprovado) |
 | Contato geral | — | Fora do primeiro incremento (ONG-07) |
 
@@ -54,8 +54,9 @@ Consulte-as antes de implementar e ao revisar alterações.
 
 ## Pendências transversais
 
-- Definir identidade, provisionamento, sessão e recuperação do único administrador; não há
-  papéis diferenciados (ONG-01/TEC-04/TEC-05).
+- Definir identidade nominal, rotação/recuperação e operação de credenciais do único
+  administrador; sessão server-side, CSRF e topologia same-site estão aprovados em ADR-006.
+  Não há papéis diferenciados (ONG-01).
 - Não há workflow de status de manifestação; a avaliação é manual e a gestão é somente leitura
   (ONG-04). Definir duplicidade e antiabuso (ONG-09).
 - Definir finalidade, consentimento/base legal, aviso, acesso, retenção e exclusão dos dados

@@ -37,7 +37,7 @@ a resposta não cobriu.
 
 | Resposta | Conteúdo registrado | Decisões ONG relacionadas | Efeito no escopo |
 |---|---|---|---|
-| 1 | Apenas uma pessoa administrará o sistema. | ONG-01 | Parcial: elimina a necessidade de papéis diferenciados; identidade, provisionamento, recuperação e sessão continuam pendentes. |
+| 1 | Apenas uma pessoa administrará o sistema. | ONG-01 | Parcial: elimina a necessidade de papéis diferenciados; identidade nominal, ciclo de vida e recuperação continuam pendentes. O mecanismo técnico de sessão/topologia foi aprovado separadamente em TEC-04/05. |
 | 2 | Os animais terão os estados “Disponível para adoção” e “Adotado”; adotados permanecem cadastrados e identificados como adotados. | ONG-02, ONG-03, ONG-10 | Parcial: vocabulário de dois estados aprovado e retenção do adotado aprovada; publicação/visibilidade, transições e demais campos continuam pendentes. |
 | 3 | Ao receber uma manifestação de interesse, a ONG entra em contato pelo WhatsApp e avalia manualmente a possibilidade de adoção. | ONG-04, ONG-07 | Parcial: avaliação manual e contato por WhatsApp aprovados; não há workflow de aprovação no sistema; destino do formulário de contato geral continua pendente. |
 | 4 | O formulário do interessado deverá coletar nome, WhatsApp, cidade e e-mail. | ONG-05 | Parcial: campos de coleta aprovados; obrigatoriedade individual, finalidade, base legal, aviso, retenção, acesso e limites continuam pendentes. O campo de mensagem do protótipo não foi aprovado. |
@@ -62,7 +62,7 @@ a resposta não cobriu.
 
 | Decisão | O que ainda falta decidir |
 |---|---|
-| ONG-01 | Identidade nominal ou conta compartilhada, provisionamento, revogação, recuperação de acesso e mecanismo de sessão/topologia. |
+| ONG-01 | Identidade nominal ou conta compartilhada, lifecycle e recuperação de acesso. A conta única por configuração e a sessão same-site são decisões técnicas limitadas em TEC-04/05, não resolvem a política de identidade da ONG. |
 | ONG-02 | Publicação/visibilidade, existência de rascunho, regra de retorno de “Adotado” para “Disponível” e visibilidade pública de animais adotados. |
 | ONG-03 | Exclusão/arquivamento de animais não adotados, retenção de imagens e referências. |
 | ONG-04 | Se alguma informação de estado da manifestação será persistida; duplicidade, retirada e prazo de resposta. Não há workflow de aprovação. |
@@ -102,11 +102,13 @@ inventar nome nem converter escolhas condicionais em aprovação irrestrita.
 | Contrato/erros | API REST e respostas estruturadas baseadas em RFC 9457 | RFC 9457 é a base de resposta de erro; não define valores de limites ou regras de negócio. |
 | Segredos | Segredos fora do repositório e de bundles `VITE_*` | Princípio aprovado; secret store e ambientes concretos permanecem pendentes. |
 | Hosting | Cloudflare Pages preferencial para frontend; Render/Aiven como opções para teste/demonstração | Não são aprovados para produção nem constituem topologia final. |
-| Autenticação | Sessão server-side revogável como preferência | Desenho final depende da topologia e da segurança browser/API; não aprova cookies, CSRF, origens ou protocolo. |
+| Autenticação | Sessão server-side, SPA/API same-site via proxy, CSRF, CORS estrito, cookie seguro e sessão ociosa de 15 minutos | Aprovado pelo responsável técnico em 2026-10-29 para implementação de instância única; detalhes, limites e restrições em ADR-006. Não resolve identidade nominal, recuperação, hosting nem operação de produção. |
+| Limite de login | 10 falhas por IP em 10 minutos; bloqueio temporário de 15 minutos | Aprovado pelo responsável técnico em 2026-10-29 somente para autenticação administrativa; não define limites de formulários públicos (ONG-09). |
 | Validação OpenAPI | Redocly CLI 2.72.0 selecionado como alternativa candidata para validação documental | Compatibilidade verificada contra o contrato OpenAPI 3.0.3 nesta tarefa; seleção de ferramenta/versão para CI fica proposta até aprovação do API owner/mantenedor de CI. |
 
-As decisões registradas aqui autorizam documentação e planejamento, não implementação
-funcional, criação de backend, migrations, configuração administrativa ou deploy.
+As autorizações de 2026-10-28 continuam limitadas a documentação e planejamento. As decisões
+específicas de autenticação aprovadas em 2026-10-29 autorizam somente a implementação descrita
+em `ADR-006`; não autorizam migrations, cadastro de contas, configuração de hosting ou deploy.
 
 ## Decisões técnicas
 
@@ -181,57 +183,42 @@ funcional, criação de backend, migrations, configuração administrativa ou de
 ### TEC-04 — Mecanismo de autenticação administrativa
 
 - **Assunto:** sessão/cookie, token ou provedor de identidade.
-- **Opções possíveis:** sessão server-side revogável; token com ciclo de rotação/revogação
-  documentado; provedor de identidade externo, se houver necessidade e operação aprovada.
-- **Preferência técnica, não desenho aprovado:** sessão server-side para a SPA administrativa se frontend e
-  API forem implantados no mesmo site; cookie com `Secure`, `HttpOnly`, escopo restrito e
-  `SameSite` escolhido conforme o fluxo; regenerar identificador após login, definir
-  expiração/revogação e invalidar no logout. Não armazenar bearer token persistente em
-  `localStorage`.
+- **Decisão aprovada:** sessão server-side via `HttpSession`, com identificador regenerado no
+  login, expiração após 15 minutos de inatividade e invalidação no logout. Provisionar somente
+  um administrador por username e hash BCrypt fornecidos fora do repositório; não há cadastro
+  público nem papéis diferenciados.
 - **Justificativa:** permite invalidação efetiva no logout e reduz exposição de credenciais
   a JavaScript; o risco de CSRF é tratado explicitamente quando cookies são enviados
   automaticamente.
-- **Riscos:** topologia cross-site pode tornar cookies impraticáveis; armazenamento de sessão,
-  alta disponibilidade, expiração, recuperação e operação de contas ainda não foram
-  definidos. `SameSite` não substitui proteção CSRF.
-- **Responsável pela aprovação:** responsável de segurança/AppSec e Tech Lead, com aceite do
-  responsável operacional pela hospedagem.
-- **Status:** preferência registrada; decisão final pendente.
-- **Evidência:** autorização expressa do responsável técnico, 2026-10-28, determina a
-  preferência por sessão server-side revogável e condiciona o desenho final à topologia e à
-  segurança entre frontend/API. O `bearerAuth`/JWT e `AuthResult.accessToken` antigos são
-  placeholders e não constituem decisão.
-- **Impacto:** ADR-002, OpenAPI (`securitySchemes`, login, estado da sessão e logout),
-  autorização e testes; tarefa 2.2 e pré-requisito para I4 (5.1–5.5). Identidade e papéis
-  continuam decisão separada da ONG (ONG-01).
-- **Escopo desbloqueado se aprovada:** documentar o esquema de auth no contrato e planejar os
-  testes de I4; não cria contas, papéis nem implementação de autenticação.
+- **Riscos/limites:** sessão fica em memória de uma única instância; reinício invalida sessões
+  e múltiplas réplicas não são suportadas. Recuperação/rotação de credencial e hosting de
+  produção não foram aprovados. `SameSite` não substitui proteção CSRF.
+- **Responsável pela aprovação:** responsável técnico que solicitou a implementação.
+- **Status:** aprovada com escopo limitado em 2026-10-29; consultar `ADR-006`.
+- **Evidência:** autorização explícita na solicitação de autenticação. O `bearerAuth`/JWT e
+  `AuthResult.accessToken` antigos eram placeholders e não constituem decisão.
+- **Impacto:** ADR-002, OpenAPI, autorização server-side, configuração operacional e tarefas
+  I4 (5.1–5.5). Identidade nominal e ciclo de vida continuam pendentes por ONG-01.
+- **Escopo desbloqueado:** implementação técnica da autenticação do único administrador; não
+  autoriza CRUD administrativo, persistência de contas ou deploy.
 
 ### TEC-05 — Topologia, origens, cookies, CSRF e CORS
 
 - **Assunto:** relação de origem/site do frontend e API e defesas de browser.
-- **Opções possíveis:** frontend e API sob o mesmo site, com proxy/reverse proxy; origens
-  distintas mas same-site; sites distintos com avaliação explícita de cookies third-party
-  e autenticação alternativa.
-- **Proposta condicional (não aprovada):** preferir mesmo site HTTPS com API atrás de proxy; definir
-  allowlist explícita de origens e métodos, nunca combinar credenciais com `Access-Control-Allow-Origin: *`.
-  Para autenticação por cookie, exigir proteção CSRF (token apropriado e validação de
-  `Origin`/origem conforme desenho); `SameSite` é defesa adicional, não substituto.
-  Especificar `Secure`, `HttpOnly`, duração e escopo do cookie com a topologia final.
+- **Decisão aprovada:** servir frontend e API no mesmo site via proxy; usar CSRF com token em
+  header, allowlist explícita de origens CORS, cookie `HttpOnly`, `SameSite=Lax` e `Secure`
+  habilitado por padrão. O proxy Vite `/api` é apenas configuração de desenvolvimento.
 - **Justificativa:** reduz complexidade de cookies/CORS e dependência de cookies cross-site,
   preservando controles explícitos de origem e CSRF.
-- **Riscos:** domínio, proxy confiável, ambiente, origens, TLS, réplicas e infraestrutura
-  ainda não foram escolhidos; CORS incorreto pode expor operações ou bloquear clientes.
-- **Responsável pela aprovação:** responsável de infraestrutura/hosting, Tech Lead e AppSec;
-  a ONG aprova domínio e política pública de publicação quando houver impacto operacional.
-- **Status:** pendente.
-- **Evidência:** a equipe prefere Cloudflare Pages para frontend e considera Render/Aiven
-  opções gratuitas para teste/demonstração; não foi escolhida origem/domínio/proxy nem hosting
-  de produção. A sessão preferencial depende dessa topologia.
-- **Impacto:** ADRs de autenticação/implantação, contrato OpenAPI, configurações de cookie,
-  CSRF e CORS, CI por ambiente; tarefa 2.2 e gate para I4.
-- **Escopo desbloqueado se aprovada:** fechar premissas de origem e requisitos de cookie/CSRF
-  para o desenho de I4; hosting e configuração executável seguem fora desta aprovação.
+- **Riscos/limites:** domínio, proxy de produção, TLS, origens finais e infraestrutura não
+  foram escolhidos. Não confiar em `X-Forwarded-For` sem proxy confiável configurado; CORS não
+  autentica chamadas diretas à API. Sites distintos/cookies third-party não estão aprovados.
+- **Responsável pela aprovação:** responsável técnico que solicitou a implementação.
+- **Status:** aprovada para desenho/implementação em 2026-10-29; produção permanece pendente.
+- **Evidência:** autorização explícita na solicitação de autenticação.
+- **Impacto:** ADR-006, OpenAPI, configurações de cookie/CSRF/CORS e testes I4.
+- **Escopo desbloqueado:** topologia same-site via proxy para browser; não aprova hosting,
+  domínio, proxy de produção ou operação com múltiplas réplicas.
 
 ### TEC-06 — Estratégia de testes e ambientes
 
@@ -360,6 +347,19 @@ funcional, criação de backend, migrations, configuração administrativa ou de
   não fornecida).
 - **Impacto:** ADR-002 e evolução futura do CI; aplicar permissões mínimas, ações versionadas
   e segredos fora do repositório quando autorizado.
+
+### TEC-12 — Limite de tentativas de autenticação
+
+- **Assunto:** mitigação de força bruta no login administrativo.
+- **Decisão aprovada:** após 10 falhas do mesmo IP em uma janela móvel de 10 minutos, bloquear
+  novas tentativas por 15 minutos e informar `Retry-After`.
+- **Limites:** aplica-se somente ao login administrativo; quotas de submissões públicas e
+  demais medidas antiabuso continuam pendentes por ONG-09. O contador reside no processo e
+  usa `remoteAddr`; implantação atrás de proxy requer desenho confiável de endereço do cliente.
+- **Status:** aprovada pelo responsável técnico em 2026-10-29 para esta etapa.
+- **Evidência:** autorização explícita na solicitação de autenticação.
+- **Impacto:** `ADR-006`, `LoginAttemptLimiter` e testes de integração; não define política de
+  CAPTCHA, duplicidade ou rate limiting para formulários públicos.
 
 ## Decisões reservadas à ONG
 
@@ -680,7 +680,7 @@ continuam sendo metas, não autorização para escolher valores.
 
 | Decisão | Requisitos OpenSpec afetados | Aprovado ou parcialmente aprovado | Excluído do contrato implementável até nova aprovação |
 |---|---|---|---|
-| ONG-01 | `admin-authentication`: provisionamento e permissões; `animal-management` e `adoption-management`: acesso administrativo | Um único administrador; sem papéis diferenciados. | Identidade, provisionamento, revogação, recuperação, sessão e topologia. |
+| ONG-01 | `admin-authentication`: provisionamento e permissões; `animal-management` e `adoption-management`: acesso administrativo | Um único administrador; sem papéis diferenciados. | Identidade nominal, lifecycle e recuperação; a abordagem técnica inicial não aprova a política de contas da ONG. |
 | ONG-02 | `public-animal-catalog`: estados e publicação; `animal-management`: status; `adoption-requests`: animal elegível | Estados `AVAILABLE` e `ADOPTED`; adotados permanecem cadastrados e identificados. | Publicação/visibilidade, rascunho, retorno a disponível e visibilidade pública de adotados. |
 | ONG-03 | `animal-management`: remoção/ciclo de vida e referências | Adotados não são removidos pela adoção. | Delete físico/lógico, archive, retenção de imagens e efeito em referências de animais não adotados. |
 | ONG-04 | `adoption-requests`: intake; `adoption-management`: consulta | Avaliação manual, contato por WhatsApp e ausência de workflow complexo. | Estados de solicitação, transições, aceite/recusa no sistema, retirada, entrevista e conclusão. |

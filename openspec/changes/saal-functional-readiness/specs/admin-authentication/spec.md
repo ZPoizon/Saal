@@ -2,14 +2,11 @@
 
 ## Purpose
 
-Restringe dados e operações administrativas ao único administrador autenticado, com o
-mecanismo de autenticação e encerramento de credencial que vier a ser aprovado em ADR. Não há
-papéis diferenciados.
-
-**Decisão pendente:** identidade, provisionamento, recuperação, sessão server-side versus token
-e revogação ainda não foram aprovados (ONG-01/TEC-04/TEC-05). Os cenários abaixo descrevem
-resultados de segurança requeridos, não selecionam um mecanismo nem aprovam o placeholder
-`bearerAuth` do OpenAPI.
+Restringe dados e operações administrativas ao único administrador autenticado. O mecanismo
+inicial foi aprovado em `specs/decisions/ADR-006-admin-authentication.md`: username e hash
+configurados fora do repositório, sessão server-side e acesso same-site via proxy. Não há
+papéis diferenciados. Identidade nominal, recuperação, hosting e operação de produção
+continuam pendentes.
 
 ## ADDED Requirements
 
@@ -51,9 +48,10 @@ estado autenticado do cliente.
 
 ### Requirement: Acesso administrativo é provisionado sob controle
 
-O serviço MUST permitir acesso administrativo somente à identidade previamente provisionada.
-Cadastro público ou papel enviado pelo cliente MUST NOT conceder privilégio. Provisionamento,
-revogação e recuperação de acesso continuam pendentes por ONG-01.
+O serviço MUST permitir acesso administrativo somente ao único username e hash provisionados
+por configuração protegida fora do repositório. Cadastro público ou papel enviado pelo cliente
+MUST NOT conceder privilégio. Identidade nominal, rotação e recuperação de acesso continuam
+pendentes por ONG-01.
 
 #### Scenario: Pessoa não provisionada tenta criar acesso
 - **WHEN** uma pessoa sem identidade administrativa tenta obter privilégio por autoinscrição
@@ -62,8 +60,24 @@ revogação e recuperação de acesso continuam pendentes por ONG-01.
 ### Requirement: Abuso de autenticação é limitado
 
 O endpoint de autenticação MUST mitigar força bruta e enumeração sem expor credenciais ou
-informações privadas em logs e respostas. Limites concretos dependem de ONG-09.
+informações privadas em logs e respostas. Para login, o limite técnico aprovado é 10 falhas
+por IP em 10 minutos, seguido de bloqueio por 15 minutos. Os limites de formulários públicos
+continuam pendentes por ONG-09.
 
 #### Scenario: Tentativas excessivas
 - **WHEN** o cliente excede os limites de autenticação configurados
 - **THEN** o serviço aplica a mitigação definida e registra evento sem segredo ou dado desnecessário
+
+### Requirement: Sessão baseada em cookie é protegida contra CSRF
+
+Operações mutáveis autenticadas por cookie MUST exigir token CSRF válido. O cookie da sessão
+MUST ser `HttpOnly`, `Secure` por padrão e `SameSite=Lax`; CORS MUST aceitar somente origens
+HTTP(S) exatas configuradas. O browser MUST acessar a API pelo mesmo site via proxy.
+
+#### Scenario: Requisição mutável sem token CSRF
+- **WHEN** o cliente omite ou apresenta token CSRF inválido
+- **THEN** o serviço rejeita a operação sem executar a ação
+
+#### Scenario: Sessão expira por inatividade
+- **WHEN** a sessão permanece sem atividade por 15 minutos
+- **THEN** o backend invalida a sessão e exige nova autenticação
