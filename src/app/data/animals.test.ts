@@ -24,4 +24,15 @@ describe("animal data helpers", () => {
 
     expect(getAnimalById("unknown")).toBeUndefined()
   })
+
+  it("uses only approved statuses and the approved photo count", () => {
+    expect(
+      mockAnimals.every(
+        (animal) =>
+          (animal.status === "available" || animal.status === "adopted") &&
+          animal.images.length >= 1 &&
+          animal.images.length <= 3,
+      ),
+    ).toBe(true)
+  })
 })

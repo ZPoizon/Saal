@@ -91,5 +91,7 @@ automatizados, typecheck/build válidos e documentação LGPD aprovada.
 
 ## 15. Estado atual
 
-**Protótipo.** O envio espera 1,5 s e grava apenas no Context em memória; recarregar perde
-os dados. Não há consentimento, anti-spam, API ou notificação.
+**Protótipo.** A interface apresenta somente nome, WhatsApp, cidade e e-mail, sem campo de
+mensagem. O envio permanece desabilitado até existir integração aprovada com backend; os
+dados digitados não são transmitidos nem armazenados. Não há persistência, consentimento,
+anti-spam, API ou notificação.

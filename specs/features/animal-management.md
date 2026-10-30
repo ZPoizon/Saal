@@ -101,4 +101,8 @@ sincronizados. Exclusão/arquivamento permanece fora do primeiro incremento.
 ## 15. Estado atual
 
 **Protótipo.** CRUD altera apenas `useState` dentro de `Admin.tsx`; não afeta o catálogo
-público e é perdido ao recarregar. Upload Base64 não é enviado a storage.
+público e é perdido ao recarregar. A interface de fotos permite prévia local, seleção e
+remoção, mas não envia arquivos ao servidor; formatos, limites operacionais e storage
+continuam pendentes. Os estados exibidos são somente Disponível e Adotado. O registro de
+demonstração de Mingau, antes marcado como “Em tratamento”, foi retirado dos mocks por não
+corresponder a um estado aprovado.

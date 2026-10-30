@@ -1,31 +1,6 @@
-import { Mail, Phone, Instagram, MapPin, Send } from "lucide-react";
-import { useState } from "react";
+import { Mail, Phone, Instagram, MapPin } from "lucide-react"
 
 export function Contact() {
-  const [submitted, setSubmitted] = useState(false);
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    subject: "",
-    message: ""
-  });
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setSubmitted(true);
-    setTimeout(() => {
-      setSubmitted(false);
-      setFormData({ name: "", email: "", subject: "", message: "" });
-    }, 3000);
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
-  };
-
   return (
     <div className="min-h-screen bg-[#F5EFE6] py-12">
       <div className="container mx-auto px-4">
@@ -34,7 +9,8 @@ export function Contact() {
             Entre em Contato
           </h1>
           <p className="text-[#6FAE9C] max-w-2xl mx-auto">
-            Tem alguma dúvida ou quer saber mais sobre nosso trabalho? Estamos aqui para ajudar!
+            Tem alguma dúvida ou quer saber mais sobre nosso trabalho? Estamos
+            aqui para ajudar!
           </p>
         </div>
 
@@ -47,8 +23,15 @@ export function Contact() {
                   <Phone className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-[#2E7D6B] mb-2">Telefone / WhatsApp</h3>
-                  <a href="https://wa.me/5515996927636" target="_blank" rel="noopener noreferrer" className="text-[#6FAE9C] hover:text-[#E4B04A] transition-colors">
+                  <h3 className="font-semibold text-[#2E7D6B] mb-2">
+                    Telefone / WhatsApp
+                  </h3>
+                  <a
+                    href="https://wa.me/5515996927636"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[#6FAE9C] hover:text-[#E4B04A] transition-colors"
+                  >
                     (15) 99692-7636
                   </a>
                   <p className="text-sm text-gray-500 mt-1">
@@ -65,7 +48,10 @@ export function Contact() {
                 </div>
                 <div>
                   <h3 className="font-semibold text-[#2E7D6B] mb-2">E-mail</h3>
-                  <a href="mailto:contato@saal.com.br" className="text-[#6FAE9C] hover:text-[#E4B04A] transition-colors">
+                  <a
+                    href="mailto:contato@saal.com.br"
+                    className="text-[#6FAE9C] hover:text-[#E4B04A] transition-colors"
+                  >
                     contato@saal.com.br
                   </a>
                   <p className="text-sm text-gray-500 mt-1">
@@ -81,7 +67,9 @@ export function Contact() {
                   <Instagram className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-[#2E7D6B] mb-2">Instagram</h3>
+                  <h3 className="font-semibold text-[#2E7D6B] mb-2">
+                    Instagram
+                  </h3>
                   <a
                     href="https://www.instagram.com/ongsaal"
                     target="_blank"
@@ -103,9 +91,12 @@ export function Contact() {
                   <MapPin className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-[#2E7D6B] mb-2">Localização</h3>
+                  <h3 className="font-semibold text-[#2E7D6B] mb-2">
+                    Localização
+                  </h3>
                   <p className="text-[#6FAE9C]">
-                    Capão Bonito, SP<br />
+                    Capão Bonito, SP
+                    <br />
                     Brasil
                   </p>
                   <p className="text-sm text-gray-500 mt-1">
@@ -118,92 +109,84 @@ export function Contact() {
 
           {/* Contact Form */}
           <div className="bg-white rounded-2xl p-6 md:p-8 shadow-lg">
-            <h2 className="text-2xl font-bold text-[#2E7D6B] mb-6">Envie uma Mensagem</h2>
+            <h2 className="text-2xl font-bold text-[#2E7D6B] mb-6">
+              Envie uma Mensagem
+            </h2>
 
-            {submitted ? (
-              <div className="bg-[#2E7D6B] text-white rounded-xl p-6 text-center">
-                <Send className="w-12 h-12 mx-auto mb-3" />
-                <p className="font-semibold">Mensagem enviada com sucesso!</p>
-                <p className="text-sm mt-1 text-[#F5EFE6]">Entraremos em contato em breve.</p>
+            <form
+              onSubmit={(event) => event.preventDefault()}
+              className="space-y-4"
+            >
+              <p
+                role="status"
+                className="rounded-lg border border-[#E4B04A]/50 bg-[#F5EFE6] p-3 text-sm text-[#416f65]"
+              >
+                O formulário está indisponível até a aprovação e integração do
+                canal. Nada será enviado ou persistido pelo SAAL.
+              </p>
+              <div>
+                <label htmlFor="name" className="block text-[#2E7D6B] mb-2">
+                  Nome
+                </label>
+                <input
+                  type="text"
+                  id="name"
+                  name="name"
+                  className="w-full px-4 py-3 bg-[#F5EFE6] rounded-lg border-none focus:outline-none focus:ring-2 focus:ring-[#E4B04A]"
+                  placeholder="Seu nome"
+                />
               </div>
-            ) : (
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <label htmlFor="name" className="block text-[#2E7D6B] mb-2">
-                    Nome *
-                  </label>
-                  <input
-                    type="text"
-                    id="name"
-                    name="name"
-                    required
-                    value={formData.name}
-                    onChange={handleChange}
-                    className="w-full px-4 py-3 bg-[#F5EFE6] rounded-lg border-none focus:outline-none focus:ring-2 focus:ring-[#E4B04A]"
-                    placeholder="Seu nome"
-                  />
-                </div>
 
-                <div>
-                  <label htmlFor="email" className="block text-[#2E7D6B] mb-2">
-                    E-mail *
-                  </label>
-                  <input
-                    type="email"
-                    id="email"
-                    name="email"
-                    required
-                    value={formData.email}
-                    onChange={handleChange}
-                    className="w-full px-4 py-3 bg-[#F5EFE6] rounded-lg border-none focus:outline-none focus:ring-2 focus:ring-[#E4B04A]"
-                    placeholder="seu.email@exemplo.com"
-                  />
-                </div>
+              <div>
+                <label htmlFor="email" className="block text-[#2E7D6B] mb-2">
+                  E-mail
+                </label>
+                <input
+                  type="email"
+                  id="email"
+                  name="email"
+                  className="w-full px-4 py-3 bg-[#F5EFE6] rounded-lg border-none focus:outline-none focus:ring-2 focus:ring-[#E4B04A]"
+                  placeholder="seu.email@exemplo.com"
+                />
+              </div>
 
-                <div>
-                  <label htmlFor="subject" className="block text-[#2E7D6B] mb-2">
-                    Assunto *
-                  </label>
-                  <input
-                    type="text"
-                    id="subject"
-                    name="subject"
-                    required
-                    value={formData.subject}
-                    onChange={handleChange}
-                    className="w-full px-4 py-3 bg-[#F5EFE6] rounded-lg border-none focus:outline-none focus:ring-2 focus:ring-[#E4B04A]"
-                    placeholder="Como podemos ajudar?"
-                  />
-                </div>
+              <div>
+                <label htmlFor="subject" className="block text-[#2E7D6B] mb-2">
+                  Assunto
+                </label>
+                <input
+                  type="text"
+                  id="subject"
+                  name="subject"
+                  className="w-full px-4 py-3 bg-[#F5EFE6] rounded-lg border-none focus:outline-none focus:ring-2 focus:ring-[#E4B04A]"
+                  placeholder="Como podemos ajudar?"
+                />
+              </div>
 
-                <div>
-                  <label htmlFor="message" className="block text-[#2E7D6B] mb-2">
-                    Mensagem *
-                  </label>
-                  <textarea
-                    id="message"
-                    name="message"
-                    rows={5}
-                    required
-                    value={formData.message}
-                    onChange={handleChange}
-                    className="w-full px-4 py-3 bg-[#F5EFE6] rounded-lg border-none focus:outline-none focus:ring-2 focus:ring-[#E4B04A] resize-none"
-                    placeholder="Escreva sua mensagem aqui..."
-                  />
-                </div>
+              <div>
+                <label htmlFor="message" className="block text-[#2E7D6B] mb-2">
+                  Mensagem
+                </label>
+                <textarea
+                  id="message"
+                  name="message"
+                  rows={5}
+                  className="w-full px-4 py-3 bg-[#F5EFE6] rounded-lg border-none focus:outline-none focus:ring-2 focus:ring-[#E4B04A] resize-none"
+                  placeholder="Escreva sua mensagem aqui..."
+                />
+              </div>
 
-                <button
-                  type="submit"
-                  className="w-full bg-[#E4B04A] text-white py-4 rounded-full font-semibold hover:bg-[#d4a03a] transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2"
-                >
-                  <Send size={20} />
-                  Enviar Mensagem
-                </button>
-              </form>
-            )}
+              <button
+                type="button"
+                disabled
+                className="flex w-full cursor-not-allowed items-center justify-center rounded-full bg-[#E4B04A] py-4 font-semibold text-white opacity-60 shadow-md"
+              >
+                Envio indisponível nesta versão
+              </button>
+            </form>
           </div>
         </div>
       </div>
     </div>
-  );
+  )
 }
