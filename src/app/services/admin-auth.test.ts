@@ -14,7 +14,9 @@ afterEach(() => {
 describe("admin-auth service", () => {
   it("consulta o estado de sessão no servidor com cookies", async () => {
     const fetch = vi
+
       .spyOn(globalThis, "fetch")
+
       .mockResolvedValue(
         new Response(JSON.stringify({ authenticated: true }), { status: 200 }),
       )
@@ -37,6 +39,7 @@ describe("admin-auth service", () => {
         new Response(
           JSON.stringify({
             token: "csrf-synthetic",
+
             headerName: "X-CSRF-TOKEN",
           }),
 
@@ -74,6 +77,7 @@ describe("admin-auth service", () => {
         new Response(
           JSON.stringify({
             token: "csrf-synthetic",
+
             headerName: "X-CSRF-TOKEN",
           }),
 
@@ -99,6 +103,7 @@ describe("admin-auth service", () => {
         new Response(
           JSON.stringify({
             token: "csrf-synthetic",
+
             headerName: "X-CSRF-TOKEN",
           }),
 

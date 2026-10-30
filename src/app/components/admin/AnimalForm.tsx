@@ -35,6 +35,7 @@ export function AnimalForm({ animal, onSave, onCancel }: AnimalFormProps) {
 
   const [selectedImages, setSelectedImages] = useState<Array<{
     file: File
+
     url: string
   }>>([])
 
@@ -117,6 +118,7 @@ export function AnimalForm({ animal, onSave, onCancel }: AnimalFormProps) {
 
     const images = [
       ...currentImages,
+
       ...selectedImages.map((image) => image.url),
     ]
 
@@ -130,8 +132,11 @@ export function AnimalForm({ animal, onSave, onCancel }: AnimalFormProps) {
       ...formData,
 
       personality: formData.personality
+
         .split(",")
+
         .map((p) => p.trim())
+
         .filter((p) => p),
 
       images,

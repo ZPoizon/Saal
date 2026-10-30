@@ -49,6 +49,7 @@ export const mockAnimals: Animal[] = [
 
     images: [
       "https://images.unsplash.com/photo-1587300003388-59208cc962cb",
+
       "https://images.unsplash.com/photo-1583511655857-d19b40a7a54e",
     ],
   },
@@ -77,6 +78,7 @@ export const mockAnimals: Animal[] = [
 
     images: [
       "https://images.unsplash.com/photo-1574158622682-e40e69881006",
+
       "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba",
     ],
   },
@@ -105,6 +107,7 @@ export const mockAnimals: Animal[] = [
 
     images: [
       "https://images.unsplash.com/photo-1558788353-f76d92427f16",
+
       "https://images.unsplash.com/photo-1537151608828-ea2b11777ee8",
     ],
   },
@@ -133,6 +136,7 @@ export const mockAnimals: Animal[] = [
 
     images: [
       "https://images.unsplash.com/photo-1552053831-71594a27632d",
+
       "https://images.unsplash.com/photo-1561037404-61cd46aa615b",
     ],
   },
@@ -161,6 +165,7 @@ export const mockAnimals: Animal[] = [
 
     images: [
       "https://images.unsplash.com/photo-1606214174585-fe31582dc6ee",
+
       "https://images.unsplash.com/photo-1543852786-1cf6624b9987",
     ],
   },
@@ -214,6 +219,7 @@ export const mockAnimals: Animal[] = [
 
     images: [
       "https://images.unsplash.com/photo-1596854407944-bf87f6fdd49e",
+
       "https://images.unsplash.com/photo-1513245543132-31f507417b26",
     ],
   },

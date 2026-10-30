@@ -35,9 +35,11 @@ import { buildInterestContactLinks } from "../utils/contact-links"
 function authenticationErrorMessage(error: unknown): string {
   if (error instanceof AdminAuthError) {
     if (error.status === 401) return "Usuário ou senha inválidos."
+
     if (error.status === 403) {
       return "A sessão de segurança expirou. Tente novamente."
     }
+
     if (error.status === 429) {
       return "Muitas tentativas de acesso. Aguarde 15 minutos e tente novamente."
     }
@@ -70,14 +72,20 @@ export function Admin() {
 
   useEffect(() => {
     let active = true
+
     getAdminSession()
+
       .then((authenticated) => {
         if (!active) return
+
         setAuthStatus(authenticated ? "authenticated" : "anonymous")
       })
+
       .catch(() => {
         if (!active) return
+
         setAuthStatus("error")
+
         setAuthMessage(
           "Não foi possível validar a sessão. O painel permanece bloqueado.",
         )
@@ -93,15 +101,20 @@ export function Admin() {
 
     const verifySession = () => {
       if (document.visibilityState !== "visible") return
+
       getAdminSession()
+
         .then((authenticated) => {
           if (!authenticated) {
             setAuthStatus("anonymous")
+
             setAuthMessage("Sessão expirada. Entre novamente.")
           }
         })
+
         .catch(() => {
           setAuthStatus("error")
+
           setAuthMessage(
             "Não foi possível validar a sessão. O painel permanece bloqueado.",
           )
@@ -109,10 +122,12 @@ export function Admin() {
     }
 
     window.addEventListener("focus", verifySession)
+
     document.addEventListener("visibilitychange", verifySession)
 
     return () => {
       window.removeEventListener("focus", verifySession)
+
       document.removeEventListener("visibilitychange", verifySession)
     }
   }, [authStatus])
@@ -127,12 +142,16 @@ export function Admin() {
 
   const retrySessionCheck = async () => {
     setAuthStatus("checking")
+
     setAuthMessage(null)
+
     try {
       const authenticated = await getAdminSession()
+
       setAuthStatus(authenticated ? "authenticated" : "anonymous")
     } catch {
       setAuthStatus("error")
+
       setAuthMessage(
         "Não foi possível validar a sessão. O painel permanece bloqueado.",
       )
@@ -141,14 +160,20 @@ export function Admin() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
+
     setIsSubmitting(true)
+
     setAuthMessage(null)
+
     try {
       await loginAdmin(credentials.username, credentials.password)
+
       setCredentials((current) => ({ ...current, password: "" }))
+
       setAuthStatus("authenticated")
     } catch (error) {
       setAuthStatus("anonymous")
+
       setAuthMessage(authenticationErrorMessage(error))
     } finally {
       setIsSubmitting(false)
@@ -157,10 +182,14 @@ export function Admin() {
 
   const handleLogout = async () => {
     setIsSubmitting(true)
+
     setAuthMessage(null)
+
     try {
       await logoutAdmin()
+
       setAuthStatus("anonymous")
+
       setCredentials({ username: "", password: "" })
     } catch (error) {
       setAuthMessage(authenticationErrorMessage(error))
@@ -592,6 +621,7 @@ export function Admin() {
                           <p className="text-xs text-[#6FAE9C]">
                             {new Date(interest.date).toLocaleDateString(
                               "pt-BR",
+
                               {
                                 day: "2-digit",
 

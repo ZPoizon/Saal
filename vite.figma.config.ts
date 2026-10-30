@@ -29,6 +29,7 @@ function loadAssetFilenameAliases(): Record<string, string> {
   try {
     contents = readFileSync(
       path.join(__dirname, ASSET_FILENAME_ALIASES_PATH),
+
       "utf8",
     )
   } catch (error) {
@@ -148,15 +149,20 @@ function isProjectPath(value: unknown): value is string {
     !path.isAbsolute(value) &&
     !path.posix.isAbsolute(value) &&
     value
+
       .split("/")
+
       .every((part) => part !== "" && part !== "." && part !== "..")
   )
 }
 
 function projectPath(root: string, absolute: string): string | undefined {
   const relative = path
+
     .relative(root, path.resolve(absolute))
+
     .split(path.sep)
+
     .join("/")
 
   if (relative === ".figma" || relative.startsWith(".figma/")) return
@@ -253,6 +259,7 @@ function figmaSourcePathResolver(): Plugin {
         ) {
           return projectPath(
             root,
+
             path.resolve(root, path.dirname(importerPath), value),
           )
         }
@@ -432,7 +439,9 @@ function figmaSiteConfiguration(config: FigmaSiteConfiguration): Plugin {
       if (robotsTxt)
         this.emitFile({
           type: "asset",
+
           fileName: "robots.txt",
+
           source: robotsTxt,
         })
     },
