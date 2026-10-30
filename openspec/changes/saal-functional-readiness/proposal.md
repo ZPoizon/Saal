@@ -58,10 +58,13 @@ Nenhuma. `openspec/specs/` não contém capacidades existentes; as especificaç�
 - Aprovação de regras pendentes e de cada incremento é pré-condição para implementação.
 - Java 21/Spring Boot 4.1.2 condicional, Maven Wrapper, Spring Security, JPA, Bean Validation,
   Flyway, testes backend, Docker, GitHub Actions e RFC 9457 foram escolhas técnicas
-  expressamente autorizadas em 2026-10-28. Sessão server-side é preferência condicionada à
-  topologia; Cloudflare Pages é hosting preferencial e Render/Aiven são opções de teste/
-  demonstração, não aprovações de produção. ONG-07, ONG-09 e vários detalhes de ONG-01–ONG-06,
+  expressamente autorizadas em 2026-10-28. Sessão server-side same-site foi aprovada para a
+  implementação inicial em 2026-10-29; Cloudflare Pages é hosting preferencial e Render/Aiven
+  são opções de teste/demonstração, não aprovações de produção. ONG-07, ONG-09 e vários detalhes de ONG-01–ONG-06,
   ONG-08, ONG-10 e ONG-11 continuam pendentes.
+- Em 2026-10-29, o responsável técnico aprovou sessão server-side, proxy same-site, CSRF,
+  CORS allowlist, cookie e sessão ociosa de 15 minutos, credencial única configurada
+  externamente e limite de tentativas de login; ADR-006 registra o escopo e as limitações.
 - O contrato fixa somente os elementos aprovados em 2026-10-29: estados, quantidade de fotos,
   campos de intake e ausência de transições de status; security scheme, demais campos e
   limites continuam pendentes. Redocly CLI 2.72.0 foi validada como candidata versionada e

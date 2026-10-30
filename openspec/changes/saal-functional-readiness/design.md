@@ -62,21 +62,23 @@ reversible. Validate clean install and supported upgrades in CI, use a dedicated
 identity, prefer expand/contract and forward-fix, and test backup/restore. Destructive
 schema/data changes require explicit approval and a recovery plan.
 
-### Treat authentication mechanism as an approval gate
+### Implement the approved initial authentication boundary
 
-Do not implement any bearer/JWT placeholder from the former OpenAPI draft. A session is the
-team's preferred approach, not the approved final protocol/topology. Before protected
-endpoints, write/approve an ADR covering credential bootstrap, single-administrator lifecycle,
-expiration, revocation, recovery, CSRF, CORS and deployment origins. There are no differentiated
-roles. The current OpenAPI draft has candidate login/logout operations explicitly blocked and
-no security scheme.
+The responsible technical owner approved the initial design on 2026-10-29; see
+`specs/decisions/ADR-006-admin-authentication.md`. Use one externally provisioned administrator
+with username and BCrypt hash in environment/secret configuration, a revocable server-side
+`HttpSession`, same-site frontend/API through a proxy, CSRF token header, exact CORS allowlist,
+and 15-minute idle expiry. Session cookies are `HttpOnly`, `SameSite=Lax`, and `Secure` by
+default; login rotates the session identifier. Ten failed logins per client IP in ten minutes
+trigger a 15-minute cooldown.
 
-**Recommendation for review, not a decision already made:** use revocable server-side
-sessions with `HttpOnly`, `Secure`, appropriately restrictive `SameSite` cookies and
-explicit CSRF defenses where deployment is same-site. If deployment requires cross-site
-cookies or an alternative token model, assess that topology and threat model in the ADR
-before choosing. In every option, authorization is enforced per operation and resource by
-the server; frontend route guards are only UX.
+The session and rate limiter live in process memory. This increment supports one application
+instance only; restarts invalidate sessions and multiple replicas are unsupported. No default
+credential, auto-registration, database administrator record, password recovery, or password
+change flow is introduced. Production domain, HTTPS, proxy configuration, secret manager and
+trusted client-IP handling remain operational gates. Do not implement the previous bearer/JWT
+placeholder. There are no differentiated roles, and every administrative operation remains
+authorized server-side; frontend guards are UX only.
 
 ### Specify all interactive surfaces and truthful behavior
 

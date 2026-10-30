@@ -7,6 +7,13 @@ spring:
     log-request-details: false
 server:
   port: ${PORT:8080}
+  servlet:
+    session:
+      timeout: ${SAAL_ADMIN_SESSION_TIMEOUT:15m}
+      cookie:
+        http-only: true
+        secure: ${SAAL_SESSION_COOKIE_SECURE:true}
+        same-site: lax
   error:
     include-message: never
     include-stacktrace: never
@@ -26,3 +33,10 @@ management:
 logging:
   level:
     root: INFO
+saal:
+  admin:
+    username: ${SAAL_ADMIN_USERNAME:}
+    password-hash: ${SAAL_ADMIN_PASSWORD_HASH:}
+  security:
+    cors:
+      allowed-origins: ${SAAL_CORS_ALLOWED_ORIGINS:}

@@ -36,11 +36,11 @@ registrar evidência ou bloqueio explícito.
 
 ## 5. Autenticação e autorização — I4
 
-- [ ] 5.1 Implementar provisionamento controlado da única conta administrativa e hash adaptativo de senha; verificar ausência de autoinscrição, papéis diferenciados e admin/credenciais padrão não aprovados. Identidade, revogação e recuperação continuam pendentes (ONG-01).
-- [ ] 5.2 Implementar login, sessão/token aprovado, expiração, revogação e logout; verificar credential anterior é negada após logout e não há segredo em URL, storage inseguro ou log.
-- [ ] 5.3 Aplicar CSRF, cookie/session flags, CORS allowlist, headers e rate limit segundo arquitetura/origens aprovadas; verificar requests válidos e forjados.
+- [x] 5.1 Implementar provisionamento controlado da única conta administrativa e hash adaptativo de senha; verificar ausência de autoinscrição, papéis diferenciados e admin/credenciais padrão não aprovados. Identidade nominal, ciclo de vida e recuperação continuam pendentes (ONG-01).
+- [x] 5.2 Implementar login, sessão/token aprovado, expiração, revogação e logout; verificar credential anterior é negada após logout e não há segredo em URL, storage inseguro ou log.
+- [x] 5.3 Aplicar CSRF, cookie/session flags, CORS allowlist, headers e rate limit segundo arquitetura/origens aprovadas; verificar requests válidos e forjados.
 - [ ] 5.4 Aplicar autorização server-side por operação a todo endpoint protegido, inclusive leitura e lista, mesmo com um único administrador; verificar testes positivos, 401, 403 e tentativas IDOR. Não há matriz de papéis a implementar.
-- [ ] 5.5 Testar abuso, enumeração, autenticação inválida, expiração, revogação e proteção contra vazamento; verificar casos incluídos no CI e registrados na capability.
+- [x] 5.5 Testar abuso, enumeração, autenticação inválida, expiração, revogação e proteção contra vazamento; verificar casos incluídos no CI e registrados na capability.
 
 ## 6. Operações administrativas de animais — I5
 
