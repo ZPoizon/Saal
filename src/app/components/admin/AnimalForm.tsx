@@ -1,74 +1,114 @@
-import { useState } from "react";
-import { X, Upload, Image as ImageIcon } from "lucide-react";
-import { Animal, AnimalStatus } from "../../data/animals";
+import { useState } from "react"
+
+import { X, Upload, Image as ImageIcon } from "lucide-react"
+
+import { Animal, AnimalStatus } from "../../data/animals"
 
 interface AnimalFormProps {
-  animal?: Animal;
-  onSave: (animal: Partial<Animal>) => void;
-  onCancel: () => void;
+  animal?: Animal
+
+  onSave: (animal: Partial<Animal>) => boolean
+
+  onCancel: () => void
 }
 
 export function AnimalForm({ animal, onSave, onCancel }: AnimalFormProps) {
   const [formData, setFormData] = useState({
     name: animal?.name || "",
+
     species: animal?.species || "dog",
+
     age: animal?.age || "",
+
     size: animal?.size || "médio",
+
     sex: animal?.sex || "macho",
+
     status: animal?.status || "available",
+
     description: animal?.description || "",
+
     personality: animal?.personality?.join(", ") || "",
+
     medicalInfo: animal?.medicalInfo || "",
-  });
+  })
 
-  const [imagePreview, setImagePreview] = useState<string>(animal?.images?.[0] || "");
-  const [imageUrl, setImageUrl] = useState<string>(animal?.images?.[0] || "");
+  const [imagePreview, setImagePreview] = useState<string>(
+    animal?.images?.[0] || "",
+  )
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+  const [imageUrl, setImageUrl] = useState<string>(animal?.images?.[0] || "")
+
+  const [saveError, setSaveError] = useState<string | null>(null)
+
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>,
+  ) => {
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
-    });
-  };
+
+      [e.target.name]: e.target.value,
+    })
+  }
 
   const handleImageUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const url = e.target.value;
-    setImageUrl(url);
-    setImagePreview(url);
-  };
+    const url = e.target.value
+
+    setImageUrl(url)
+
+    setImagePreview(url)
+  }
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+    const file = e.target.files?.[0]
+
     if (file) {
-      const reader = new FileReader();
+      const reader = new FileReader()
+
       reader.onloadend = () => {
-        const result = reader.result as string;
-        setImagePreview(result);
-        setImageUrl(result);
-      };
-      reader.readAsDataURL(file);
+        const result = reader.result as string
+
+        setImagePreview(result)
+
+        setImageUrl(result)
+      }
+
+      reader.readAsDataURL(file)
     }
-  };
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+    e.preventDefault()
 
     const animalData: Partial<Animal> = {
       ...formData,
-      personality: formData.personality.split(",").map(p => p.trim()).filter(p => p),
-      images: imageUrl ? [imageUrl] : [],
-      species: formData.species as "dog" | "cat",
-      size: formData.size as "pequeno" | "médio" | "grande",
-      sex: formData.sex as "macho" | "fêmea",
-      status: formData.status as AnimalStatus,
-    };
 
-    if (animal) {
-      animalData.id = animal.id;
+      personality: formData.personality
+        .split(",")
+        .map((p) => p.trim())
+        .filter((p) => p),
+
+      images: imageUrl ? [imageUrl] : [],
+
+      species: formData.species as "dog" | "cat",
+
+      size: formData.size as "pequeno" | "médio" | "grande",
+
+      sex: formData.sex as "macho" | "fêmea",
+
+      status: formData.status as AnimalStatus,
     }
 
-    onSave(animalData);
-  };
+    if (animal) {
+      animalData.id = animal.id
+    }
+
+    if (!onSave(animalData)) {
+      setSaveError(
+        "Não foi possível salvar. Verifique o espaço disponível e as permissões do navegador.",
+      )
+    }
+  }
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
@@ -85,7 +125,18 @@ export function AnimalForm({ animal, onSave, onCancel }: AnimalFormProps) {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+        <form
+          onSubmit={handleSubmit}
+          className="p-6 space-y-4 max-h-[70vh] overflow-y-auto"
+        >
+          {saveError && (
+            <p
+              role="alert"
+              className="rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-800"
+            >
+              {saveError}
+            </p>
+          )}
           {/* Upload de Foto */}
           <div>
             <label className="block text-[#2E7D6B] mb-2">Foto do Animal</label>
@@ -303,5 +354,5 @@ export function AnimalForm({ animal, onSave, onCancel }: AnimalFormProps) {
         </form>
       </div>
     </div>
-  );
+  )
 }

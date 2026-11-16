@@ -29,8 +29,8 @@ No alvo, administrador autenticado e autorizado. No protótipo, login demonstrat
 1. Administrador abre o painel.
 2. Visualiza tabela e estatísticas derivadas.
 3. Cria ou edita um animal pelo modal.
-4. Sistema valida e salva.
-5. Lista e estatísticas refletem a mudança.
+4. No protótipo, o sistema salva o catálogo no armazenamento local do navegador.
+5. Painel, catálogo público, detalhes e formulário de interesse refletem a mesma mudança.
 
 ## 7. Fluxos alternativos
 
@@ -43,6 +43,10 @@ No alvo, administrador autenticado e autorizado. No protótipo, login demonstrat
 
 - **Dado** administrador autorizado e dados válidos, **quando** cadastrar, **então** o animal
   será persistido e retornado pela API.
+- **Dado** o protótipo local, **quando** cadastrar, editar ou excluir um animal, **então** a
+  alteração será salva no navegador e refletida nas telas públicas, inclusive após recarregar.
+- **Dado** que o navegador não consiga salvar os dados, **quando** uma mutação ocorrer,
+  **então** a interface informará a falha e manterá os dados exibidos sem indicar sucesso.
 - **Dado** animal existente, **quando** editar e salvar, **então** somente os novos dados
   válidos serão persistidos.
 - **Dado** intenção de excluir, **quando** cancelar a confirmação, **então** nada será alterado.
@@ -84,5 +88,7 @@ typecheck/build válidos, sem regressão visual e spec/OpenAPI sincronizados.
 
 ## 15. Estado atual
 
-**Protótipo.** CRUD altera apenas `useState` dentro de `Admin.tsx`; não afeta o catálogo
-público e é perdido ao recarregar. Upload Base64 não é enviado a storage.
+**Protótipo.** O CRUD usa uma fonte de estado compartilhada entre as telas e salva os dados no
+`localStorage` deste navegador. As alterações não são enviadas a servidor, não são
+compartilhadas com outros dispositivos/navegadores e podem ser removidas ao limpar os dados
+do site. Upload Base64 permanece local e sujeito ao limite de armazenamento do navegador.

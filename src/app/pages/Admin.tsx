@@ -1,70 +1,124 @@
-import { useState } from "react";
-import { Lock, PawPrint, Mail, Trash2, Edit, Plus, Heart, CheckCircle, X, UserCheck, UserX, Clock, ArrowLeft } from "lucide-react";
-import { Link } from "react-router";
-import { mockAnimals, Animal } from "../data/animals";
-import logoSaal from "../../imports/logo_fundo_0.png";
-import { AnimalForm } from "../components/admin/AnimalForm";
-import { useInterest } from "../contexts/InterestContext";
+import { useState } from "react"
+
+import {
+  Lock,
+  PawPrint,
+  Mail,
+  Trash2,
+  Edit,
+  Plus,
+  Heart,
+  CheckCircle,
+  X,
+  UserCheck,
+  UserX,
+  Clock,
+  ArrowLeft,
+} from "lucide-react"
+
+import { Link } from "react-router"
+
+import { Animal } from "../data/animals"
+
+import logoSaal from "../../imports/logo_fundo_0.png"
+
+import { AnimalForm } from "../components/admin/AnimalForm"
+
+import { useInterest } from "../contexts/InterestContext"
+
+import { useAnimals } from "../contexts/AnimalContext"
+
+import { getAnimalImageUrl } from "../data/animalImages"
 
 export function Admin() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [credentials, setCredentials] = useState({ username: "", password: "" });
-  const [animals, setAnimals] = useState<Animal[]>(mockAnimals);
-  const [showForm, setShowForm] = useState(false);
-  const [editingAnimal, setEditingAnimal] = useState<Animal | null>(null);
-  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
-  const { interests, updateInterestStatus } = useInterest();
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+
+  const [credentials, setCredentials] = useState({ username: "", password: "" })
+
+  const [showForm, setShowForm] = useState(false)
+
+  const [editingAnimal, setEditingAnimal] = useState<Animal | null>(null)
+
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
+
+  const { interests, updateInterestStatus } = useInterest()
+
+  const { animals, saveAnimals, storageError } = useAnimals()
 
   const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (credentials.username === "admin" && credentials.password === "saal2026") {
-      setIsLoggedIn(true);
+    e.preventDefault()
+
+    if (
+      credentials.username === "admin" &&
+      credentials.password === "saal2026"
+    ) {
+      setIsLoggedIn(true)
     } else {
-      alert("Credenciais inválidas!");
+      alert("Credenciais inválidas!")
     }
-  };
+  }
 
   const handleAddAnimal = () => {
-    setEditingAnimal(null);
-    setShowForm(true);
-  };
+    setEditingAnimal(null)
+
+    setShowForm(true)
+  }
 
   const handleEditAnimal = (animal: Animal) => {
-    setEditingAnimal(animal);
-    setShowForm(true);
-  };
+    setEditingAnimal(animal)
 
-  const handleSaveAnimal = (animalData: Partial<Animal>) => {
+    setShowForm(true)
+  }
+
+  const handleSaveAnimal = (animalData: Partial<Animal>): boolean => {
+    let updatedAnimals: Animal[]
+
     if (editingAnimal) {
-      // Editar animal existente
-      setAnimals(animals.map(a =>
-        a.id === editingAnimal.id ? { ...a, ...animalData } : a
-      ));
+      updatedAnimals = animals.map((a) =>
+        a.id === editingAnimal.id ? { ...a, ...animalData } : a,
+      )
     } else {
-      // Adicionar novo animal
       const newAnimal: Animal = {
         id: String(Date.now()),
+
         name: animalData.name!,
+
         species: animalData.species!,
+
         age: animalData.age!,
+
         size: animalData.size!,
+
         sex: animalData.sex!,
+
         status: animalData.status!,
+
         description: animalData.description!,
+
         personality: animalData.personality || [],
+
         medicalInfo: animalData.medicalInfo || "",
+
         images: animalData.images || [],
-      };
-      setAnimals([newAnimal, ...animals]);
+      }
+
+      updatedAnimals = [newAnimal, ...animals]
     }
-    setShowForm(false);
-    setEditingAnimal(null);
-  };
+
+    if (!saveAnimals(updatedAnimals)) return false
+
+    setShowForm(false)
+
+    setEditingAnimal(null)
+
+    return true
+  }
 
   const handleDeleteAnimal = (id: string) => {
-    setAnimals(animals.filter(a => a.id !== id));
-    setDeleteConfirm(null);
-  };
+    if (saveAnimals(animals.filter((a) => a.id !== id))) {
+      setDeleteConfirm(null)
+    }
+  }
 
   if (!isLoggedIn) {
     return (
@@ -87,53 +141,61 @@ export function Admin() {
               <h1 className="text-3xl font-bold text-[#2E7D6B] mb-2">
                 Área Administrativa
               </h1>
-              <p className="text-[#6FAE9C]">SAAL - Santuário de Animais Anjos da Luz</p>
+              <p className="text-[#6FAE9C]">
+                SAAL - Santuário de Animais Anjos da Luz
+              </p>
             </div>
 
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div>
-              <label htmlFor="username" className="block text-[#2E7D6B] mb-2">
-                Usuário
-              </label>
-              <input
-                type="text"
-                id="username"
-                value={credentials.username}
-                onChange={(e) => setCredentials({ ...credentials, username: e.target.value })}
-                className="w-full px-4 py-3 bg-[#F5EFE6] rounded-lg border-none focus:outline-none focus:ring-2 focus:ring-[#E4B04A]"
-                placeholder="admin"
-              />
-            </div>
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div>
+                <label htmlFor="username" className="block text-[#2E7D6B] mb-2">
+                  Usuário
+                </label>
+                <input
+                  type="text"
+                  id="username"
+                  value={credentials.username}
+                  onChange={(e) =>
+                    setCredentials({ ...credentials, username: e.target.value })
+                  }
+                  className="w-full px-4 py-3 bg-[#F5EFE6] rounded-lg border-none focus:outline-none focus:ring-2 focus:ring-[#E4B04A]"
+                  placeholder="admin"
+                />
+              </div>
 
-            <div>
-              <label htmlFor="password" className="block text-[#2E7D6B] mb-2">
-                Senha
-              </label>
-              <input
-                type="password"
-                id="password"
-                value={credentials.password}
-                onChange={(e) => setCredentials({ ...credentials, password: e.target.value })}
-                className="w-full px-4 py-3 bg-[#F5EFE6] rounded-lg border-none focus:outline-none focus:ring-2 focus:ring-[#E4B04A]"
-                placeholder="••••••••"
-              />
-            </div>
+              <div>
+                <label htmlFor="password" className="block text-[#2E7D6B] mb-2">
+                  Senha
+                </label>
+                <input
+                  type="password"
+                  id="password"
+                  value={credentials.password}
+                  onChange={(e) =>
+                    setCredentials({ ...credentials, password: e.target.value })
+                  }
+                  className="w-full px-4 py-3 bg-[#F5EFE6] rounded-lg border-none focus:outline-none focus:ring-2 focus:ring-[#E4B04A]"
+                  placeholder="••••••••"
+                />
+              </div>
 
-            <button
-              type="submit"
-              className="w-full bg-[#2E7D6B] text-white py-3 rounded-full font-semibold hover:bg-[#6FAE9C] transition-all shadow-md hover:shadow-lg"
-            >
-              Entrar
-            </button>
+              <button
+                type="submit"
+                className="w-full bg-[#2E7D6B] text-white py-3 rounded-full font-semibold hover:bg-[#6FAE9C] transition-all shadow-md hover:shadow-lg"
+              >
+                Entrar
+              </button>
 
-            <p className="text-xs text-center text-gray-500 mt-4">
-              Demo: usuário: <code className="bg-gray-100 px-1 rounded">admin</code> / senha: <code className="bg-gray-100 px-1 rounded">saal2026</code>
-            </p>
-          </form>
+              <p className="text-xs text-center text-gray-500 mt-4">
+                Demo: usuário:{" "}
+                <code className="bg-gray-100 px-1 rounded">admin</code> / senha:{" "}
+                <code className="bg-gray-100 px-1 rounded">saal2026</code>
+              </p>
+            </form>
           </div>
         </div>
       </div>
-    );
+    )
   }
 
   return (
@@ -142,7 +204,9 @@ export function Admin() {
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-[#2E7D6B] mb-2">Painel Administrativo</h1>
+            <h1 className="text-3xl font-bold text-[#2E7D6B] mb-2">
+              Painel Administrativo
+            </h1>
             <p className="text-[#6FAE9C]">Gerencie os animais e interessados</p>
           </div>
           <button
@@ -160,7 +224,9 @@ export function Admin() {
               <span className="text-[#6FAE9C]">Total de Animais</span>
               <PawPrint className="text-[#E4B04A]" size={20} />
             </div>
-            <p className="text-3xl font-bold text-[#2E7D6B]">{animals.length}</p>
+            <p className="text-3xl font-bold text-[#2E7D6B]">
+              {animals.length}
+            </p>
           </div>
 
           <div className="bg-white rounded-xl p-6 shadow-md">
@@ -169,7 +235,7 @@ export function Admin() {
               <Heart className="text-[#2E7D6B]" size={20} />
             </div>
             <p className="text-3xl font-bold text-[#2E7D6B]">
-              {animals.filter(a => a.status === "available").length}
+              {animals.filter((a) => a.status === "available").length}
             </p>
           </div>
 
@@ -179,7 +245,7 @@ export function Admin() {
               <Heart className="text-[#E4B04A]" size={20} />
             </div>
             <p className="text-3xl font-bold text-[#2E7D6B]">
-              {animals.filter(a => a.status === "treatment").length}
+              {animals.filter((a) => a.status === "treatment").length}
             </p>
           </div>
 
@@ -189,7 +255,7 @@ export function Admin() {
               <Heart className="text-green-500" size={20} fill="currentColor" />
             </div>
             <p className="text-3xl font-bold text-[#2E7D6B]">
-              {animals.filter(a => a.status === "adopted").length}
+              {animals.filter((a) => a.status === "adopted").length}
             </p>
           </div>
 
@@ -199,13 +265,26 @@ export function Admin() {
               <Mail className="text-[#E4B04A]" size={20} />
             </div>
             <p className="text-3xl font-bold text-[#2E7D6B]">
-              {interests.filter(i => i.status === "pending").length}
+              {interests.filter((i) => i.status === "pending").length}
             </p>
           </div>
         </div>
 
         {/* Actions */}
         <div className="bg-white rounded-2xl p-6 shadow-md mb-8">
+          <p className="mb-4 text-sm text-[#527f74]">
+            Este protótipo salva as alterações somente neste navegador. Elas não
+            são enviadas para um servidor nem compartilhadas com outros
+            dispositivos.
+          </p>
+          {storageError && (
+            <p
+              role="alert"
+              className="mb-4 rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-800"
+            >
+              {storageError}
+            </p>
+          )}
           <button
             onClick={handleAddAnimal}
             className="bg-[#E4B04A] text-white px-6 py-3 rounded-lg font-semibold hover:bg-[#d4a03a] transition-colors flex items-center gap-2"
@@ -218,7 +297,9 @@ export function Admin() {
         {/* Animals Table */}
         <div className="bg-white rounded-2xl shadow-md overflow-hidden">
           <div className="p-6 border-b border-[#F5EFE6]">
-            <h2 className="text-xl font-bold text-[#2E7D6B]">Animais Cadastrados</h2>
+            <h2 className="text-xl font-bold text-[#2E7D6B]">
+              Animais Cadastrados
+            </h2>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -226,7 +307,9 @@ export function Admin() {
                 <tr>
                   <th className="px-6 py-3 text-left text-[#2E7D6B]">Foto</th>
                   <th className="px-6 py-3 text-left text-[#2E7D6B]">Nome</th>
-                  <th className="px-6 py-3 text-left text-[#2E7D6B]">Espécie</th>
+                  <th className="px-6 py-3 text-left text-[#2E7D6B]">
+                    Espécie
+                  </th>
                   <th className="px-6 py-3 text-left text-[#2E7D6B]">Idade</th>
                   <th className="px-6 py-3 text-left text-[#2E7D6B]">Status</th>
                   <th className="px-6 py-3 text-left text-[#2E7D6B]">Ações</th>
@@ -234,27 +317,46 @@ export function Admin() {
               </thead>
               <tbody className="divide-y divide-[#F5EFE6]">
                 {animals.map((animal) => (
-                  <tr key={animal.id} className="hover:bg-[#F5EFE6]/50 transition-colors">
+                  <tr
+                    key={animal.id}
+                    className="hover:bg-[#F5EFE6]/50 transition-colors"
+                  >
                     <td className="px-6 py-4">
                       <img
-                        src={animal.images[0] ? `${animal.images[0]}?w=60&h=60&fit=crop` : "https://via.placeholder.com/60"}
+                        src={
+                          animal.images[0]
+                            ? getAnimalImageUrl(
+                                animal.images[0],
+                                "w=60&h=60&fit=crop",
+                              )
+                            : "https://via.placeholder.com/60"
+                        }
                         alt={animal.name}
                         className="w-12 h-12 rounded-lg object-cover"
                       />
                     </td>
-                    <td className="px-6 py-4 font-semibold text-[#2E7D6B]">{animal.name}</td>
+                    <td className="px-6 py-4 font-semibold text-[#2E7D6B]">
+                      {animal.name}
+                    </td>
                     <td className="px-6 py-4 text-[#6FAE9C]">
                       {animal.species === "dog" ? "Cachorro" : "Gato"}
                     </td>
                     <td className="px-6 py-4 text-[#6FAE9C]">{animal.age}</td>
                     <td className="px-6 py-4">
-                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                        animal.status === "available" ? "bg-[#2E7D6B] text-white" :
-                        animal.status === "treatment" ? "bg-[#E4B04A] text-white" :
-                        "bg-gray-400 text-white"
-                      }`}>
-                        {animal.status === "available" ? "Disponível" :
-                         animal.status === "treatment" ? "Tratamento" : "Adotado"}
+                      <span
+                        className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                          animal.status === "available"
+                            ? "bg-[#2E7D6B] text-white"
+                            : animal.status === "treatment"
+                              ? "bg-[#E4B04A] text-white"
+                              : "bg-gray-400 text-white"
+                        }`}
+                      >
+                        {animal.status === "available"
+                          ? "Disponível"
+                          : animal.status === "treatment"
+                            ? "Tratamento"
+                            : "Adotado"}
                       </span>
                     </td>
                     <td className="px-6 py-4">
@@ -310,7 +412,8 @@ export function Admin() {
                 Solicitações de Adoção
               </h2>
               <span className="bg-[#E4B04A] text-white px-3 py-1 rounded-full text-sm font-semibold">
-                {interests.filter(i => i.status === "pending").length} pendentes
+                {interests.filter((i) => i.status === "pending").length}{" "}
+                pendentes
               </span>
             </div>
           </div>
@@ -328,15 +431,18 @@ export function Admin() {
                       interest.status === "pending"
                         ? "border-[#E4B04A] bg-[#E4B04A]/5"
                         : interest.status === "accepted"
-                        ? "border-green-300 bg-green-50"
-                        : "border-gray-300 bg-gray-50"
+                          ? "border-green-300 bg-green-50"
+                          : "border-gray-300 bg-gray-50"
                     }`}
                   >
                     <div className="flex flex-col md:flex-row gap-4">
                       {/* Animal Info */}
                       <div className="flex items-center gap-3 md:w-1/3">
                         <img
-                          src={`${interest.animalImage}?w=60&h=60&fit=crop`}
+                          src={getAnimalImageUrl(
+                            interest.animalImage,
+                            "w=60&h=60&fit=crop",
+                          )}
                           alt={interest.animalName}
                           className="w-16 h-16 rounded-lg object-cover"
                         />
@@ -345,22 +451,35 @@ export function Admin() {
                             {interest.animalName}
                           </p>
                           <p className="text-xs text-[#6FAE9C]">
-                            {new Date(interest.date).toLocaleDateString("pt-BR", {
-                              day: "2-digit",
-                              month: "2-digit",
-                              year: "numeric",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
+                            {new Date(interest.date).toLocaleDateString(
+                              "pt-BR",
+                              {
+                                day: "2-digit",
+
+                                month: "2-digit",
+
+                                year: "numeric",
+
+                                hour: "2-digit",
+
+                                minute: "2-digit",
+                              },
+                            )}
                           </p>
                         </div>
                       </div>
 
                       {/* Person Info */}
                       <div className="flex-1 md:w-1/3">
-                        <p className="font-semibold text-[#2E7D6B]">{interest.name}</p>
-                        <p className="text-sm text-[#6FAE9C]">{interest.email}</p>
-                        <p className="text-sm text-[#6FAE9C]">{interest.phone}</p>
+                        <p className="font-semibold text-[#2E7D6B]">
+                          {interest.name}
+                        </p>
+                        <p className="text-sm text-[#6FAE9C]">
+                          {interest.email}
+                        </p>
+                        <p className="text-sm text-[#6FAE9C]">
+                          {interest.phone}
+                        </p>
                         {interest.message && (
                           <p className="text-sm text-gray-600 mt-2 italic line-clamp-2">
                             "{interest.message}"
@@ -373,14 +492,18 @@ export function Admin() {
                         {interest.status === "pending" ? (
                           <>
                             <button
-                              onClick={() => updateInterestStatus(interest.id, "accepted")}
+                              onClick={() =>
+                                updateInterestStatus(interest.id, "accepted")
+                              }
                               className="flex-1 md:flex-none bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors flex items-center justify-center gap-2 font-semibold"
                             >
                               <UserCheck size={18} />
                               Aceitar
                             </button>
                             <button
-                              onClick={() => updateInterestStatus(interest.id, "rejected")}
+                              onClick={() =>
+                                updateInterestStatus(interest.id, "rejected")
+                              }
                               className="flex-1 md:flex-none bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors flex items-center justify-center gap-2 font-semibold"
                             >
                               <UserX size={18} />
@@ -424,11 +547,12 @@ export function Admin() {
           animal={editingAnimal || undefined}
           onSave={handleSaveAnimal}
           onCancel={() => {
-            setShowForm(false);
-            setEditingAnimal(null);
+            setShowForm(false)
+
+            setEditingAnimal(null)
           }}
         />
       )}
     </div>
-  );
+  )
 }

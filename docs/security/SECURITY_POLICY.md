@@ -7,7 +7,8 @@ desenvolvimento e os dados da ONG. Usa OWASP ASVS e OWASP Top 10 como referênci
 com controles proporcionais ao sistema. Não é uma certificação ASVS nem afirma conformidade
 regulatória.
 
-O estado atual é um protótipo frontend sem servidor ou persistência. A rota e autenticação
+O estado atual é um protótipo frontend sem servidor ou persistência compartilhada; alterações
+do catálogo ficam somente no `localStorage` do navegador atual. A rota e autenticação
 administrativas atuais não oferecem segurança real. Regras de acesso no cliente são apenas
 UX; toda autorização e validação de segurança deve ser aplicada no servidor quando este
 existir. O contrato OpenAPI é planejado, não um backend ativo.

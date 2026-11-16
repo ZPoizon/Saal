@@ -1,28 +1,52 @@
-import { useState } from "react";
-import { Search, Filter, PawPrint } from "lucide-react";
-import { getAvailableAnimals } from "../data/animals";
-import { AnimalCard } from "../components/AnimalCard";
+import { useState } from "react"
+
+import { Search, Filter, PawPrint } from "lucide-react"
+
+import { AnimalCard } from "../components/AnimalCard"
+
+import { useAnimals } from "../contexts/AnimalContext"
 
 export function Animals() {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [speciesFilter, setSpeciesFilter] = useState<"all" | "dog" | "cat">("all");
+  const { animals, storageError } = useAnimals()
 
-  const filteredAnimals = getAvailableAnimals().filter(animal => {
-    const matchesSearch = animal.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesSpecies = speciesFilter === "all" || animal.species === speciesFilter;
-    return matchesSearch && matchesSpecies;
-  });
+  const [searchTerm, setSearchTerm] = useState("")
+
+  const [speciesFilter, setSpeciesFilter] = useState<"all" | "dog" | "cat">(
+    "all",
+  )
+
+  const filteredAnimals = animals.filter((animal) => {
+    if (animal.status !== "available") return false
+
+    const matchesSearch = animal.name
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase())
+
+    const matchesSpecies =
+      speciesFilter === "all" || animal.species === speciesFilter
+
+    return matchesSearch && matchesSpecies
+  })
 
   return (
     <div className="py-12 bg-[#F5EFE6] min-h-screen">
       <div className="container mx-auto px-4">
+        {storageError && (
+          <p
+            role="alert"
+            className="mb-6 rounded-xl border border-red-300 bg-red-50 p-4 text-sm text-red-800"
+          >
+            {storageError}
+          </p>
+        )}
         {/* Header */}
         <div className="text-center mb-12">
           <h1 className="text-4xl md:text-5xl font-bold text-[#2E7D6B] mb-4">
             Nossos Animais
           </h1>
           <p className="text-[#527f74] max-w-2xl mx-auto">
-            Conheça os animais que estão disponíveis neste momento e encontre seu novo melhor amigo.
+            Conheça os animais que estão disponíveis neste momento e encontre
+            seu novo melhor amigo.
           </p>
         </div>
 
@@ -31,7 +55,10 @@ export function Animals() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Search */}
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6FAE9C]" size={20} />
+              <Search
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6FAE9C]"
+                size={20}
+              />
               <input
                 type="text"
                 placeholder="Buscar por nome..."
@@ -43,7 +70,10 @@ export function Animals() {
 
             {/* Species Filter */}
             <div className="relative">
-              <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6FAE9C]" size={20} />
+              <Filter
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6FAE9C]"
+                size={20}
+              />
               <select
                 value={speciesFilter}
                 onChange={(e) => setSpeciesFilter(e.target.value as any)}
@@ -54,14 +84,16 @@ export function Animals() {
                 <option value="cat">Gatos</option>
               </select>
             </div>
-
           </div>
         </div>
 
         {/* Results Count */}
         <div className="mb-6">
           <p className="text-[#6FAE9C]">
-            {filteredAnimals.length} {filteredAnimals.length === 1 ? "animal encontrado" : "animais encontrados"}
+            {filteredAnimals.length}{" "}
+            {filteredAnimals.length === 1
+              ? "animal encontrado"
+              : "animais encontrados"}
           </p>
         </div>
 
@@ -81,8 +113,9 @@ export function Animals() {
             <button
               type="button"
               onClick={() => {
-                setSearchTerm("");
-                setSpeciesFilter("all");
+                setSearchTerm("")
+
+                setSpeciesFilter("all")
               }}
               className="mt-4 text-sm font-semibold text-[#527f74] underline underline-offset-4 hover:text-[#E4B04A]"
             >
@@ -92,5 +125,5 @@ export function Animals() {
         )}
       </div>
     </div>
-  );
+  )
 }

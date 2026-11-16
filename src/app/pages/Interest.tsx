@@ -1,65 +1,96 @@
-import { useParams, Link, useNavigate } from "react-router";
-import { ArrowLeft, Heart, CheckCircle } from "lucide-react";
-import { motion } from "motion/react";
-import { getAnimalById } from "../data/animals";
-import { useState } from "react";
-import { useInterest } from "../contexts/InterestContext";
+import { useParams, Link, useNavigate } from "react-router"
+
+import { ArrowLeft, Heart, CheckCircle } from "lucide-react"
+
+import { motion } from "motion/react"
+
+import { useState } from "react"
+
+import { useInterest } from "../contexts/InterestContext"
+
+import { useAnimals } from "../contexts/AnimalContext"
+
+import { getAnimalImageUrl } from "../data/animalImages"
 
 export function Interest() {
-  const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
-  const animal = id ? getAnimalById(id) : undefined;
-  const { addInterest } = useInterest();
-  const [submitted, setSubmitted] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const { id } = useParams<{ id: string }>()
+
+  const navigate = useNavigate()
+
+  const { animals } = useAnimals()
+
+  const animal = id ? animals.find((entry) => entry.id === id) : undefined
+
+  const { addInterest } = useInterest()
+
+  const [submitted, setSubmitted] = useState(false)
+
+  const [loading, setLoading] = useState(false)
 
   const [formData, setFormData] = useState({
     name: "",
+
     email: "",
+
     phone: "",
-    message: ""
-  });
+
+    message: "",
+  })
 
   if (!animal) {
     return (
       <div className="min-h-screen bg-[#F5EFE6] flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-[#2E7D6B] mb-4">Animal não encontrado</h2>
+          <h2 className="text-2xl font-bold text-[#2E7D6B] mb-4">
+            Animal não encontrado
+          </h2>
           <Link to="/animais" className="text-[#E4B04A] hover:underline">
             Voltar para lista de animais
           </Link>
         </div>
       </div>
-    );
+    )
   }
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
+    e.preventDefault()
+
+    setLoading(true)
 
     setTimeout(() => {
       if (animal) {
         addInterest({
           animalId: animal.id,
-          animalName: animal.name,
-          animalImage: animal.images[0],
-          name: formData.name,
-          email: formData.email,
-          phone: formData.phone,
-          message: formData.message,
-        });
-      }
-      setLoading(false);
-      setSubmitted(true);
-    }, 1500);
-  };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+          animalName: animal.name,
+
+          animalImage: animal.images[0],
+
+          name: formData.name,
+
+          email: formData.email,
+
+          phone: formData.phone,
+
+          message: formData.message,
+        })
+      }
+
+      setLoading(false)
+
+      setSubmitted(true)
+    }, 1500)
+  }
+
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+  ) => {
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
-    });
-  };
+
+      [e.target.name]: e.target.value,
+    })
+  }
 
   if (submitted) {
     return (
@@ -83,7 +114,8 @@ export function Interest() {
           </h2>
           <p className="text-gray-600 mb-8">
             Recebemos seu interesse em adotar <strong>{animal.name}</strong>.
-            Entraremos em contato em breve para dar continuidade ao processo de adoção.
+            Entraremos em contato em breve para dar continuidade ao processo de
+            adoção.
           </p>
           <div className="flex flex-col gap-3">
             <Link
@@ -101,7 +133,7 @@ export function Interest() {
           </div>
         </motion.div>
       </div>
-    );
+    )
   }
 
   return (
@@ -117,26 +149,37 @@ export function Interest() {
 
         <div className="max-w-2xl mx-auto">
           <div className="text-center mb-8">
-            <Heart className="w-16 h-16 text-[#E4B04A] mx-auto mb-4" fill="#E4B04A" />
+            <Heart
+              className="w-16 h-16 text-[#E4B04A] mx-auto mb-4"
+              fill="#E4B04A"
+            />
             <h1 className="text-3xl md:text-4xl font-bold text-[#2E7D6B] mb-3">
               Manifestar Interesse
             </h1>
             <p className="text-[#6FAE9C]">
-              Preencha o formulário abaixo para demonstrar interesse em adotar <strong>{animal.name}</strong>
+              Preencha o formulário abaixo para demonstrar interesse em adotar{" "}
+              <strong>{animal.name}</strong>
             </p>
           </div>
 
           <div className="bg-white rounded-2xl p-6 md:p-8 shadow-lg mb-6">
             <div className="flex items-center gap-4 pb-6 border-b border-[#F5EFE6]">
               <img
-                src={`${animal.images[0]}?w=100&h=100&fit=crop`}
+                src={getAnimalImageUrl(
+                  animal.images[0] ?? "",
+
+                  "w=100&h=100&fit=crop",
+                )}
                 alt={animal.name}
                 className="w-20 h-20 rounded-xl object-cover"
               />
               <div>
-                <h3 className="font-bold text-[#2E7D6B] text-lg">{animal.name}</h3>
+                <h3 className="font-bold text-[#2E7D6B] text-lg">
+                  {animal.name}
+                </h3>
                 <p className="text-sm text-[#6FAE9C]">
-                  {animal.species === "dog" ? "Cachorro" : "Gato"} • {animal.age} • {animal.sex}
+                  {animal.species === "dog" ? "Cachorro" : "Gato"} •{" "}
+                  {animal.age} • {animal.sex}
                 </p>
               </div>
             </div>
@@ -217,13 +260,13 @@ export function Interest() {
 
           <div className="bg-[#2E7D6B]/10 border border-[#2E7D6B] rounded-xl p-4 text-sm text-[#2E7D6B]">
             <p>
-              <strong>Importante:</strong> Após o envio, nossa equipe entrará em contato para
-              agendar uma entrevista e visita. O processo de adoção é cuidadoso para garantir
-              o bem-estar do animal.
+              <strong>Importante:</strong> Após o envio, nossa equipe entrará em
+              contato para agendar uma entrevista e visita. O processo de adoção
+              é cuidadoso para garantir o bem-estar do animal.
             </p>
           </div>
         </div>
       </div>
     </div>
-  );
+  )
 }

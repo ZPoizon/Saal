@@ -6,11 +6,14 @@ O SAAL é uma SPA pública e administrativa para apresentar animais resgatados e
 fluxos de interesse em adoção. O frontend React roda no navegador e hoje usa:
 
 - dados estáticos em `src/app/data/animals.ts`;
-- estado React em memória para CRUD administrativo e solicitações;
+- estado React compartilhado, com catálogo administrativo salvo no `localStorage` do
+  navegador atual e solicitações mantidas em memória;
 - links externos para WhatsApp, Instagram, e-mail e imagens;
 - Web Share API quando suportada.
 
-Nenhuma operação atual é persistida ou protegida por servidor.
+Nenhuma operação atual é persistida ou protegida por servidor. O armazenamento local do
+catálogo existe somente para demonstração e não sincroniza dados entre navegadores ou
+dispositivos.
 
 ## Arquitetura alvo
 

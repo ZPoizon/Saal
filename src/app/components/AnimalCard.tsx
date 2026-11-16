@@ -1,24 +1,33 @@
-import { Link } from "react-router";
-import { Heart, MapPin } from "lucide-react";
-import { motion } from "motion/react";
-import { Animal } from "../data/animals";
+import { Link } from "react-router"
+
+import { Heart, MapPin } from "lucide-react"
+
+import { motion } from "motion/react"
+
+import { Animal } from "../data/animals"
+
+import { getAnimalImageUrl } from "../data/animalImages"
 
 interface AnimalCardProps {
-  animal: Animal;
+  animal: Animal
 }
 
 export function AnimalCard({ animal }: AnimalCardProps) {
   const statusColors = {
     available: "bg-[#2E7D6B] text-white",
+
     treatment: "bg-[#E4B04A] text-white",
-    adopted: "bg-gray-400 text-white"
-  };
+
+    adopted: "bg-gray-400 text-white",
+  }
 
   const statusLabels = {
     available: "Disponível",
+
     treatment: "Em Tratamento",
-    adopted: "Adotado"
-  };
+
+    adopted: "Adotado",
+  }
 
   return (
     <motion.div
@@ -29,12 +38,18 @@ export function AnimalCard({ animal }: AnimalCardProps) {
       <Link to={`/animais/${animal.id}`} className="block">
         <div className="relative h-64 overflow-hidden bg-[#F5EFE6]">
           <img
-            src={`${animal.images[0]}?w=500&h=500&fit=crop`}
+            src={getAnimalImageUrl(
+              animal.images[0] ?? "",
+
+              "w=500&h=500&fit=crop",
+            )}
             alt={animal.name}
             className="w-full h-full object-cover hover:scale-110 transition-transform duration-300"
           />
           <div className="absolute top-3 right-3">
-            <span className={`${statusColors[animal.status]} px-3 py-1 rounded-full text-xs font-semibold shadow-lg`}>
+            <span
+              className={`${statusColors[animal.status]} px-3 py-1 rounded-full text-xs font-semibold shadow-lg`}
+            >
               {statusLabels[animal.status]}
             </span>
           </div>
@@ -48,10 +63,15 @@ export function AnimalCard({ animal }: AnimalCardProps) {
           )}
         </div>
         <div className="p-5">
-          <h3 className="text-xl font-bold text-[#2E7D6B] mb-2">{animal.name}</h3>
+          <h3 className="text-xl font-bold text-[#2E7D6B] mb-2">
+            {animal.name}
+          </h3>
           <div className="flex items-center gap-2 text-sm text-[#6FAE9C] mb-3">
             <MapPin size={14} />
-            <span>{animal.age} • {animal.sex === "macho" ? "Macho" : "Fêmea"} • {animal.size}</span>
+            <span>
+              {animal.age} • {animal.sex === "macho" ? "Macho" : "Fêmea"} •{" "}
+              {animal.size}
+            </span>
           </div>
           <p className="text-sm text-gray-600 line-clamp-2 mb-4">
             {animal.description}
@@ -64,5 +84,5 @@ export function AnimalCard({ animal }: AnimalCardProps) {
         </div>
       </Link>
     </motion.div>
-  );
+  )
 }

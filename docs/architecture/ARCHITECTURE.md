@@ -4,18 +4,19 @@
 
 O SAAL é uma SPA de protótipo construída com React 18, TypeScript, Vite 6 e React Router 7,
 gerenciada com pnpm. O frontend apresenta animais e fluxos administrativos/demonstrações;
-dados de catálogo são estáticos e outras operações são mantidas em memória. Não há backend
-nem persistência real neste repositório. A autenticação administrativa atual é um protótipo
-inseguro, conforme `specs/features/admin-authentication.md`; não publicar como autenticação
-real.
+o catálogo inicia com dados de demonstração e alterações administrativas são salvas no
+`localStorage` do navegador atual. Solicitações de adoção continuam em memória. Não há backend
+nem persistência compartilhada no servidor neste repositório. A autenticação administrativa
+atual é um protótipo inseguro, conforme `specs/features/admin-authentication.md`; não publicar
+como autenticação real.
 
 Estrutura observada:
 
 - `src/main.tsx`: entrada do navegador.
 - `src/app/routes.tsx`: roteamento.
 - `src/app/pages/` e `src/app/components/`: páginas e interface reutilizável.
-- `src/app/data/`: dados estáticos/de demonstração.
-- `src/app/contexts/`: estado em memória.
+- `src/app/data/`: dados estáticos/de demonstração e leitura/escrita do catálogo local.
+- `src/app/contexts/`: estado compartilhado da aplicação.
 - `src/styles/`: tema e estilos.
 
 Não reestruture essa organização por preferência. Preserve a identidade visual, navegação,

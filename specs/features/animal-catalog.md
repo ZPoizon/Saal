@@ -80,5 +80,6 @@ typecheck/build válidos e spec atualizada sem regressão visual.
 
 ## 15. Estado atual
 
-**Protótipo.** Interface e filtros funcionam com dados estáticos. Não há API, loading,
-erro remoto, paginação nem persistência.
+**Protótipo.** Interface e filtros usam os dados de demonstração compartilhados com a área
+administrativa. Alterações são salvas somente no `localStorage` do navegador atual; não há
+API, sincronização entre dispositivos, loading, erro remoto ou paginação.

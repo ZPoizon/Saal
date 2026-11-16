@@ -11,16 +11,19 @@ import {
 
 import { motion } from "motion/react"
 
-import { getAvailableAnimals } from "../data/animals"
-
 import { AnimalCard } from "../components/AnimalCard"
 
 import { ScrollReveal } from "../components/ScrollReveal"
 
 import { HelpBanner } from "../components/HelpBanner"
 
+import { useAnimals } from "../contexts/AnimalContext"
+
 export function Home() {
-  const availableAnimals = getAvailableAnimals().slice(0, 3)
+  const { animals } = useAnimals()
+  const availableAnimals = animals
+    .filter((animal) => animal.status === "available")
+    .slice(0, 3)
 
   return (
     <div>
