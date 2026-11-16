@@ -11,6 +11,7 @@ ficam em `specs/`; tarefas e changes em andamento ficam em `openspec/`.
 | `security/` | Política e checklist de segurança. |
 | `quality/` | Plano de qualidade, matriz de testes e gates de release. |
 | `diagnostics/` | Auditorias estáticas, inventários e rastreabilidade; cada relatório declara seu escopo e data. |
+| [`deployment/`](deployment/VERCEL_RENDER_AIVEN.md) | Roteiro de demonstração Vercel + Render + Aiven; não comprova deploy ativo nem aprovação de produção. |
 | [`legacy/`](legacy/README.md) | Documentos históricos preservados, não normativos e não comprobatórios de funcionamento atual. |
 
 O frontend permanece um protótipo com dados mockados/estado em memória. Consulte as
