@@ -1,9 +1,11 @@
 import {
   defineConfig,
+  loadEnv,
   mergeConfig,
   type ConfigEnv,
   type HtmlTagDescriptor,
   type Plugin,
+  type ProxyOptions,
   type UserConfig,
 } from "vite"
 
@@ -115,13 +117,7 @@ export default defineConfig(async (env) =>
 
       watch: { ignored: ["**/.figma/**"] },
 
-      proxy: {
-        "/api": {
-          target: process.env.SAAL_API_PROXY_TARGET || "http://localhost:8080",
-
-          changeOrigin: true,
-        },
-      },
+      proxy: apiProxy(env.mode),
     },
 
     preview: {
@@ -138,6 +134,23 @@ async function resolveUserConfig(env: ConfigEnv): Promise<UserConfig> {
   ) => UserConfig | Promise<UserConfig>)
 
   return typeof config === "function" ? await config(env) : config
+}
+
+// O backend e opcional no desenvolvimento da interface. O proxy /api so existe
+// quando SAAL_API_PROXY_TARGET aponta para uma API em execucao, por exemplo
+// SAAL_API_PROXY_TARGET=http://localhost:8080 no .env ou no shell.
+function apiProxy(mode: string): Record<string, ProxyOptions> | undefined {
+  const target = loadEnv(mode, __dirname, "SAAL_").SAAL_API_PROXY_TARGET
+
+  if (!target) return
+
+  return {
+    "/api": {
+      target,
+
+      changeOrigin: true,
+    },
+  }
 }
 
 function isProjectPath(value: unknown): value is string {
