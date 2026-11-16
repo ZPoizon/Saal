@@ -15,6 +15,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
@@ -30,6 +31,9 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 public class AdminSecurityConfiguration {
     private static final Pattern BCRYPT_HASH =
             Pattern.compile("^\\{bcrypt\\}\\$2[aby]\\$(1[2-6])\\$[./A-Za-z0-9]{53}$");
+    private static final int BCRYPT_STRENGTH = 12;
+    private static final int MIN_RAW_PASSWORD_LENGTH = 12;
+    private static final int MAX_RAW_PASSWORD_LENGTH = 128;
 
     @Bean
     PasswordEncoder passwordEncoder() {
@@ -40,12 +44,18 @@ public class AdminSecurityConfiguration {
     UserDetailsService adminUserDetailsService(
             AdminCredentialsProperties credentials) {
         String username = credentials.getUsername();
-        String passwordHash = credentials.getPasswordHash();
         if (username == null || username.isBlank() || username.length() > 128
                 || username.chars().anyMatch(Character::isISOControl)) {
             throw new IllegalStateException("SAAL_ADMIN_USERNAME deve conter um identificador válido.");
         }
-        if (passwordHash == null || !BCRYPT_HASH.matcher(passwordHash).matches()) {
+
+        // O hash tem precedencia; a senha em texto claro existe para simplificar o
+        // provisionamento em um unico secret manager (Render) e nunca e persistida.
+        String passwordHash = credentials.getPasswordHash();
+        if (passwordHash == null || passwordHash.isBlank()) {
+            passwordHash = encodeRawPassword(credentials.getPassword());
+        }
+        if (!BCRYPT_HASH.matcher(passwordHash).matches()) {
             throw new IllegalStateException(
                     "SAAL_ADMIN_PASSWORD_HASH deve conter um hash BCrypt com fator entre 12 e 16.");
         }
@@ -79,6 +89,20 @@ public class AdminSecurityConfiguration {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/api/**", configuration);
         return source;
+    }
+
+    private static String encodeRawPassword(String password) {
+        if (password == null || password.isBlank()) {
+            throw new IllegalStateException(
+                    "Configure SAAL_ADMIN_PASSWORD_HASH ou SAAL_ADMIN_PASSWORD no ambiente.");
+        }
+        if (password.length() < MIN_RAW_PASSWORD_LENGTH
+                || password.length() > MAX_RAW_PASSWORD_LENGTH
+                || password.chars().anyMatch(Character::isISOControl)) {
+            throw new IllegalStateException(
+                    "SAAL_ADMIN_PASSWORD deve ter entre 12 e 128 caracteres sem controles.");
+        }
+        return "{bcrypt}" + new BCryptPasswordEncoder(BCRYPT_STRENGTH).encode(password);
     }
 
     private static void validateOrigin(String origin) {

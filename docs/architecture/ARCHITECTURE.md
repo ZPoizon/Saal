@@ -3,12 +3,13 @@
 ## Estado atual
 
 O SAAL contém uma SPA React 18, TypeScript, Vite 6 e React Router 7, gerenciada com pnpm, e
-uma API Java 21/Spring Boot com JPA, Spring Security e Flyway. Catálogo, CRUD administrativo
-e manifestações de interesse têm integração de API no worktree. MySQL é a persistência
-configurada para o backend; não se presume banco disponível nem deploy ativo. Imagens públicas
-usam URLs persistidas pela API. O formulário administrativo prepara upload multipart de 1–3
-fotos via `VITE_PHOTO_UPLOAD_URL`, mas o backend ainda não implementa upload binário nem
-storage definitivo; sem endpoint configurado, nenhuma foto local é salva. Consulte as
+uma API Java 21/Spring Boot com JPA, Spring Security e Flyway. Catálogo, CRUD administrativo,
+manifestações de interesse e fotos têm integração de API no worktree. MySQL é a persistência
+configurada para o backend; não se presume banco disponível nem deploy ativo. As fotos enviadas
+pelo painel são normalizadas no navegador (orientação EXIF, maior lado de 1600 px, JPEG) e
+gravadas em `stored_photo` na própria API, que as serve por `/api/v1/photos/{id}`. A topologia
+de produção prevista é Vercel (frontend e proxy `/api`) → Render (API, uma instância) → MySQL
+no Aiven; consulte o Blueprint `render.yaml`, o ADR-007 e as instruções do backend. Consulte as
 especificações para capacidades ainda parciais.
 
 Estrutura observada:

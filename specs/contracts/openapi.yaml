@@ -1,14 +1,14 @@
 openapi: 3.0.3
 info:
   title: SAAL API
-  version: 0.4.0
+  version: 0.5.0
   description: |
     Contrato do backend implementado neste worktree; não representa um deploy ativo. O escopo
-    inclui catálogo, administração de animais, autenticação administrativa e manifestações de
-    interesse persistidas. Estados disponíveis são AVAILABLE e ADOPTED; o catálogo lista apenas
-    AVAILABLE, e ADOPTED permanece consultável sem aceitar novas manifestações. Não há workflow
-    de aprovação nem mensagens automáticas. A política de privacidade, finalidade e retenção
-    de PII continua pendente de decisão operacional da ONG.
+    inclui catálogo, administração de animais, autenticação administrativa, manifestações de
+    interesse persistidas e fotografias armazenadas no MySQL. Estados disponíveis são AVAILABLE
+    e ADOPTED; o catálogo lista apenas AVAILABLE, e ADOPTED permanece consultável sem aceitar
+    novas manifestações. Não há workflow de aprovação nem mensagens automáticas. A política de
+    privacidade, finalidade e retenção de PII continua pendente de decisão operacional da ONG.
 servers:
   - url: /api/v1
     description: Prefixo do serviço Spring Boot implementado neste worktree.
@@ -18,6 +18,8 @@ tags:
     description: Catálogo público; somente animais AVAILABLE na listagem e sem informação médica.
   - name: Administração de animais
     description: Operações administrativas protegidas por sessão server-side.
+  - name: Fotografias
+    description: Upload administrativo e leitura pública de imagens persistidas no MySQL.
   - name: Solicitações públicas
     description: Intake público sem login, sem retorno de dados pessoais.
   - name: Gestão administrativa de solicitações
@@ -474,6 +476,106 @@ paths:
           $ref: "#/components/responses/ServerError"
         default:
           $ref: "#/components/responses/DefaultProblem"
+  /admin/photos:
+    post:
+      tags: [Fotografias]
+      operationId: uploadAnimalPhotos
+      summary: Envia fotografias para armazenamento
+      description: |
+        Recebe 1–3 arquivos no campo multipart `photos` em uma mesma requisição. Exige sessão
+        administrativa e CSRF. A API valida os magic bytes (JPEG, PNG ou WebP) e o limite de
+        5 MB por arquivo, persiste o binário em `stored_photo` e devolve uma URL pública
+        imutável por arquivo, na mesma ordem. O cliente normaliza a imagem antes do envio.
+        Formato, retenção e moderação definitivos continuam pendentes (ONG-06, ADR-007).
+      x-saal-status: implemented-in-worktree
+      x-saal-auth-required: true
+      security:
+        - AdminSessionCookie: []
+      parameters:
+        - $ref: "#/components/parameters/CsrfTokenHeader"
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [photos]
+              properties:
+                photos:
+                  type: array
+                  minItems: 1
+                  maxItems: 3
+                  items:
+                    type: string
+                    format: binary
+      responses:
+        "201":
+          description: Fotografias persistidas.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PhotoUploadResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "413":
+          $ref: "#/components/responses/PayloadTooLarge"
+        "415":
+          description: Formato não suportado; aceitos JPEG, PNG e WebP.
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+        "500":
+          $ref: "#/components/responses/ServerError"
+        default:
+          $ref: "#/components/responses/DefaultProblem"
+  /photos/{photoId}:
+    parameters:
+      - $ref: "#/components/parameters/PhotoId"
+    get:
+      tags: [Fotografias]
+      operationId: getPhoto
+      summary: Lê fotografia publicada
+      description: |
+        Leitura pública do binário persistido. O identificador é imutável; a resposta pode ser
+        cacheada. Parâmetros de imagem na URL (por exemplo `w`, `h`, `fit`) são ignorados pela
+        API. Responde 404 para identificador inexistente ou inválido.
+      x-saal-status: implemented-in-worktree
+      security: []
+      responses:
+        "200":
+          description: Conteúdo binário da fotografia.
+          headers:
+            Cache-Control:
+              description: Cache público e imutável por um ano.
+              schema:
+                type: string
+            X-Content-Type-Options:
+              description: Sempre `nosniff`.
+              schema:
+                type: string
+          content:
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+            image/png:
+              schema:
+                type: string
+                format: binary
+            image/webp:
+              schema:
+                type: string
+                format: binary
+        "404":
+          $ref: "#/components/responses/NotFound"
+        default:
+          $ref: "#/components/responses/DefaultProblem"
 components:
   securitySchemes:
     AdminSessionCookie:
@@ -496,6 +598,14 @@ components:
       description: Token emitido por GET /auth/csrf para a sessão atual.
       schema:
         type: string
+    PhotoId:
+      in: path
+      name: photoId
+      required: true
+      description: Identificador numérico imutável devolvido pelo upload.
+      schema:
+        type: integer
+        minimum: 1
   responses:
     BadRequest:
       description: Requisição inválida; não ecoar valores sensíveis da entrada.
@@ -561,8 +671,22 @@ components:
     AnimalPhoto:
       type: string
       description: |
-        Referência de fotografia. Quantidade aprovada: 1–3 por animal. Formato, tamanho,
-        storage, URL publicável, EXIF e retenção continuam pendentes (ONG-06).
+        URL relativa de fotografia persistida (`/api/v1/photos/{id}`) ou referência externa
+        legada. Quantidade aprovada: 1–3 por animal. A API devolve uma URL imutável por upload;
+        a política definitiva de formato, retenção e moderação continua pendente (ONG-06).
+    PhotoUploadResponse:
+      type: object
+      additionalProperties: false
+      required: [urls]
+      properties:
+        urls:
+          type: array
+          minItems: 1
+          maxItems: 3
+          description: Uma URL persistente por arquivo, na ordem enviada.
+          items:
+            type: string
+            pattern: "^/api/v1/photos/[1-9][0-9]*$"
     PublicAnimal:
       type: object
       additionalProperties: false

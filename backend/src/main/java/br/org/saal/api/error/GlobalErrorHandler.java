@@ -9,15 +9,24 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.MultipartException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import br.org.saal.api.animal.AnimalNotFoundException;
 import br.org.saal.api.interest.AnimalNotAvailableException;
 import br.org.saal.api.interest.InterestRateLimitExceededException;
+import br.org.saal.api.photo.InvalidPhotoException;
+import br.org.saal.api.photo.PhotoNotFoundException;
+import br.org.saal.api.photo.PhotoTooLargeException;
+import br.org.saal.api.photo.UnsupportedPhotoTypeException;
 import jakarta.validation.ConstraintViolationException;
 
 /**
@@ -53,7 +62,42 @@ public class GlobalErrorHandler {
                 "Nao foi possivel registrar a manifestacao agora. Tente novamente mais tarde.");
     }
 
-    @ExceptionHandler({MethodArgumentNotValidException.class, ConstraintViolationException.class})
+    @ExceptionHandler(PhotoNotFoundException.class)
+    public ResponseEntity<ProblemDetail> photoNotFound(PhotoNotFoundException error) {
+        return problem(HttpStatus.NOT_FOUND, "Fotografia nao encontrada",
+                "A fotografia solicitada nao foi encontrada.");
+    }
+
+    @ExceptionHandler({PhotoTooLargeException.class, MaxUploadSizeExceededException.class})
+    public ResponseEntity<ProblemDetail> photoTooLarge(Exception error) {
+        return problem(HttpStatus.PAYLOAD_TOO_LARGE, "Fotografia muito grande",
+                "A fotografia excede o limite de 5 MB.");
+    }
+
+    @ExceptionHandler({UnsupportedPhotoTypeException.class, HttpMediaTypeNotSupportedException.class})
+    public ResponseEntity<ProblemDetail> unsupportedPhotoType(Exception error) {
+        return problem(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "Formato nao suportado",
+                "Envie uma fotografia JPG, PNG ou WebP.");
+    }
+
+    @ExceptionHandler(InvalidPhotoException.class)
+    public ResponseEntity<ProblemDetail> invalidPhoto(InvalidPhotoException error) {
+        return problem(HttpStatus.BAD_REQUEST, "Fotografia invalida",
+                "Nao foi possivel ler a fotografia enviada.");
+    }
+
+    @ExceptionHandler(MultipartException.class)
+    public ResponseEntity<ProblemDetail> invalidMultipart(MultipartException error) {
+        return problem(HttpStatus.BAD_REQUEST, "Envio invalido",
+                "O envio de arquivos e invalido.");
+    }
+
+    @ExceptionHandler({
+            MethodArgumentNotValidException.class,
+            ConstraintViolationException.class,
+            MissingServletRequestPartException.class,
+            MissingServletRequestParameterException.class
+    })
     public ResponseEntity<ProblemDetail> invalidPayload(Exception error) {
         return problem(HttpStatus.BAD_REQUEST, "Dados invalidos",
                 "Os dados enviados sao invalidos.");

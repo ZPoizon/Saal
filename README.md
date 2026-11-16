@@ -14,14 +14,16 @@ pnpm dev
 
 Abra <http://localhost:8443/>. **Não é necessário** Docker, MySQL ou Java.
 
-Sem backend em execução, o site abre normalmente: catálogo e listas aparecem vazios e `/admin`
-permanece bloqueado até a API responder. Nenhum dado é inventado ou gravado.
+Por padrão, `pnpm dev` encaminha `/api` para a API publicada em
+`https://saal-api.onrender.com`. Se a API estiver hibernando ou indisponível, o site continua
+abrindo: catálogo e listas aparecem vazios e `/admin` permanece bloqueado com aviso explícito.
+Nenhum dado é inventado ou gravado no navegador.
 
 ## Backend local (opcional)
 
-Necessário apenas para testar cadastro, login e persistência. Em outro terminal, siga
-[`backend/README.md`](backend/README.md) para subir MySQL e a API (porta 8080). Depois inicie o
-frontend apontando o proxy `/api` para ela:
+Necessário apenas para testar cadastro, login e persistência sem depender da API publicada. Em
+outro terminal, siga [`backend/README.md`](backend/README.md) para subir MySQL e a API (porta
+8080) e então aponte o proxy para ela:
 
 ```powershell
 $env:SAAL_API_PROXY_TARGET = "http://localhost:8080"
@@ -34,9 +36,9 @@ Também é possível criar um `.env` na raiz com:
 SAAL_API_PROXY_TARGET=http://localhost:8080
 ```
 
-Sem essa variável o Vite não registra proxy algum, então `pnpm dev` nunca depende de um
-backend ligado. `.env` é ignorado pelo Git; nunca coloque segredos em variáveis `VITE_*`, que
-vão para o bundle do navegador.
+Sem essa variável, o Vite usa a API pública do Render; `pnpm dev` nunca depende de um backend
+ligado na sua máquina. `.env` é ignorado pelo Git; nunca coloque segredos em variáveis
+`VITE_*`, que vão para o bundle do navegador.
 
 ## Fotos de animais
 
@@ -45,14 +47,12 @@ O formulário administrativo aceita de 1 a 3 imagens escolhidas da galeria do di
 reordenação. O limite técnico provisório é 5 MB por foto; a política definitiva de formatos,
 tamanho, armazenamento e retenção continua pendente de decisão da ONG (ONG-06).
 
-Para persistir fotos novas é necessário configurar `VITE_PHOTO_UPLOAD_URL` com um endpoint
-multipart same-origin, por exemplo `/api/v1/admin/photos`. O endpoint deve receber um campo
-`photos` por arquivo, validar a sessão administrativa e o CSRF, e responder
-`{"urls":["https://...", "/..."]}` com uma URL persistente por foto. Sem essa configuração, a
-prévia local funciona, mas o salvamento de fotos escolhidas é bloqueado com mensagem explícita
-— nenhum `blob:` é gravado como se fosse permanente e nenhum binário fica em filesystem
-efêmero. A orientação EXIF é respeitada na prévia pelos navegadores modernos; o arquivo
-persistido depende do serviço de armazenamento configurado.
+As fotos são persistidas pela própria API em `/api/v1/admin/photos` (esta é a URL padrão; não é
+preciso configurar `VITE_PHOTO_UPLOAD_URL`). O endpoint recebe um campo `photos` por arquivo,
+exige sessão administrativa e CSRF, e responde `{"urls":["/api/v1/photos/123"]}`. Antes do
+envio, o navegador aplica a orientação EXIF, limita o maior lado a 1600 px, converte para JPEG e
+remove metadados; o binário fica no MySQL e é servido por uma URL pública imutável. Se o upload
+falhar, nenhuma prévia local é gravada como se fosse permanente.
 
 ## Publicar na Vercel
 
@@ -65,10 +65,12 @@ automático da branch `main`. Não há projeto adicional nem passo de build manu
 
 `vercel.json` na raiz encaminha `/api/*` para a API remota (mesma origem, o que mantém o
 cookie de sessão) e serve `index.html` para rotas como `/admin` e `/animais/1`. O destino
-configurado é `https://saal-api.onrender.com`, que **ainda não está publicado** (responde 404);
-até lá `/api` falha e o painel permanece bloqueado, com aviso explícito, enquanto o restante do
-site continua funcionando. Os assets oficiais em `src/imports/` são mantidos como blobs
-normais (fora do Git LFS) para que a Vercel receba as imagens reais.
+configurado é `https://saal-api.onrender.com`; o serviço do Render é criado pelo Blueprint
+[`render.yaml`](render.yaml) e depende do MySQL no Aiven. O passo a passo de Aiven, Render e
+Vercel está em [`backend/README.md`](backend/README.md#deploy-render-api--aiven-mysql--vercel-frontend).
+Enquanto o serviço não estiver publicado, `/api` falha e o painel permanece bloqueado, com aviso
+explícito, enquanto o restante do site continua funcionando. Os assets oficiais em `src/imports/`
+são mantidos como blobs normais (fora do Git LFS) para que a Vercel receba as imagens reais.
 
 ## Verificações
 

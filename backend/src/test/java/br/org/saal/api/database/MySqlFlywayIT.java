@@ -102,12 +102,19 @@ class MySqlFlywayIT {
             try (ResultSet result = statement.executeQuery(
                     "SELECT COUNT(*) FROM flyway_schema_history WHERE success = 1")) {
                 result.next();
-                assertEquals(2, result.getInt(1));
+                assertEquals(3, result.getInt(1));
             }
             try (ResultSet result = statement.executeQuery(
                     "SELECT COUNT(*) FROM information_schema.tables "
                             + "WHERE table_schema = 'saal_it' "
                             + "AND table_name = 'animal_interest'")) {
+                result.next();
+                assertEquals(1, result.getInt(1));
+            }
+            try (ResultSet result = statement.executeQuery(
+                    "SELECT COUNT(*) FROM information_schema.tables "
+                            + "WHERE table_schema = 'saal_it' "
+                            + "AND table_name = 'stored_photo'")) {
                 result.next();
                 assertEquals(1, result.getInt(1));
             }

@@ -1,19 +1,28 @@
 import { AdminAuthError, csrfHeaderName, requestCsrfToken } from "./admin-auth"
 
 /**
- * Integração de upload preparada para um endpoint multipart same-origin.
+ * Upload de fotografias para a API SAAL.
  *
- * Contrato esperado:
- * - `POST ${VITE_PHOTO_UPLOAD_URL}` com `multipart/form-data`;
- * - um campo `photos` por arquivo, na ordem da galeria;
+ * Contrato:
+ * - `POST /api/v1/admin/photos` com `multipart/form-data`;
+ * - um campo `photos` por arquivo;
  * - cabeçalho CSRF da sessão administrativa;
- * - resposta `{ "urls": ["https://...", "/..."] }` com uma URL persistente
- *   por arquivo enviado.
+ * - resposta `{ "urls": ["/api/v1/photos/123"] }` com uma URL persistente por arquivo.
  *
- * Sem `VITE_PHOTO_UPLOAD_URL`, nenhum binário é enviado e a interface bloqueia
- * o salvamento de fotos locais em vez de gravá-las como se fossem persistentes.
+ * Antes do envio, cada imagem é redesenhada em canvas: a orientação EXIF é
+ * aplicada, o maior lado é limitado a 1600 px e os metadados são removidos. O
+ * envio é sequencial (uma foto por requisição) para reduzir o tamanho do corpo
+ * e evitar limites de proxy.
  */
+const defaultUploadUrl = "/api/v1/admin/photos"
+
 const uploadFieldName = "photos"
+
+const maxPhotosPerUpload = 3
+
+const maxNormalizedDimension = 1600
+
+const normalizedJpegQuality = 0.82
 
 export type PhotoUploadFailure = "not-configured" | "network" | "csrf" | "unauthorized" | "too-large" | "unsupported" | "rate-limited" | "rejected" | "server" | "invalid-response" | "aborted"
 
@@ -37,18 +46,18 @@ export class PhotoUploadError extends Error {
   }
 }
 
-export function getPhotoUploadUrl(): string | null {
+export function getPhotoUploadUrl(): string {
   const configured = import.meta.env.VITE_PHOTO_UPLOAD_URL
 
-  if (typeof configured !== "string") return null
+  if (typeof configured !== "string") return defaultUploadUrl
 
   const trimmed = configured.trim()
 
-  return trimmed.length > 0 ? trimmed : null
+  return trimmed.length > 0 ? trimmed : defaultUploadUrl
 }
 
 export function isPhotoStorageConfigured(): boolean {
-  return getPhotoUploadUrl() !== null
+  return true
 }
 
 function failureFromStatus(status: number): PhotoUploadFailure {
@@ -97,43 +106,159 @@ export interface PhotoUploadOptions {
   onProgress?: (percent: number) => void
 }
 
-export async function uploadAnimalPhotos(
-  files: readonly File[],
+type DecodedPhoto = ImageBitmap | HTMLImageElement
 
-  options: PhotoUploadOptions = {},
-): Promise<string[]> {
-  const endpoint = getPhotoUploadUrl()
+interface PhotoDimensions {
+  width: number
 
-  if (!endpoint) {
-    throw new PhotoUploadError("not-configured")
+  height: number
+}
+
+/** Ajusta as dimensões sem ampliar imagens pequenas. Exportada para teste. */
+export function fitWithin(
+  width: number,
+  height: number,
+
+  max: number,
+): PhotoDimensions {
+  const largest = Math.max(width, height)
+
+  if (largest <= max) {
+    return {
+      width: Math.max(1, Math.round(width)),
+      height: Math.max(1, Math.round(height)),
+    }
   }
 
-  if (files.length === 0) return []
+  const ratio = max / largest
 
-  let csrfToken: string
+  return {
+    width: Math.max(1, Math.round(width * ratio)),
 
-  try {
-    csrfToken = await requestCsrfToken()
-  } catch (error) {
-    if (error instanceof AdminAuthError && error.failure === "network") {
-      throw new PhotoUploadError("network")
+    height: Math.max(1, Math.round(height * ratio)),
+  }
+}
+
+async function decodePhoto(file: File): Promise<DecodedPhoto> {
+  if (typeof createImageBitmap === "function") {
+    try {
+      return await createImageBitmap(file, { imageOrientation: "from-image" })
+    } catch {
+      // Navegadores sem suporte à opção caem no <img>, que aplica EXIF modernamente.
+    }
+  }
+
+  return loadImageElement(file)
+}
+
+function loadImageElement(file: File): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const objectUrl = URL.createObjectURL(file)
+
+    const image = new Image()
+
+    image.onload = () => {
+      URL.revokeObjectURL(objectUrl)
+
+      resolve(image)
     }
 
-    throw new PhotoUploadError(
-      "csrf",
-      error instanceof AdminAuthError ? error.status : 0,
+    image.onerror = () => {
+      URL.revokeObjectURL(objectUrl)
+
+      reject(new Error("Não foi possível ler a imagem."))
+    }
+
+    image.src = objectUrl
+  })
+}
+
+function canvasToJpeg(canvas: HTMLCanvasElement): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => {
+        if (blob) {
+          resolve(blob)
+        } else {
+          reject(new Error("Não foi possível converter a imagem."))
+        }
+      },
+      "image/jpeg",
+      normalizedJpegQuality,
     )
-  }
+  })
+}
 
-  if (options.signal?.aborted) {
-    throw new PhotoUploadError("aborted")
-  }
+function normalizedFileName(name: string): string {
+  const base = name.replace(/\.[^.]+$/, "").trim()
 
-  return new Promise<string[]>((resolve, reject) => {
+  return `${base.length > 0 ? base.slice(0, 80) : "foto"}.jpg`
+}
+
+/**
+ * Normaliza uma foto escolhida no celular. A conversão para JPEG elimina
+ * metadados (inclusive EXIF) e garante que a orientação exibida seja a
+ * persistida. A prévia local continua sendo o arquivo original.
+ */
+export async function normalizePhotoFile(file: File): Promise<File> {
+  const decoded = await decodePhoto(file)
+
+  try {
+    if (decoded.width <= 0 || decoded.height <= 0) {
+      throw new Error("Imagem sem dimensões válidas.")
+    }
+
+    const target = fitWithin(
+      decoded.width,
+      decoded.height,
+      maxNormalizedDimension,
+    )
+
+    const canvas = document.createElement("canvas")
+
+    canvas.width = target.width
+
+    canvas.height = target.height
+
+    const context = canvas.getContext("2d")
+
+    if (!context) {
+      throw new Error("Canvas indisponível.")
+    }
+
+    // Fundo branco evita transparência virar preto ao converter PNG para JPEG.
+    context.fillStyle = "#FFFFFF"
+
+    context.fillRect(0, 0, target.width, target.height)
+
+    context.drawImage(decoded, 0, 0, target.width, target.height)
+
+    const blob = await canvasToJpeg(canvas)
+
+    return new File([blob], normalizedFileName(file.name), {
+      type: "image/jpeg",
+
+      lastModified: Date.now(),
+    })
+  } finally {
+    if (typeof ImageBitmap !== "undefined" && decoded instanceof ImageBitmap) {
+      decoded.close()
+    }
+  }
+}
+
+function uploadSingle(
+  endpoint: string,
+  csrfToken: string,
+  file: File,
+  signal: AbortSignal | undefined,
+  onProgress: (fraction: number) => void,
+): Promise<string> {
+  return new Promise<string>((resolve, reject) => {
     const request = new XMLHttpRequest()
 
     const settle = (action: () => void) => {
-      options.signal?.removeEventListener("abort", abort)
+      signal?.removeEventListener("abort", abort)
 
       action()
     }
@@ -152,14 +277,12 @@ export async function uploadAnimalPhotos(
 
     request.upload.onprogress = (event) => {
       if (!event.lengthComputable || event.total === 0) {
-        options.onProgress?.(0)
+        onProgress(0)
 
         return
       }
 
-      options.onProgress?.(
-        Math.min(100, Math.round((event.loaded / event.total) * 100)),
-      )
+      onProgress(Math.min(1, event.loaded / event.total))
     }
 
     request.onerror = () =>
@@ -199,7 +322,7 @@ export async function uploadAnimalPhotos(
 
       const urls = readUploadedUrls(payload)
 
-      if (!urls || urls.length !== files.length) {
+      if (!urls || urls.length !== 1) {
         settle(() =>
           reject(new PhotoUploadError("invalid-response", request.status)),
         )
@@ -207,19 +330,89 @@ export async function uploadAnimalPhotos(
         return
       }
 
-      options.onProgress?.(100)
+      onProgress(1)
 
-      settle(() => resolve(urls))
+      settle(() => resolve(urls[0] as string))
     }
 
-    options.signal?.addEventListener("abort", abort)
+    signal?.addEventListener("abort", abort)
 
     const body = new FormData()
 
-    files.forEach((file) => body.append(uploadFieldName, file, file.name))
+    body.append(uploadFieldName, file, file.name)
 
     request.send(body)
   })
+}
+
+export async function uploadAnimalPhotos(
+  files: readonly File[],
+
+  options: PhotoUploadOptions = {},
+): Promise<string[]> {
+  if (files.length === 0) return []
+
+  if (files.length > maxPhotosPerUpload) {
+    throw new PhotoUploadError("rejected")
+  }
+
+  let csrfToken: string
+
+  try {
+    csrfToken = await requestCsrfToken()
+  } catch (error) {
+    if (error instanceof AdminAuthError && error.failure === "network") {
+      throw new PhotoUploadError("network")
+    }
+
+    throw new PhotoUploadError(
+      "csrf",
+      error instanceof AdminAuthError ? error.status : 0,
+    )
+  }
+
+  const normalized: File[] = []
+
+  for (const file of files) {
+    if (options.signal?.aborted) {
+      throw new PhotoUploadError("aborted")
+    }
+
+    try {
+      normalized.push(await normalizePhotoFile(file))
+    } catch {
+      throw new PhotoUploadError("unsupported")
+    }
+  }
+
+  const endpoint = getPhotoUploadUrl()
+
+  const urls: string[] = []
+
+  for (let index = 0; index < normalized.length; index++) {
+    if (options.signal?.aborted) {
+      throw new PhotoUploadError("aborted")
+    }
+
+    const url = await uploadSingle(
+      endpoint,
+      csrfToken,
+      normalized[index] as File,
+      options.signal,
+
+      (fraction) => {
+        const percent = ((index + fraction) / normalized.length) * 100
+
+        options.onProgress?.(Math.min(100, Math.round(percent)))
+      },
+    )
+
+    urls.push(url)
+  }
+
+  options.onProgress?.(100)
+
+  return urls
 }
 
 export function getPhotoUploadErrorMessage(error: unknown): string {
@@ -244,7 +437,7 @@ export function getPhotoUploadErrorMessage(error: unknown): string {
       return "O servidor recusou uma das fotos por tamanho. Escolha arquivos menores e tente novamente."
 
     case "unsupported":
-      return "O servidor recusou o formato de uma das fotos. Use JPG, PNG ou WebP."
+      return "Não foi possível processar uma das fotos. Use uma imagem JPG, PNG ou WebP válida."
 
     case "rate-limited":
       return "Muitos envios em pouco tempo. Aguarde alguns minutos e tente novamente."

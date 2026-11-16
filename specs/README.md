@@ -39,8 +39,8 @@ Consulte-as antes de implementar e ao revisar alterações.
 | Catálogo | `features/animal-catalog.md` | Implementado no worktree |
 | Detalhes | `features/animal-details.md` | Parcial no worktree |
 | Solicitação de adoção | `features/adoption-request.md` | Implementado no worktree; política de privacidade pendente |
-| Gestão de animais | `features/animal-management.md` | Parcial no worktree; exclusão desabilitada |
-| Autenticação admin | `features/admin-authentication.md` | Parcial somente nas branches de implementação; `main` ainda não integrado |
+| Gestão de animais | `features/animal-management.md` | Implementado no worktree; exclusão desabilitada; política de imagem pendente |
+| Autenticação admin | `features/admin-authentication.md` | Implementado no worktree; integração no frontend publicada na `main` |
 | Gestão de adoções | `features/adoption-management.md` | Implementado no worktree, somente leitura |
 | Contato geral | — | Fora do primeiro incremento (ONG-07) |
 
@@ -62,7 +62,9 @@ Consulte-as antes de implementar e ao revisar alterações.
 - Definir finalidade, consentimento/base legal, aviso, acesso, retenção e exclusão dos dados
   pessoais conforme LGPD (ONG-05).
 - Definir publicação/visibilidade de adotados e exclusão/arquivamento de animais (ONG-02/ONG-03).
-- Definir formatos, limites, storage, EXIF e moderação das 1–3 imagens (ONG-06).
+- Definir formatos adicionais, limites definitivos, storage externo, EXIF e moderação das 1–3
+  imagens (ONG-06). Até a decisão, o ADR-007 registra a solução técnica provisória: normalização
+  no navegador e binário no MySQL.
 - Definir demais campos do animal e vocabulário de espécie/sexo/porte (ONG-10).
 - Definir o terceiro canal de contato, métricas e conteúdo institucional (ONG-11). O formulário
   de contato geral está fora do primeiro incremento (ONG-07).

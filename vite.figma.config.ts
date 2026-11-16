@@ -13,6 +13,8 @@ import path from "node:path"
 
 import { readFileSync } from "node:fs"
 
+import type { IncomingMessage } from "node:http"
+
 import siteConfiguration from "./.figma/make/site.json"
 
 import packageAliases from "./.figma/make/migrated-package-aliases.json"
@@ -136,19 +138,41 @@ async function resolveUserConfig(env: ConfigEnv): Promise<UserConfig> {
   return typeof config === "function" ? await config(env) : config
 }
 
-// O backend e opcional no desenvolvimento da interface. O proxy /api so existe
-// quando SAAL_API_PROXY_TARGET aponta para uma API em execucao, por exemplo
-// SAAL_API_PROXY_TARGET=http://localhost:8080 no .env ou no shell.
-function apiProxy(mode: string): Record<string, ProxyOptions> | undefined {
-  const target = loadEnv(mode, __dirname, "SAAL_").SAAL_API_PROXY_TARGET
+/**
+ * `pnpm dev` funciona sem Java/Docker: por padrao /api e encaminhado para a API
+ * publicada no Render. Para testar um backend local, defina
+ * SAAL_API_PROXY_TARGET=http://localhost:8080 no .env ou no shell.
+ */
+const defaultApiProxyTarget = "https://saal-api.onrender.com"
 
-  if (!target) return
+function apiProxy(mode: string): Record<string, ProxyOptions> {
+  const configured = loadEnv(mode, __dirname, "SAAL_").SAAL_API_PROXY_TARGET
+
+  const target = configured?.trim() || defaultApiProxyTarget
 
   return {
     "/api": {
       target,
 
       changeOrigin: true,
+
+      configure(proxy) {
+        /*
+         * A API publica o cookie de sessao com Secure (HTTPS). No dev local em
+         * http://localhost o navegador descartaria esse cookie; removemos apenas
+         * o atributo Secure no trafego do proxy. Em producao (Vercel HTTPS) o
+         * cookie continua Secure porque o proxy nao participa da requisicao.
+         */
+        proxy.on("proxyRes", (proxyRes: IncomingMessage) => {
+          const cookies = proxyRes.headers["set-cookie"]
+
+          if (!cookies) return
+
+          proxyRes.headers["set-cookie"] = cookies.map((cookie) =>
+            cookie.replace(/;\s*Secure/gi, ""),
+          )
+        })
+      },
     },
   }
 }

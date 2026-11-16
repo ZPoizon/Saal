@@ -23,11 +23,11 @@ No alvo, administrador autenticado e autorizado. No protótipo, login demonstrat
 - Cada animal MUST ter 1–3 fotografias.
 - Campos obrigatórios, vocabulário de espécie/sexo/porte, idade, personalidade, informação
   médica, limites e visibilidade pública continuam `PENDENTE DE DECISÃO` (ONG-10).
-- Upload: formatos, tamanho, storage, EXIF, moderação e retenção `PENDENTE DE DECISÃO`
-  (ONG-06). O cliente aplica limites técnicos provisórios (1–3 imagens, 5 MB por foto,
-  `image/*`) e prepara upload multipart via `VITE_PHOTO_UPLOAD_URL`; sem endpoint configurado,
-  fotos escolhidas permanecem apenas como prévia local e o salvamento é bloqueado. URL/Base64
-  do protótipo não são solução de persistência.
+- Upload: a política definitiva de formatos adicionais, tamanho, moderação e retenção continua
+  `PENDENTE DE DECISÃO` (ONG-06). Como decisão técnica provisória (ADR-007), o cliente aceita
+  1–3 imagens JPG/PNG/WebP de até 5 MB, aplica orientação EXIF, limita o maior lado a 1600 px,
+  converte para JPEG e remove metadados; a API valida os magic bytes e grava o binário em
+  `stored_photo`, servido por URL pública imutável. URL/Base64 avulsos não são persistência.
 - Exclusão/arquivamento de animais não adotados está fora do primeiro incremento
   (`PENDENTE DE DECISÃO`, ONG-03). Animais adotados permanecem cadastrados.
 
@@ -68,8 +68,9 @@ campos de domínio e metadados de imagem continuam pendentes (ONG-06/ONG-10).
 
 ## 10. Contratos de API relacionados
 
-Planejados: `GET/POST /admin/animals`, `GET/PUT /admin/animals/{animalId}`. Operação de
-exclusão/arquivamento fica fora do primeiro incremento até ONG-03.
+Implementados: `GET/POST /admin/animals`, `GET/PUT /admin/animals/{animalId}`,
+`POST /admin/photos` e `GET /photos/{photoId}`. Operação de exclusão/arquivamento fica fora do
+primeiro incremento até ONG-03.
 
 ## 11. Validações
 
@@ -104,11 +105,11 @@ sincronizados. Exclusão/arquivamento permanece fora do primeiro incremento.
 
 ## 15. Estado atual
 
-**Parcial no worktree.** CRUD de animais usa a API Spring e persiste via Flyway; os estados
-continuam somente `AVAILABLE` e `ADOPTED`. A exclusão definitiva não existe na API (DELETE
-retorna 405) nem na interface, enquanto ONG-03 estiver pendente. A interface permite escolher
-de 1 a 3 imagens da galeria, validar tipo/tamanho provisórios, pré-visualizar, remover,
-substituir e reordenar. O envio depende de um endpoint externo configurado em
-`VITE_PHOTO_UPLOAD_URL` e de storage remoto; sem essa configuração, fotos locais não são
-salvas e o formulário informa o bloqueio. O backend atual persiste apenas URLs de fotos e
-ainda não implementa upload binário nem storage definitivo (ONG-06).
+**Implementado no worktree para CRUD e fotos; exclusão desabilitada.** O CRUD de animais usa a
+API Spring e persiste via Flyway; os estados continuam somente `AVAILABLE` e `ADOPTED`. A
+exclusão definitiva não existe na API (DELETE retorna 405) nem na interface, enquanto ONG-03
+estiver pendente. A interface permite escolher de 1 a 3 imagens da galeria, validar
+tipo/tamanho provisórios, pré-visualizar, remover, substituir e reordenar. O envio usa
+`/api/v1/admin/photos` (com CSRF e sessão administrativa) e persiste o binário no MySQL; a
+leitura pública ocorre em `/api/v1/photos/{id}`. A política definitiva de imagem e retenção
+continua pendente (ONG-06); a decisão técnica provisória está no ADR-007.
