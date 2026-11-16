@@ -67,9 +67,9 @@ export function AnimalCard({ animal }: AnimalCardProps) {
             {animal.description}
           </p>
           {animal.status === "available" && (
-            <button className="w-full bg-[#E4B04A] text-white py-2 rounded-full font-semibold hover:bg-[#d4a03a] transition-colors">
+            <span className="block w-full bg-[#E4B04A] text-white py-2 rounded-full font-semibold hover:bg-[#d4a03a] transition-colors">
               Quero Conhecer
-            </button>
+            </span>
           )}
         </div>
       </Link>
