@@ -1,11 +1,16 @@
 import { useState } from "react"
+
 import { Search, Filter, PawPrint } from "lucide-react"
+
 import { useAsync } from "../hooks/useAsync"
+
 import { listPublicAnimals } from "../services/animals-api"
+
 import { AnimalCard } from "../components/AnimalCard"
 
 export function Animals() {
   const [searchTerm, setSearchTerm] = useState("")
+
   const [speciesFilter, setSpeciesFilter] = useState<"all" | "dog" | "cat">(
     "all",
   )
@@ -16,21 +21,25 @@ export function Animals() {
 
   const filteredAnimals = (data ?? []).filter((animal) => {
     const matchesSearch = animal.name
+
       .toLowerCase()
+
       .includes(searchTerm.toLowerCase())
+
     const matchesSpecies =
       speciesFilter === "all" || animal.species === speciesFilter
+
     return matchesSearch && matchesSpecies
   })
 
   const hasActiveFilters = searchTerm !== "" || speciesFilter !== "all"
 
   return (
-    <div className="py-12 bg-[#F5EFE6] min-h-screen">
+    <div className="min-h-screen bg-[#F5EFE6] py-8 sm:py-12">
       <div className="container mx-auto px-4">
         {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-4xl md:text-5xl font-bold text-[#2E7D6B] mb-4">
+        <div className="mb-8 text-center sm:mb-12">
+          <h1 className="mb-4 text-3xl font-bold text-[#2E7D6B] sm:text-4xl md:text-5xl">
             Nossos Animais
           </h1>
           <p className="text-[#527f74] max-w-2xl mx-auto">
@@ -40,8 +49,8 @@ export function Animals() {
         </div>
 
         {/* Filters */}
-        <div className="bg-white rounded-2xl p-6 shadow-md mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="mb-8 rounded-2xl bg-white p-4 shadow-md sm:p-6">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             {/* Search */}
             <div className="relative">
               <Search
@@ -92,13 +101,13 @@ export function Animals() {
 
         {/* Animals Grid */}
         {status === "loading" ? (
-          <div className="bg-white rounded-2xl text-center py-16 px-6 shadow-sm">
+          <div className="rounded-2xl bg-white px-4 py-12 text-center shadow-sm sm:py-16 sm:px-6">
             <p role="status" className="text-[#2E7D6B] text-lg font-semibold">
               Carregando animais…
             </p>
           </div>
         ) : status === "error" ? (
-          <div className="bg-white rounded-2xl text-center py-16 px-6 shadow-sm">
+          <div className="rounded-2xl bg-white px-4 py-12 text-center shadow-sm sm:py-16 sm:px-6">
             <PawPrint className="mx-auto mb-4 text-[#E4B04A]" size={40} />
             <p role="alert" className="text-[#2E7D6B] text-lg font-semibold">
               Não foi possível carregar os animais agora.
@@ -106,7 +115,7 @@ export function Animals() {
             <button
               type="button"
               onClick={reload}
-              className="mt-4 text-sm font-semibold text-[#527f74] underline underline-offset-4 hover:text-[#E4B04A]"
+              className="mt-4 inline-flex min-h-11 items-center text-sm font-semibold text-[#527f74] underline underline-offset-4 hover:text-[#E4B04A]"
             >
               Tentar novamente
             </button>
@@ -118,7 +127,7 @@ export function Animals() {
             ))}
           </div>
         ) : (
-          <div className="bg-white rounded-2xl text-center py-16 px-6 shadow-sm">
+          <div className="rounded-2xl bg-white px-4 py-12 text-center shadow-sm sm:py-16 sm:px-6">
             <PawPrint className="mx-auto mb-4 text-[#E4B04A]" size={40} />
             <p className="text-[#2E7D6B] text-lg font-semibold">
               {hasActiveFilters
@@ -130,9 +139,10 @@ export function Animals() {
                 type="button"
                 onClick={() => {
                   setSearchTerm("")
+
                   setSpeciesFilter("all")
                 }}
-                className="mt-4 text-sm font-semibold text-[#527f74] underline underline-offset-4 hover:text-[#E4B04A]"
+                className="mt-4 inline-flex min-h-11 items-center text-sm font-semibold text-[#527f74] underline underline-offset-4 hover:text-[#E4B04A]"
               >
                 Limpar filtros
               </button>

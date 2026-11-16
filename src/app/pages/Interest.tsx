@@ -15,7 +15,7 @@ import {
 
 import { validateInterestForm } from "../utils/interest-validation"
 
-import { withImageParams } from "../utils/images"
+import { SafeImage } from "../components/SafeImage"
 
 export function Interest() {
   const { id } = useParams<{ id: string }>()
@@ -63,7 +63,7 @@ export function Interest() {
 
   if (status === "loading") {
     return (
-      <div className="min-h-screen bg-[#F5EFE6] flex items-center justify-center">
+      <div className="flex min-h-[60dvh] items-center justify-center bg-[#F5EFE6] px-4 py-12">
         <p role="status" className="text-[#2E7D6B]">
           Carregando animal…
         </p>
@@ -75,7 +75,7 @@ export function Interest() {
     const notFound = error instanceof AnimalApiError && error.status === 404
 
     return (
-      <div className="min-h-screen bg-[#F5EFE6] flex items-center justify-center">
+      <div className="flex min-h-[60dvh] items-center justify-center bg-[#F5EFE6] px-4 py-12">
         <div className="text-center">
           <h2 className="text-2xl font-bold text-[#2E7D6B] mb-4">
             {notFound
@@ -83,14 +83,17 @@ export function Interest() {
               : "Não foi possível carregar este animal"}
           </h2>
           {notFound ? (
-            <Link to="/animais" className="text-[#E4B04A] hover:underline">
+            <Link
+              to="/animais"
+              className="inline-flex min-h-11 items-center text-[#E4B04A] hover:underline"
+            >
               Voltar para lista de animais
             </Link>
           ) : (
             <button
               type="button"
               onClick={reload}
-              className="text-[#E4B04A] hover:underline"
+              className="inline-flex min-h-11 items-center text-[#E4B04A] hover:underline"
             >
               Tentar novamente
             </button>
@@ -115,30 +118,42 @@ export function Interest() {
 
     const errors = validateInterestForm({
       fullName: formData.name,
+
       whatsapp: formData.whatsapp,
+
       city: formData.city,
+
       email: formData.email,
     })
 
     setFieldErrors({
       name: errors.fullName,
+
       whatsapp: errors.whatsapp,
+
       city: errors.city,
+
       email: errors.email,
     })
+
     setSubmissionMessage(null)
+
     setSubmissionFailed(false)
 
     if (Object.keys(errors).length > 0) return
 
     submissionLock.current = true
+
     setIsSubmitting(true)
 
     try {
       const receipt = await submitAnimalInterest(animal.id, {
         fullName: formData.name,
+
         whatsapp: formData.whatsapp,
+
         city: formData.city,
+
         email: formData.email,
       })
 
@@ -147,6 +162,7 @@ export function Interest() {
       }
 
       setSubmissionSucceeded(true)
+
       setSubmissionMessage(
         "Recebemos sua manifestação de interesse. A equipe fará a avaliação manual; este envio não confirma a adoção.",
       )
@@ -154,6 +170,7 @@ export function Interest() {
       const status = error instanceof InterestApiError ? error.status : null
 
       setSubmissionFailed(true)
+
       setSubmissionMessage(
         status === 409
           ? "Este animal não está mais disponível para receber manifestações."
@@ -165,6 +182,7 @@ export function Interest() {
       )
     } finally {
       submissionLock.current = false
+
       setIsSubmitting(false)
     }
   }
@@ -172,23 +190,23 @@ export function Interest() {
   const animalAvailable = animal.status === "available"
 
   return (
-    <div className="min-h-screen bg-[#F5EFE6] py-8">
+    <div className="min-h-screen bg-[#F5EFE6] py-6 sm:py-8">
       <div className="container mx-auto px-4">
         <button
           onClick={() => navigate(-1)}
-          className="flex items-center gap-2 text-[#2E7D6B] hover:text-[#E4B04A] mb-6 transition-colors"
+          className="mb-6 inline-flex min-h-11 items-center gap-2 text-[#2E7D6B] transition-colors hover:text-[#E4B04A]"
         >
           <ArrowLeft size={20} />
           Voltar
         </button>
 
-        <div className="max-w-2xl mx-auto">
-          <div className="text-center mb-8">
+        <div className="mx-auto max-w-2xl">
+          <div className="mb-8 text-center">
             <Heart
-              className="w-16 h-16 text-[#E4B04A] mx-auto mb-4"
+              className="mx-auto mb-4 h-12 w-12 text-[#E4B04A] sm:h-16 sm:w-16"
               fill="#E4B04A"
             />
-            <h1 className="text-3xl md:text-4xl font-bold text-[#2E7D6B] mb-3">
+            <h1 className="mb-3 text-2xl font-bold text-[#2E7D6B] sm:text-3xl md:text-4xl">
               Manifestar Interesse
             </h1>
             <p className="text-[#6FAE9C]">
@@ -197,21 +215,16 @@ export function Interest() {
             </p>
           </div>
 
-          <div className="bg-white rounded-2xl p-6 md:p-8 shadow-lg mb-6">
-            <div className="flex items-center gap-4 pb-6 border-b border-[#F5EFE6]">
-              <img
-                src={withImageParams(animal.images[0] ?? "", {
-                  w: 100,
-
-                  h: 100,
-
-                  fit: "crop",
-                })}
+          <div className="mb-6 rounded-2xl bg-white p-4 shadow-lg sm:p-6 md:p-8">
+            <div className="flex items-center gap-3 border-b border-[#F5EFE6] pb-6 sm:gap-4">
+              <SafeImage
+                src={animal.images[0]}
                 alt={animal.name}
-                className="w-20 h-20 rounded-xl object-cover"
+                params={{ w: 100, h: 100, fit: "crop" }}
+                className="h-16 w-16 shrink-0 rounded-xl object-cover [image-orientation:from-image] sm:h-20 sm:w-20"
               />
-              <div>
-                <h3 className="font-bold text-[#2E7D6B] text-lg">
+              <div className="min-w-0">
+                <h3 className="break-words text-lg font-bold text-[#2E7D6B]">
                   {animal.name}
                 </h3>
                 <p className="text-sm text-[#6FAE9C]">
@@ -377,7 +390,7 @@ export function Interest() {
                 <button
                   type="submit"
                   disabled={isSubmitting || submissionSucceeded}
-                  className="w-full rounded-full bg-[#E4B04A] py-4 font-semibold text-white shadow-md transition-all hover:bg-[#d4a03a] disabled:cursor-not-allowed disabled:opacity-60"
+                  className="min-h-11 w-full rounded-full bg-[#E4B04A] py-4 font-semibold text-white shadow-md transition-all hover:bg-[#d4a03a] disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {isSubmitting
                     ? "Enviando…"

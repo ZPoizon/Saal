@@ -38,6 +38,22 @@ Sem essa variável o Vite não registra proxy algum, então `pnpm dev` nunca dep
 backend ligado. `.env` é ignorado pelo Git; nunca coloque segredos em variáveis `VITE_*`, que
 vão para o bundle do navegador.
 
+## Fotos de animais
+
+O formulário administrativo aceita de 1 a 3 imagens escolhidas da galeria do dispositivo
+(`accept="image/*"`, sem abrir a câmera automaticamente), com prévia, remoção, substituição e
+reordenação. O limite técnico provisório é 5 MB por foto; a política definitiva de formatos,
+tamanho, armazenamento e retenção continua pendente de decisão da ONG (ONG-06).
+
+Para persistir fotos novas é necessário configurar `VITE_PHOTO_UPLOAD_URL` com um endpoint
+multipart same-origin, por exemplo `/api/v1/admin/photos`. O endpoint deve receber um campo
+`photos` por arquivo, validar a sessão administrativa e o CSRF, e responder
+`{"urls":["https://...", "/..."]}` com uma URL persistente por foto. Sem essa configuração, a
+prévia local funciona, mas o salvamento de fotos escolhidas é bloqueado com mensagem explícita
+— nenhum `blob:` é gravado como se fosse permanente e nenhum binário fica em filesystem
+efêmero. A orientação EXIF é respeitada na prévia pelos navegadores modernos; o arquivo
+persistido depende do serviço de armazenamento configurado.
+
 ## Publicar na Vercel
 
 O frontend é publicado em um **único projeto Vercel** conectado a este repositório, com deploy
@@ -47,10 +63,12 @@ automático da branch `main`. Não há projeto adicional nem passo de build manu
 2. A Vercel executa `pnpm build` e publica `dist/`.
 3. Acompanhe pelo painel da Vercel ou pelo comentário do bot no Pull Request.
 
-`vercel.json`, quando presente na raiz, encaminha `/api/*` para a API remota (mesma origem, o
-que mantém o cookie de sessão) e serve `index.html` para rotas como `/admin` e `/animais/1`.
-Enquanto não houver API remota publicada, `/api` falha e o painel permanece bloqueado — o
-restante do site continua funcionando.
+`vercel.json` na raiz encaminha `/api/*` para a API remota (mesma origem, o que mantém o
+cookie de sessão) e serve `index.html` para rotas como `/admin` e `/animais/1`. O destino
+configurado é `https://saal-api.onrender.com`, que **ainda não está publicado** (responde 404);
+até lá `/api` falha e o painel permanece bloqueado, com aviso explícito, enquanto o restante do
+site continua funcionando. Os assets oficiais em `src/imports/` são mantidos como blobs
+normais (fora do Git LFS) para que a Vercel receba as imagens reais.
 
 ## Verificações
 

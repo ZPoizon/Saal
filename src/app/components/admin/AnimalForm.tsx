@@ -1,10 +1,35 @@
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 
-import { X, Plus, Image as ImageIcon } from "lucide-react"
+import {
+  ChevronLeft,
+  ChevronRight,
+  Image as ImageIcon,
+  Plus,
+  RefreshCw,
+  Upload,
+  X,
+} from "lucide-react"
 
 import { Animal, AnimalInput, AnimalStatus } from "../../data/animals"
 
-import { withImageParams } from "../../utils/images"
+import { AnimalApiError } from "../../services/animals-api"
+
+import {
+  PhotoUploadError,
+  getPhotoUploadErrorMessage,
+  isPhotoStorageConfigured,
+  uploadAnimalPhotos,
+} from "../../services/photo-storage"
+
+import {
+  MAX_ANIMAL_PHOTOS,
+  MAX_PHOTO_BYTES,
+  formatFileSize,
+  moveListItem,
+  selectPhotoFiles,
+} from "../../utils/photo-selection"
+
+import { SafeImage } from "../SafeImage"
 
 interface AnimalFormProps {
   animal?: Animal
@@ -12,6 +37,52 @@ interface AnimalFormProps {
   onSave: (input: AnimalInput) => Promise<void>
 
   onCancel: () => void
+}
+
+interface ExistingPhoto {
+  kind: "existing"
+
+  id: string
+
+  url: string
+}
+
+interface PendingPhoto {
+  kind: "pending"
+
+  id: string
+
+  file: File
+
+  previewUrl: string
+}
+
+type GalleryPhoto = ExistingPhoto | PendingPhoto
+
+function isPendingPhoto(photo: GalleryPhoto): photo is PendingPhoto {
+  return photo.kind === "pending"
+}
+
+function saveErrorMessage(error: unknown): string {
+  if (error instanceof AnimalApiError) {
+    if (error.status === 401 || error.status === 403) {
+      return "Sua sessão expirou durante o salvamento. Entre novamente; o cadastro não foi confirmado como salvo."
+    }
+
+    if (error.status === 404) {
+      return "O serviço de animais não foi encontrado. A API pode não estar publicada ou o proxy /api não está configurado."
+    }
+
+    if (error.status >= 500) {
+      return "O servidor está temporariamente indisponível. O cadastro não foi confirmado como salvo; tente novamente."
+    }
+
+    if (error.status === 429) {
+      return "Muitas solicitações em pouco tempo. Aguarde e tente novamente."
+    }
+  }
+
+  return "Não foi possível salvar o animal. Verifique a conexão e tente novamente."
 }
 
 export function AnimalForm({ animal, onSave, onCancel }: AnimalFormProps) {
@@ -35,21 +106,48 @@ export function AnimalForm({ animal, onSave, onCancel }: AnimalFormProps) {
     medicalInfo: animal?.medicalInfo || "",
   })
 
-  const [photoUrls, setPhotoUrls] = useState<string[]>(
-    animal?.images && animal.images.length > 0 ? [...animal.images] : [""],
+  const nextPhotoId = useRef(0)
+
+  const [gallery, setGallery] = useState<GalleryPhoto[]>(() =>
+    (animal?.images ?? [])
+      .filter((url) => url.trim().length > 0)
+      .map((url, index) => ({
+        kind: "existing" as const,
+
+        id: `existing-${index}`,
+
+        url,
+      })),
   )
 
-  const [photoError, setPhotoError] = useState("")
+  const [photoErrors, setPhotoErrors] = useState<string[]>([])
 
   const [submitError, setSubmitError] = useState("")
 
   const [submitting, setSubmitting] = useState(false)
 
-  const validPhotos = photoUrls
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null)
 
-    .map((url) => url.trim())
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
-    .filter((url) => url.length > 0)
+  const replaceTargetRef = useRef<string | null>(null)
+
+  const galleryRef = useRef(gallery)
+
+  useEffect(() => {
+    galleryRef.current = gallery
+  }, [gallery])
+
+  // Pré-visualizações são recursos do navegador e precisam ser liberadas.
+  useEffect(() => {
+    return () => {
+      galleryRef.current.forEach((photo) => {
+        if (isPendingPhoto(photo)) URL.revokeObjectURL(photo.previewUrl)
+      })
+    }
+  }, [])
+
+  const storageConfigured = isPhotoStorageConfigured()
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>,
@@ -61,44 +159,167 @@ export function AnimalForm({ animal, onSave, onCancel }: AnimalFormProps) {
     })
   }
 
-  const handlePhotoChange = (index: number, value: string) => {
-    setPhotoUrls((current) =>
-      current.map((url, position) => (position === index ? value : url)),
-    )
+  const openFilePicker = (targetId: string | null) => {
+    replaceTargetRef.current = targetId
 
-    setPhotoError("")
+    fileInputRef.current?.click()
   }
 
-  const handleAddPhoto = () => {
-    setPhotoUrls((current) =>
-      current.length >= 3 ? current : [...current, ""],
-    )
+  const appendPending = (files: readonly File[]) => {
+    if (files.length === 0) return
+
+    setGallery((current) => [
+      ...current,
+
+      ...files.map((file) => ({
+        kind: "pending" as const,
+
+        id: `new-${nextPhotoId.current++}`,
+
+        file,
+
+        previewUrl: URL.createObjectURL(file),
+      })),
+    ])
   }
 
-  const handleRemovePhoto = (index: number) => {
-    setPhotoUrls((current) => {
-      const next = current.filter((_, position) => position !== index)
+  const handleFilesChosen = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const chosen = Array.from(e.target.files ?? [])
 
-      return next.length > 0 ? next : [""]
+    e.target.value = ""
+
+    if (chosen.length === 0) {
+      replaceTargetRef.current = null
+
+      return
+    }
+
+    const replaceTarget = replaceTargetRef.current
+
+    replaceTargetRef.current = null
+
+    // Substituição usa somente o primeiro arquivo e preserva a posição.
+    if (replaceTarget) {
+      const result = selectPhotoFiles(chosen.slice(0, 1), 0)
+
+      setPhotoErrors(result.errors)
+
+      const replacement = result.accepted[0]
+
+      if (!replacement) return
+
+      const previewUrl = URL.createObjectURL(replacement)
+
+      setGallery((current) =>
+        current.map((photo) => {
+          if (photo.id !== replaceTarget) return photo
+
+          if (isPendingPhoto(photo)) URL.revokeObjectURL(photo.previewUrl)
+
+          return { ...photo, kind: "pending", file: replacement, previewUrl }
+        }),
+      )
+
+      return
+    }
+
+    const result = selectPhotoFiles(chosen, galleryRef.current.length)
+
+    setPhotoErrors(result.errors)
+
+    appendPending(result.accepted)
+  }
+
+  const handleRemovePhoto = (id: string) => {
+    setGallery((current) => {
+      const target = current.find((photo) => photo.id === id)
+
+      if (target && isPendingPhoto(target)) {
+        URL.revokeObjectURL(target.previewUrl)
+      }
+
+      return current.filter((photo) => photo.id !== id)
     })
 
-    setPhotoError("")
+    setPhotoErrors([])
+  }
+
+  const handleMovePhoto = (from: number, to: number) => {
+    setGallery((current) => moveListItem(current, from, to))
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (validPhotos.length < 1 || validPhotos.length > 3) {
-      setPhotoError("Informe entre 1 e 3 fotos (URLs) para o animal.")
+    if (submitting) return
+
+    setSubmitError("")
+
+    if (gallery.length < 1 || gallery.length > MAX_ANIMAL_PHOTOS) {
+      setPhotoErrors([
+        `Adicione de 1 a ${MAX_ANIMAL_PHOTOS} fotos antes de salvar.`,
+      ])
 
       return
     }
 
-    setPhotoError("")
+    const pending = gallery.filter(isPendingPhoto)
 
-    setSubmitError("")
+    if (pending.length > 0 && !storageConfigured) {
+      setPhotoErrors([
+        getPhotoUploadErrorMessage(new PhotoUploadError("not-configured")),
+      ])
+
+      return
+    }
+
+    setPhotoErrors([])
 
     setSubmitting(true)
+
+    let finalGallery: ExistingPhoto[] = gallery.filter(
+      (photo): photo is ExistingPhoto => photo.kind === "existing",
+    )
+
+    if (pending.length > 0) {
+      setUploadProgress(0)
+
+      try {
+        const urls = await uploadAnimalPhotos(
+          pending.map((photo) => photo.file),
+
+          { onProgress: setUploadProgress },
+        )
+
+        let urlIndex = 0
+
+        finalGallery = gallery.map((photo) => {
+          if (photo.kind === "existing") return photo
+
+          const url = urls[urlIndex++]
+
+          return {
+            kind: "existing" as const,
+
+            id: photo.id,
+
+            url: url ?? "",
+          }
+        })
+
+        pending.forEach((photo) => URL.revokeObjectURL(photo.previewUrl))
+
+        setGallery(finalGallery)
+      } catch (error) {
+        setPhotoErrors([getPhotoUploadErrorMessage(error)])
+
+        setUploadProgress(null)
+
+        setSubmitting(false)
+
+        return
+      }
+    }
 
     try {
       await onSave({
@@ -126,27 +347,27 @@ export function AnimalForm({ animal, onSave, onCancel }: AnimalFormProps) {
 
         medicalInfo: formData.medicalInfo.trim(),
 
-        images: validPhotos,
+        images: finalGallery.map((photo) => photo.url),
       })
-    } catch {
-      setSubmitError(
-        "Não foi possível salvar o animal. Verifique a conexão e tente novamente.",
-      )
+    } catch (error) {
+      setSubmitError(saveErrorMessage(error))
     } finally {
       setSubmitting(false)
+
+      setUploadProgress(null)
     }
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/50 p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/50 p-3 sm:p-4">
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby="animal-form-title"
-        className="my-auto flex max-h-[calc(100dvh-2rem)] w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-white"
+        className="my-auto flex max-h-[calc(100dvh-1.5rem)] w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-white sm:max-h-[calc(100dvh-2rem)]"
       >
-        <div className="flex shrink-0 items-center justify-between border-b border-[#F5EFE6] p-4 sm:p-6">
-          <h2 className="text-2xl font-bold text-[#2E7D6B]">
+        <div className="flex shrink-0 items-center justify-between gap-2 border-b border-[#F5EFE6] p-4 sm:p-6">
+          <h2 className="text-xl font-bold text-[#2E7D6B] sm:text-2xl">
             <span id="animal-form-title">
               {animal ? "Editar Animal" : "Adicionar Novo Animal"}
             </span>
@@ -155,7 +376,7 @@ export function AnimalForm({ animal, onSave, onCancel }: AnimalFormProps) {
             type="button"
             onClick={onCancel}
             aria-label="Fechar formulário"
-            className="p-2 hover:bg-[#F5EFE6] rounded-lg transition-colors"
+            className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg transition-colors hover:bg-[#F5EFE6] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#E4B04A]"
           >
             <X className="text-[#6FAE9C]" />
           </button>
@@ -167,83 +388,176 @@ export function AnimalForm({ animal, onSave, onCancel }: AnimalFormProps) {
         >
           <fieldset>
             <legend className="mb-2 font-semibold text-[#2E7D6B]">
-              Fotos do animal ({validPhotos.length}/3)
+              Fotos do animal ({gallery.length}/{MAX_ANIMAL_PHOTOS})
             </legend>
-            <div className="space-y-3">
-              {photoUrls.map((url, index) => (
-                <div key={index} className="flex items-center gap-3">
-                  <div className="h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-[#F5EFE6]">
-                    {url.trim() ? (
-                      <img
-                        src={withImageParams(url.trim(), {
-                          w: 300,
 
-                          h: 300,
-
-                          fit: "crop",
-                        })}
-                        alt={`Prévia da foto ${index + 1} de ${
-                          animal?.name ?? "prévia do animal"
-                        }`}
-                        className="h-full w-full object-cover"
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {gallery.map((photo, index) => (
+                <div
+                  key={photo.id}
+                  className="relative overflow-hidden rounded-xl border border-[#E4B04A]/40 bg-[#F5EFE6]"
+                >
+                  <div className="aspect-square w-full overflow-hidden bg-[#F5EFE6]">
+                    {photo.kind === "existing" ? (
+                      <SafeImage
+                        src={photo.url}
+                        alt={`Foto ${index + 1} de ${animal?.name ?? "animal"}`}
+                        params={{ w: 300, h: 300, fit: "crop" }}
+                        className="h-full w-full object-cover [image-orientation:from-image]"
                       />
                     ) : (
-                      <div className="flex h-full w-full items-center justify-center text-[#6FAE9C]">
-                        <ImageIcon size={24} aria-hidden="true" />
-                      </div>
+                      <img
+                        src={photo.previewUrl}
+                        alt={`Prévia local da foto ${index + 1}`}
+                        className="h-full w-full object-cover [image-orientation:from-image]"
+                      />
                     )}
                   </div>
-                  <input
-                    type="url"
-                    inputMode="url"
-                    value={url}
-                    onChange={(e) => handlePhotoChange(index, e.target.value)}
-                    placeholder="https://exemplo.com/foto.jpg"
-                    aria-label={`URL da foto ${index + 1}`}
-                    className="w-full px-4 py-3 bg-[#F5EFE6] rounded-lg border-none focus:outline-none focus:ring-2 focus:ring-[#E4B04A]"
-                  />
-                  <button
-                    type="button"
-                    aria-label={`Remover foto ${index + 1}`}
-                    onClick={() => handleRemovePhoto(index)}
-                    className="shrink-0 rounded-full bg-white p-2 text-red-600 shadow hover:bg-[#F5EFE6] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#E4B04A]"
-                  >
-                    <X size={16} />
-                  </button>
+
+                  {index === 0 && (
+                    <span className="absolute left-2 top-2 rounded-full bg-[#2E7D6B] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
+                      Capa
+                    </span>
+                  )}
+
+                  {photo.kind === "pending" && (
+                    <span className="absolute right-2 top-2 rounded-full bg-[#E4B04A] px-2 py-0.5 text-[10px] font-semibold text-white">
+                      Prévia local
+                    </span>
+                  )}
+
+                  <div className="flex items-center justify-between gap-1 border-t border-white/70 bg-white/95 p-1">
+                    <div className="flex gap-1">
+                      <button
+                        type="button"
+                        onClick={() => handleMovePhoto(index, index - 1)}
+                        disabled={submitting || index === 0}
+                        aria-label={`Mover foto ${index + 1} para a esquerda`}
+                        className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-[#2E7D6B] hover:bg-[#F5EFE6] disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        <ChevronLeft size={18} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleMovePhoto(index, index + 1)}
+                        disabled={submitting || index === gallery.length - 1}
+                        aria-label={`Mover foto ${index + 1} para a direita`}
+                        className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-[#2E7D6B] hover:bg-[#F5EFE6] disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        <ChevronRight size={18} />
+                      </button>
+                    </div>
+
+                    <div className="flex gap-1">
+                      <button
+                        type="button"
+                        onClick={() => openFilePicker(photo.id)}
+                        disabled={submitting}
+                        aria-label={`Substituir foto ${index + 1}`}
+                        className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-[#2E7D6B] hover:bg-[#F5EFE6] disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        <RefreshCw size={16} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleRemovePhoto(photo.id)}
+                        disabled={submitting}
+                        aria-label={`Remover foto ${index + 1}`}
+                        className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        <X size={18} />
+                      </button>
+                    </div>
+                  </div>
                 </div>
               ))}
+
+              {gallery.length < MAX_ANIMAL_PHOTOS && (
+                <button
+                  type="button"
+                  onClick={() => openFilePicker(null)}
+                  disabled={submitting}
+                  className="flex aspect-square w-full flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-[#6FAE9C]/60 bg-white p-2 text-center text-[#2E7D6B] transition-colors hover:border-[#2E7D6B] hover:bg-[#F5EFE6]/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#E4B04A] disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  <Plus size={24} aria-hidden="true" />
+                  <span className="text-sm font-semibold">Adicionar foto</span>
+                  <span className="text-xs text-[#6FAE9C]">
+                    {gallery.length}/{MAX_ANIMAL_PHOTOS}
+                  </span>
+                </button>
+              )}
             </div>
 
-            <div className="mt-3 flex flex-wrap items-center gap-3">
-              <button
-                type="button"
-                onClick={handleAddPhoto}
-                disabled={photoUrls.length >= 3}
-                className="inline-flex items-center gap-2 rounded-lg bg-[#6FAE9C] px-4 py-3 font-semibold text-white transition-colors hover:bg-[#2E7D6B] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E4B04A] disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                <Plus size={20} />
-                Adicionar foto
-              </button>
-              <span className="text-xs text-[#6FAE9C]">
-                Informe de 1 a 3 endereços (URLs) de fotos já publicadas.
-              </span>
-            </div>
-            <p role="status" className="mt-2 text-xs text-[#416f65]">
-              O upload de arquivos ainda não está disponível. As fotos são
-              referências (URLs): nenhum arquivo é enviado, e o armazenamento
-              definitivo das imagens segue pendente de decisão da ONG.
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={handleFilesChosen}
+              className="sr-only"
+              tabIndex={-1}
+              aria-label="Escolher fotos da galeria do dispositivo"
+            />
+
+            <p className="mt-2 text-xs text-[#416f65]">
+              Escolha de 1 a {MAX_ANIMAL_PHOTOS} imagens da galeria do
+              dispositivo. Cada foto pode ter até{" "}
+              {formatFileSize(MAX_PHOTO_BYTES)}. A câmera não é aberta
+              automaticamente. A primeira foto é a capa.
             </p>
-            {photoError && (
-              <p role="alert" className="mt-2 text-sm text-red-600">
-                {photoError}
+
+            {!storageConfigured && (
+              <p
+                role="status"
+                className="mt-2 flex items-start gap-2 rounded-lg bg-[#F5EFE6] px-3 py-2 text-xs text-[#416f65]"
+              >
+                <ImageIcon
+                  size={16}
+                  aria-hidden="true"
+                  className="mt-0.5 shrink-0"
+                />
+                <span>
+                  O armazenamento de fotos não está configurado neste ambiente.
+                  Você pode ver a prévia local, mas fotos escolhidas não serão
+                  salvas até o serviço de armazenamento ser configurado.
+                </span>
               </p>
+            )}
+
+            {uploadProgress !== null && (
+              <div role="status" className="mt-3">
+                <div className="flex items-center justify-between text-xs font-semibold text-[#2E7D6B]">
+                  <span className="inline-flex items-center gap-1">
+                    <Upload size={14} aria-hidden="true" />
+                    Enviando fotos…
+                  </span>
+                  <span>{uploadProgress}%</span>
+                </div>
+                <div className="mt-1 h-2 overflow-hidden rounded-full bg-[#F5EFE6]">
+                  <div
+                    className="h-full rounded-full bg-[#2E7D6B] transition-[width]"
+                    style={{ width: `${uploadProgress}%` }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {photoErrors.length > 0 && (
+              <ul
+                role="alert"
+                className="mt-2 space-y-1 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700"
+              >
+                {photoErrors.map((message) => (
+                  <li key={message}>{message}</li>
+                ))}
+              </ul>
             )}
           </fieldset>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             {/* Nome */}
             <div>
-              <label htmlFor="name" className="block text-[#2E7D6B] mb-2">
+              <label htmlFor="name" className="mb-2 block text-[#2E7D6B]">
                 Nome *
               </label>
               <input
@@ -253,13 +567,13 @@ export function AnimalForm({ animal, onSave, onCancel }: AnimalFormProps) {
                 required
                 value={formData.name}
                 onChange={handleChange}
-                className="w-full px-4 py-3 bg-[#F5EFE6] rounded-lg border-none focus:outline-none focus:ring-2 focus:ring-[#E4B04A]"
+                className="w-full rounded-lg border-none bg-[#F5EFE6] px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#E4B04A]"
               />
             </div>
 
             {/* Espécie */}
             <div>
-              <label htmlFor="species" className="block text-[#2E7D6B] mb-2">
+              <label htmlFor="species" className="mb-2 block text-[#2E7D6B]">
                 Espécie *
               </label>
               <select
@@ -268,7 +582,7 @@ export function AnimalForm({ animal, onSave, onCancel }: AnimalFormProps) {
                 required
                 value={formData.species}
                 onChange={handleChange}
-                className="w-full px-4 py-3 bg-[#F5EFE6] rounded-lg border-none focus:outline-none focus:ring-2 focus:ring-[#E4B04A]"
+                className="w-full rounded-lg border-none bg-[#F5EFE6] px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#E4B04A]"
               >
                 <option value="dog">Cachorro</option>
                 <option value="cat">Gato</option>
@@ -277,7 +591,7 @@ export function AnimalForm({ animal, onSave, onCancel }: AnimalFormProps) {
 
             {/* Idade */}
             <div>
-              <label htmlFor="age" className="block text-[#2E7D6B] mb-2">
+              <label htmlFor="age" className="mb-2 block text-[#2E7D6B]">
                 Idade *
               </label>
               <input
@@ -288,13 +602,13 @@ export function AnimalForm({ animal, onSave, onCancel }: AnimalFormProps) {
                 placeholder="Ex: 3 anos, 6 meses"
                 value={formData.age}
                 onChange={handleChange}
-                className="w-full px-4 py-3 bg-[#F5EFE6] rounded-lg border-none focus:outline-none focus:ring-2 focus:ring-[#E4B04A]"
+                className="w-full rounded-lg border-none bg-[#F5EFE6] px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#E4B04A]"
               />
             </div>
 
             {/* Porte */}
             <div>
-              <label htmlFor="size" className="block text-[#2E7D6B] mb-2">
+              <label htmlFor="size" className="mb-2 block text-[#2E7D6B]">
                 Porte *
               </label>
               <select
@@ -303,7 +617,7 @@ export function AnimalForm({ animal, onSave, onCancel }: AnimalFormProps) {
                 required
                 value={formData.size}
                 onChange={handleChange}
-                className="w-full px-4 py-3 bg-[#F5EFE6] rounded-lg border-none focus:outline-none focus:ring-2 focus:ring-[#E4B04A]"
+                className="w-full rounded-lg border-none bg-[#F5EFE6] px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#E4B04A]"
               >
                 <option value="pequeno">Pequeno</option>
                 <option value="médio">Médio</option>
@@ -313,7 +627,7 @@ export function AnimalForm({ animal, onSave, onCancel }: AnimalFormProps) {
 
             {/* Sexo */}
             <div>
-              <label htmlFor="sex" className="block text-[#2E7D6B] mb-2">
+              <label htmlFor="sex" className="mb-2 block text-[#2E7D6B]">
                 Sexo *
               </label>
               <select
@@ -322,7 +636,7 @@ export function AnimalForm({ animal, onSave, onCancel }: AnimalFormProps) {
                 required
                 value={formData.sex}
                 onChange={handleChange}
-                className="w-full px-4 py-3 bg-[#F5EFE6] rounded-lg border-none focus:outline-none focus:ring-2 focus:ring-[#E4B04A]"
+                className="w-full rounded-lg border-none bg-[#F5EFE6] px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#E4B04A]"
               >
                 <option value="macho">Macho</option>
                 <option value="fêmea">Fêmea</option>
@@ -331,7 +645,7 @@ export function AnimalForm({ animal, onSave, onCancel }: AnimalFormProps) {
 
             {/* Status */}
             <div>
-              <label htmlFor="status" className="block text-[#2E7D6B] mb-2">
+              <label htmlFor="status" className="mb-2 block text-[#2E7D6B]">
                 Status *
               </label>
               <select
@@ -340,7 +654,7 @@ export function AnimalForm({ animal, onSave, onCancel }: AnimalFormProps) {
                 required
                 value={formData.status}
                 onChange={handleChange}
-                className="w-full px-4 py-3 bg-[#F5EFE6] rounded-lg border-none focus:outline-none focus:ring-2 focus:ring-[#E4B04A]"
+                className="w-full rounded-lg border-none bg-[#F5EFE6] px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#E4B04A]"
               >
                 <option value="available">Disponível</option>
                 <option value="adopted">Adotado</option>
@@ -350,7 +664,7 @@ export function AnimalForm({ animal, onSave, onCancel }: AnimalFormProps) {
 
           {/* Descrição */}
           <div>
-            <label htmlFor="description" className="block text-[#2E7D6B] mb-2">
+            <label htmlFor="description" className="mb-2 block text-[#2E7D6B]">
               Descrição *
             </label>
             <textarea
@@ -360,13 +674,13 @@ export function AnimalForm({ animal, onSave, onCancel }: AnimalFormProps) {
               rows={3}
               value={formData.description}
               onChange={handleChange}
-              className="w-full px-4 py-3 bg-[#F5EFE6] rounded-lg border-none focus:outline-none focus:ring-2 focus:ring-[#E4B04A] resize-none"
+              className="w-full resize-none rounded-lg border-none bg-[#F5EFE6] px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#E4B04A]"
             />
           </div>
 
           {/* Personalidade */}
           <div>
-            <label htmlFor="personality" className="block text-[#2E7D6B] mb-2">
+            <label htmlFor="personality" className="mb-2 block text-[#2E7D6B]">
               Personalidade (separado por vírgula)
             </label>
             <input
@@ -376,13 +690,13 @@ export function AnimalForm({ animal, onSave, onCancel }: AnimalFormProps) {
               placeholder="Ex: Dócil, Brincalhão, Carinhoso"
               value={formData.personality}
               onChange={handleChange}
-              className="w-full px-4 py-3 bg-[#F5EFE6] rounded-lg border-none focus:outline-none focus:ring-2 focus:ring-[#E4B04A]"
+              className="w-full rounded-lg border-none bg-[#F5EFE6] px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#E4B04A]"
             />
           </div>
 
           {/* Informações Médicas */}
           <div>
-            <label htmlFor="medicalInfo" className="block text-[#2E7D6B] mb-2">
+            <label htmlFor="medicalInfo" className="mb-2 block text-[#2E7D6B]">
               Informações Médicas
             </label>
             <textarea
@@ -392,7 +706,7 @@ export function AnimalForm({ animal, onSave, onCancel }: AnimalFormProps) {
               placeholder="Ex: Vacinado, castrado, saudável"
               value={formData.medicalInfo}
               onChange={handleChange}
-              className="w-full px-4 py-3 bg-[#F5EFE6] rounded-lg border-none focus:outline-none focus:ring-2 focus:ring-[#E4B04A] resize-none"
+              className="w-full resize-none rounded-lg border-none bg-[#F5EFE6] px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#E4B04A]"
             />
           </div>
 
@@ -411,17 +725,19 @@ export function AnimalForm({ animal, onSave, onCancel }: AnimalFormProps) {
               type="button"
               onClick={onCancel}
               disabled={submitting}
-              className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-full font-semibold hover:bg-gray-300 transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+              className="min-h-11 flex-1 rounded-full bg-gray-200 py-3 font-semibold text-gray-700 transition-colors hover:bg-gray-300 disabled:cursor-not-allowed disabled:opacity-60"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={submitting}
-              className="flex-1 bg-[#E4B04A] text-white py-3 rounded-full font-semibold hover:bg-[#d4a03a] transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+              className="min-h-11 flex-1 rounded-full bg-[#E4B04A] py-3 font-semibold text-white transition-colors hover:bg-[#d4a03a] disabled:cursor-not-allowed disabled:opacity-60"
             >
               {submitting
-                ? "Salvando…"
+                ? uploadProgress !== null
+                  ? `Enviando fotos… ${uploadProgress}%`
+                  : "Salvando…"
                 : animal
                   ? "Salvar Alterações"
                   : "Adicionar Animal"}

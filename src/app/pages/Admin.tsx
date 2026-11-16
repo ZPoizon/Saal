@@ -17,6 +17,7 @@ import { Link } from "react-router"
 
 import {
   AdminAuthError,
+  getAdminAuthErrorMessage,
   getAdminSession,
   loginAdmin,
   logoutAdmin,
@@ -35,7 +36,7 @@ import { InterestApiError, listAdminInterests } from "../services/interests-api"
 
 import type { AdminAnimalInterest } from "../data/interests"
 
-import { withImageParams } from "../utils/images"
+import { SafeImage } from "../components/SafeImage"
 
 import logoSaal from "../../imports/logo_fundo_0.png"
 
@@ -43,20 +44,34 @@ import { AnimalForm } from "../components/admin/AnimalForm"
 
 import { buildInterestContactLinks } from "../utils/contact-links"
 
-function authenticationErrorMessage(error: unknown): string {
-  if (error instanceof AdminAuthError) {
-    if (error.status === 401) return "Usuário ou senha inválidos."
+function isNetworkFailure(error: unknown): boolean {
+  return error instanceof TypeError
+}
 
-    if (error.status === 403) {
-      return "A sessão de segurança expirou. Tente novamente."
+function adminResourceErrorMessage(
+  error: unknown,
+
+  resource: "animais" | "interessados",
+): string {
+  if (isNetworkFailure(error)) {
+    return "Não foi possível conectar ao servidor. Verifique sua conexão e tente novamente."
+  }
+
+  if (error instanceof AnimalApiError || error instanceof InterestApiError) {
+    if (error.status === 404) {
+      return `O serviço de ${resource} não foi encontrado. A API pode não estar publicada ou o proxy /api não está configurado.`
     }
 
     if (error.status === 429) {
-      return "Muitas tentativas de acesso. Aguarde 15 minutos e tente novamente."
+      return "Muitas solicitações em pouco tempo. Aguarde e tente novamente."
+    }
+
+    if (error.status >= 500) {
+      return "O servidor está temporariamente indisponível. Tente novamente em instantes."
     }
   }
 
-  return "Não foi possível validar a autenticação. Verifique a conexão e tente novamente."
+  return `Não foi possível carregar os ${resource}. Tente novamente.`
 }
 
 export function Admin() {
@@ -66,6 +81,10 @@ export function Admin() {
   const [credentials, setCredentials] = useState({ username: "", password: "" })
 
   const [authMessage, setAuthMessage] = useState<string | null>(null)
+
+  const [sessionWarning, setSessionWarning] = useState<string | null>(null)
+
+  const [isRechecking, setIsRechecking] = useState(false)
 
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -88,6 +107,61 @@ export function Admin() {
   const [editingAnimal, setEditingAnimal] = useState<Animal | null>(null)
 
   const [openContactId, setOpenContactId] = useState<string | null>(null)
+
+  const checkSession = useCallback(
+    async (mode: "initial" | "revalidate") => {
+      if (mode === "initial") {
+        setAuthStatus("checking")
+
+        setAuthMessage(null)
+      } else {
+        setIsRechecking(true)
+      }
+
+      try {
+        const authenticated = await getAdminSession()
+
+        if (!authenticated) {
+          setAuthStatus("anonymous")
+
+          setSessionWarning(null)
+
+          setAuthMessage(
+            mode === "revalidate" ? "Sessão expirada. Entre novamente." : null,
+          )
+
+          return
+        }
+
+        setAuthStatus("authenticated")
+
+        setAuthMessage(null)
+
+        setSessionWarning(null)
+      } catch (error) {
+        const message = getAdminAuthErrorMessage(error, "session")
+
+        // Uma falha momentânea de rede não deve expulsar quem já está no painel:
+
+        // as mutações continuam protegidas e autorizadas no servidor.
+
+        if (mode === "revalidate") {
+          setSessionWarning(message)
+
+          return
+        }
+
+        setAuthStatus("error")
+
+        setSessionWarning(null)
+
+        setAuthMessage(message)
+      } finally {
+        if (mode === "revalidate") setIsRechecking(false)
+      }
+    },
+    [],
+  )
 
   const loadAnimals = useCallback(async () => {
     setAnimalsStatus("loading")
@@ -112,18 +186,18 @@ export function Admin() {
 
       setAnimalsStatus("error")
 
-      setAnimalsMessage(
-        "Não foi possível carregar os animais. Verifique a conexão e tente novamente.",
-      )
+      setAnimalsMessage(adminResourceErrorMessage(error, "animais"))
     }
   }, [])
 
   const loadInterests = useCallback(async () => {
     setInterestsStatus("loading")
+
     setInterestsMessage(null)
 
     try {
       setInterests(await listAdminInterests())
+
       setInterestsStatus("success")
     } catch (error) {
       if (
@@ -131,14 +205,15 @@ export function Admin() {
         (error.status === 401 || error.status === 403)
       ) {
         setAuthStatus("anonymous")
+
         setAuthMessage("Sessão expirada. Entre novamente.")
+
         return
       }
 
       setInterestsStatus("error")
-      setInterestsMessage(
-        "Não foi possível carregar os interessados. Verifique a conexão e tente novamente.",
-      )
+
+      setInterestsMessage(adminResourceErrorMessage(error, "interessados"))
     }
   }, [])
 
@@ -155,30 +230,8 @@ export function Admin() {
   }, [authStatus, loadInterests])
 
   useEffect(() => {
-    let active = true
-
-    getAdminSession()
-
-      .then((authenticated) => {
-        if (!active) return
-
-        setAuthStatus(authenticated ? "authenticated" : "anonymous")
-      })
-
-      .catch(() => {
-        if (!active) return
-
-        setAuthStatus("error")
-
-        setAuthMessage(
-          "Não foi possível validar a sessão. O painel permanece bloqueado.",
-        )
-      })
-
-    return () => {
-      active = false
-    }
-  }, [])
+    void checkSession("initial")
+  }, [checkSession])
 
   useEffect(() => {
     if (authStatus !== "authenticated") return
@@ -186,23 +239,7 @@ export function Admin() {
     const verifySession = () => {
       if (document.visibilityState !== "visible") return
 
-      getAdminSession()
-
-        .then((authenticated) => {
-          if (!authenticated) {
-            setAuthStatus("anonymous")
-
-            setAuthMessage("Sessão expirada. Entre novamente.")
-          }
-        })
-
-        .catch(() => {
-          setAuthStatus("error")
-
-          setAuthMessage(
-            "Não foi possível validar a sessão. O painel permanece bloqueado.",
-          )
-        })
+      void checkSession("revalidate")
     }
 
     window.addEventListener("focus", verifySession)
@@ -214,24 +251,10 @@ export function Admin() {
 
       document.removeEventListener("visibilitychange", verifySession)
     }
-  }, [authStatus])
+  }, [authStatus, checkSession])
 
-  const retrySessionCheck = async () => {
-    setAuthStatus("checking")
-
-    setAuthMessage(null)
-
-    try {
-      const authenticated = await getAdminSession()
-
-      setAuthStatus(authenticated ? "authenticated" : "anonymous")
-    } catch {
-      setAuthStatus("error")
-
-      setAuthMessage(
-        "Não foi possível validar a sessão. O painel permanece bloqueado.",
-      )
-    }
+  const retrySessionCheck = () => {
+    void checkSession("initial")
   }
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -247,10 +270,25 @@ export function Admin() {
       setCredentials((current) => ({ ...current, password: "" }))
 
       setAuthStatus("authenticated")
-    } catch (error) {
-      setAuthStatus("anonymous")
 
-      setAuthMessage(authenticationErrorMessage(error))
+      setSessionWarning(null)
+    } catch (error) {
+      const failure =
+        error instanceof AdminAuthError ? error.failure : "unknown"
+
+      // Falhas de conexão/servidor mantêm o botão de nova tentativa visível;
+
+      // credencial inválida e limite de tentativas voltam ao formulário.
+
+      setAuthStatus(
+        failure === "unauthorized" ||
+          failure === "rate-limited" ||
+          failure === "forbidden"
+          ? "anonymous"
+          : "error",
+      )
+
+      setAuthMessage(getAdminAuthErrorMessage(error, "login"))
     } finally {
       setIsSubmitting(false)
     }
@@ -266,9 +304,11 @@ export function Admin() {
 
       setAuthStatus("anonymous")
 
+      setSessionWarning(null)
+
       setCredentials({ username: "", password: "" })
     } catch (error) {
-      setAuthMessage(authenticationErrorMessage(error))
+      setAuthMessage(getAdminAuthErrorMessage(error, "logout"))
     } finally {
       setIsSubmitting(false)
     }
@@ -325,23 +365,23 @@ export function Admin() {
 
   if (authStatus !== "authenticated") {
     return (
-      <div className="min-h-screen bg-[#F5EFE6] flex items-center justify-center py-12 px-4">
+      <div className="flex min-h-[100dvh] items-center justify-center bg-[#F5EFE6] px-4 py-8">
         <div className="w-full max-w-md">
           <Link
             to="/"
-            className="inline-flex items-center gap-2 text-[#2E7D6B] hover:text-[#E4B04A] mb-6 transition-colors font-semibold"
+            className="mb-6 inline-flex min-h-11 items-center gap-2 font-semibold text-[#2E7D6B] transition-colors hover:text-[#E4B04A]"
           >
             <ArrowLeft size={20} />
             Voltar ao Início
           </Link>
-          <div className="bg-white rounded-2xl p-8 md:p-12 shadow-xl">
-            <div className="text-center mb-8">
+          <div className="rounded-2xl bg-white p-6 shadow-xl sm:p-8 md:p-12">
+            <div className="mb-8 text-center">
               <img
                 src={logoSaal}
                 alt="SAAL"
-                className="w-20 h-20 mx-auto mb-4 object-contain"
+                className="mx-auto mb-4 h-16 w-16 object-contain sm:h-20 sm:w-20"
               />
-              <h1 className="text-3xl font-bold text-[#2E7D6B] mb-2">
+              <h1 className="mb-2 text-2xl font-bold text-[#2E7D6B] sm:text-3xl">
                 Área Administrativa
               </h1>
               <p className="text-[#6FAE9C]">
@@ -367,9 +407,9 @@ export function Admin() {
                 <button
                   type="button"
                   onClick={retrySessionCheck}
-                  className="text-sm font-semibold text-[#2E7D6B] underline"
+                  className="inline-flex min-h-11 w-full items-center justify-center rounded-lg border border-[#2E7D6B] px-4 py-2 text-sm font-semibold text-[#2E7D6B] transition-colors hover:bg-[#F5EFE6] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#E4B04A]"
                 >
-                  Tentar validar novamente
+                  Tentar novamente
                 </button>
               )}
               <div>
@@ -413,7 +453,7 @@ export function Admin() {
               <button
                 type="submit"
                 disabled={authStatus === "checking" || isSubmitting}
-                className="w-full bg-[#2E7D6B] text-white py-3 rounded-full font-semibold hover:bg-[#6FAE9C] transition-all shadow-md hover:shadow-lg"
+                className="min-h-11 w-full rounded-full bg-[#2E7D6B] py-3 font-semibold text-white shadow-md transition-all hover:bg-[#6FAE9C] hover:shadow-lg"
               >
                 {isSubmitting ? "Aguarde…" : "Entrar"}
               </button>
@@ -425,12 +465,12 @@ export function Admin() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F5EFE6] py-8">
+    <div className="min-h-screen bg-[#F5EFE6] py-6 sm:py-8">
       <div className="container mx-auto px-4">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-[#2E7D6B] mb-2">
+        <div className="mb-6 flex flex-col gap-4 sm:mb-8 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <h1 className="mb-2 text-2xl font-bold text-[#2E7D6B] sm:text-3xl">
               Painel Administrativo
             </h1>
             <p className="text-[#6FAE9C]">Gerencie os animais e interessados</p>
@@ -438,7 +478,7 @@ export function Admin() {
           <button
             onClick={handleLogout}
             disabled={isSubmitting}
-            className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors"
+            className="inline-flex min-h-11 items-center justify-center rounded-lg bg-red-500 px-4 py-2 text-white transition-colors hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-60 sm:self-start"
           >
             {isSubmitting ? "Aguarde…" : "Sair"}
           </button>
@@ -452,13 +492,30 @@ export function Admin() {
           </p>
         )}
 
+        {sessionWarning && (
+          <div
+            role="alert"
+            className="mb-6 rounded-xl border border-[#E4B04A]/60 bg-white px-4 py-3 text-sm text-[#416f65]"
+          >
+            <p>{sessionWarning}</p>
+            <button
+              type="button"
+              onClick={() => void checkSession("revalidate")}
+              disabled={isRechecking}
+              className="mt-2 inline-flex min-h-11 items-center justify-center rounded-lg border border-[#2E7D6B] px-4 py-2 text-sm font-semibold text-[#2E7D6B] transition-colors hover:bg-[#F5EFE6] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isRechecking ? "Verificando…" : "Tentar novamente"}
+            </button>
+          </div>
+        )}
+
         <p
           role="status"
           className="mb-6 rounded-xl border border-[#E4B04A]/50 bg-white px-4 py-3 text-sm text-[#416f65]"
         >
-          Os cadastros são salvos no servidor. As fotos são referências (URLs):
-          o upload de arquivos ainda não está disponível e o armazenamento
-          definitivo das imagens segue pendente de decisão da ONG.
+          Os cadastros são salvos no servidor. As fotos podem vir da galeria do
+          celular quando o armazenamento remoto estiver configurado; sem esse
+          serviço, a prévia local não é enviada nem persistida.
         </p>
 
         <nav
@@ -467,13 +524,13 @@ export function Admin() {
         >
           <a
             href="#animals"
-            className="rounded-full px-4 py-2 text-sm font-semibold text-[#2E7D6B] hover:bg-[#F5EFE6] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#E4B04A]"
+            className="inline-flex min-h-11 items-center rounded-full px-4 py-2 text-sm font-semibold text-[#2E7D6B] hover:bg-[#F5EFE6] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#E4B04A]"
           >
             Animais
           </a>
           <a
             href="#interests"
-            className="rounded-full px-4 py-2 text-sm font-semibold text-[#2E7D6B] hover:bg-[#F5EFE6] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#E4B04A]"
+            className="inline-flex min-h-11 items-center rounded-full px-4 py-2 text-sm font-semibold text-[#2E7D6B] hover:bg-[#F5EFE6] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#E4B04A]"
           >
             Interessados
           </a>
@@ -489,53 +546,65 @@ export function Admin() {
         </nav>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 gap-4 mb-8 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="bg-white rounded-xl p-6 shadow-md">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[#6FAE9C]">Total de Animais</span>
-              <PawPrint className="text-[#E4B04A]" size={20} />
+        <div className="mb-6 grid grid-cols-2 gap-3 sm:mb-8 sm:gap-4 lg:grid-cols-4">
+          <div className="rounded-xl bg-white p-4 shadow-md sm:p-6">
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <span className="text-sm text-[#6FAE9C] sm:text-base">
+                Total de Animais
+              </span>
+              <PawPrint className="shrink-0 text-[#E4B04A]" size={20} />
             </div>
-            <p className="text-3xl font-bold text-[#2E7D6B]">
+            <p className="text-2xl font-bold text-[#2E7D6B] sm:text-3xl">
               {animals.length}
             </p>
           </div>
 
-          <div className="bg-white rounded-xl p-6 shadow-md">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[#6FAE9C]">Disponíveis</span>
-              <Heart className="text-[#2E7D6B]" size={20} />
+          <div className="rounded-xl bg-white p-4 shadow-md sm:p-6">
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <span className="text-sm text-[#6FAE9C] sm:text-base">
+                Disponíveis
+              </span>
+              <Heart className="shrink-0 text-[#2E7D6B]" size={20} />
             </div>
-            <p className="text-3xl font-bold text-[#2E7D6B]">
+            <p className="text-2xl font-bold text-[#2E7D6B] sm:text-3xl">
               {animals.filter((a) => a.status === "available").length}
             </p>
           </div>
 
-          <div className="bg-white rounded-xl p-6 shadow-md">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[#6FAE9C]">Adotados</span>
-              <Heart className="text-green-500" size={20} fill="currentColor" />
+          <div className="rounded-xl bg-white p-4 shadow-md sm:p-6">
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <span className="text-sm text-[#6FAE9C] sm:text-base">
+                Adotados
+              </span>
+              <Heart
+                className="shrink-0 text-green-500"
+                size={20}
+                fill="currentColor"
+              />
             </div>
-            <p className="text-3xl font-bold text-[#2E7D6B]">
+            <p className="text-2xl font-bold text-[#2E7D6B] sm:text-3xl">
               {animals.filter((a) => a.status === "adopted").length}
             </p>
           </div>
 
-          <div className="bg-white rounded-xl p-6 shadow-md">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[#6FAE9C]">Solicitações</span>
-              <Mail className="text-[#E4B04A]" size={20} />
+          <div className="rounded-xl bg-white p-4 shadow-md sm:p-6">
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <span className="text-sm text-[#6FAE9C] sm:text-base">
+                Solicitações
+              </span>
+              <Mail className="shrink-0 text-[#E4B04A]" size={20} />
             </div>
-            <p className="text-3xl font-bold text-[#2E7D6B]">
+            <p className="text-2xl font-bold text-[#2E7D6B] sm:text-3xl">
               {interestsStatus === "success" ? interests.length : "—"}
             </p>
           </div>
         </div>
 
         {/* Actions */}
-        <div className="bg-white rounded-2xl p-6 shadow-md mb-8">
+        <div className="mb-6 rounded-2xl bg-white p-4 shadow-md sm:mb-8 sm:p-6">
           <button
             onClick={handleAddAnimal}
-            className="bg-[#E4B04A] text-white px-6 py-3 rounded-lg font-semibold hover:bg-[#d4a03a] transition-colors flex items-center gap-2"
+            className="flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-[#E4B04A] px-6 py-3 font-semibold text-white transition-colors hover:bg-[#d4a03a] sm:w-auto"
           >
             <Plus size={20} />
             Cadastrar Novo Animal
@@ -560,18 +629,28 @@ export function Admin() {
               {animalsMessage}
             </p>
           )}
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[640px]">
+          <div>
+            <table className="w-full table-fixed">
               <thead className="bg-[#F5EFE6]">
                 <tr>
-                  <th className="px-6 py-3 text-left text-[#2E7D6B]">Foto</th>
-                  <th className="px-6 py-3 text-left text-[#2E7D6B]">Nome</th>
-                  <th className="px-6 py-3 text-left text-[#2E7D6B]">
+                  <th className="w-16 px-2 py-3 text-left text-sm text-[#2E7D6B] sm:w-auto sm:px-6 sm:text-base">
+                    Foto
+                  </th>
+                  <th className="px-2 py-3 text-left text-sm text-[#2E7D6B] sm:px-6 sm:text-base">
+                    Nome
+                  </th>
+                  <th className="hidden px-6 py-3 text-left text-[#2E7D6B] sm:table-cell">
                     Espécie
                   </th>
-                  <th className="px-6 py-3 text-left text-[#2E7D6B]">Idade</th>
-                  <th className="px-6 py-3 text-left text-[#2E7D6B]">Status</th>
-                  <th className="px-6 py-3 text-left text-[#2E7D6B]">Ações</th>
+                  <th className="hidden px-6 py-3 text-left text-[#2E7D6B] md:table-cell">
+                    Idade
+                  </th>
+                  <th className="px-2 py-3 text-left text-sm text-[#2E7D6B] sm:px-6 sm:text-base">
+                    Status
+                  </th>
+                  <th className="w-14 px-1 py-3 text-right text-sm text-[#2E7D6B] sm:w-auto sm:px-6 sm:text-left sm:text-base">
+                    Ações
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#F5EFE6]">
@@ -579,7 +658,7 @@ export function Admin() {
                   <tr>
                     <td
                       colSpan={6}
-                      className="px-6 py-8 text-center text-[#6FAE9C]"
+                      className="px-4 py-8 text-center text-[#6FAE9C] sm:px-6"
                       role="status"
                     >
                       Carregando animais…
@@ -588,14 +667,18 @@ export function Admin() {
                 )}
                 {animalsStatus === "error" && (
                   <tr>
-                    <td colSpan={6} className="px-6 py-8 text-center">
-                      <p role="alert" className="font-semibold text-[#2E7D6B]">
-                        Não foi possível carregar os animais.
+                    <td colSpan={6} className="px-4 py-8 text-center sm:px-6">
+                      <p
+                        role="alert"
+                        className="text-sm font-semibold text-[#2E7D6B] sm:text-base"
+                      >
+                        {animalsMessage ??
+                          "Não foi possível carregar os animais."}
                       </p>
                       <button
                         type="button"
                         onClick={() => void loadAnimals()}
-                        className="mt-3 text-sm font-semibold text-[#527f74] underline underline-offset-4 hover:text-[#E4B04A]"
+                        className="mt-3 inline-flex min-h-11 items-center text-sm font-semibold text-[#527f74] underline underline-offset-4 hover:text-[#E4B04A]"
                       >
                         Tentar novamente
                       </button>
@@ -606,7 +689,7 @@ export function Admin() {
                   <tr>
                     <td
                       colSpan={6}
-                      className="px-6 py-8 text-center text-[#6FAE9C]"
+                      className="px-4 py-8 text-center text-[#6FAE9C] sm:px-6"
                     >
                       Nenhum animal cadastrado.
                     </td>
@@ -616,35 +699,28 @@ export function Admin() {
                   animals.map((animal) => (
                     <tr
                       key={animal.id}
-                      className="hover:bg-[#F5EFE6]/50 transition-colors"
+                      className="transition-colors hover:bg-[#F5EFE6]/50"
                     >
-                      <td className="px-6 py-4">
-                        <img
-                          src={
-                            animal.images[0]
-                              ? withImageParams(animal.images[0], {
-                                  w: 60,
-
-                                  h: 60,
-
-                                  fit: "crop",
-                                })
-                              : "https://via.placeholder.com/60"
-                          }
+                      <td className="px-2 py-3 sm:px-6 sm:py-4">
+                        <SafeImage
+                          src={animal.images[0]}
                           alt={animal.name}
-                          className="w-12 h-12 rounded-lg object-cover"
+                          params={{ w: 60, h: 60, fit: "crop" }}
+                          className="h-10 w-10 rounded-lg object-cover sm:h-12 sm:w-12"
                         />
                       </td>
-                      <td className="px-6 py-4 font-semibold text-[#2E7D6B]">
+                      <td className="break-words px-2 py-3 font-semibold text-[#2E7D6B] sm:px-6 sm:py-4">
                         {animal.name}
                       </td>
-                      <td className="px-6 py-4 text-[#6FAE9C]">
+                      <td className="hidden px-6 py-4 text-[#6FAE9C] sm:table-cell">
                         {animal.species === "dog" ? "Cachorro" : "Gato"}
                       </td>
-                      <td className="px-6 py-4 text-[#6FAE9C]">{animal.age}</td>
-                      <td className="px-6 py-4">
+                      <td className="hidden px-6 py-4 text-[#6FAE9C] md:table-cell">
+                        {animal.age}
+                      </td>
+                      <td className="px-2 py-3 sm:px-6 sm:py-4">
                         <span
-                          className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                          className={`inline-block rounded-full px-2 py-1 text-[11px] font-semibold sm:px-3 sm:text-xs ${
                             animal.status === "available"
                               ? "bg-[#2E7D6B] text-white"
                               : "bg-gray-400 text-white"
@@ -655,16 +731,14 @@ export function Admin() {
                             : "Adotado"}
                         </span>
                       </td>
-                      <td className="px-6 py-4">
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => handleEditAnimal(animal)}
-                            className="p-2 text-[#2E7D6B] hover:bg-[#F5EFE6] rounded-lg transition-colors"
-                            aria-label={`Editar ${animal.name}`}
-                          >
-                            <Edit size={18} />
-                          </button>
-                        </div>
+                      <td className="px-1 py-3 text-right sm:px-6 sm:py-4 sm:text-left">
+                        <button
+                          onClick={() => handleEditAnimal(animal)}
+                          className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-[#2E7D6B] transition-colors hover:bg-[#F5EFE6]"
+                          aria-label={`Editar ${animal.name}`}
+                        >
+                          <Edit size={18} />
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -678,13 +752,13 @@ export function Admin() {
           id="interests"
           className="scroll-mt-24 bg-white rounded-2xl shadow-md overflow-hidden mt-8"
         >
-          <div className="p-6 border-b border-[#F5EFE6]">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-bold text-[#2E7D6B] flex items-center gap-2">
-                <Mail size={20} className="text-[#E4B04A]" />
+          <div className="border-b border-[#F5EFE6] p-4 sm:p-6">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h2 className="flex items-center gap-2 text-lg font-bold text-[#2E7D6B] sm:text-xl">
+                <Mail size={20} className="shrink-0 text-[#E4B04A]" />
                 Solicitações de Adoção
               </h2>
-              <span className="bg-[#E4B04A] text-white px-3 py-1 rounded-full text-sm font-semibold">
+              <span className="rounded-full bg-[#E4B04A] px-3 py-1 text-xs font-semibold text-white sm:text-sm">
                 {interestsStatus === "success"
                   ? `${interests.length} registros`
                   : interestsStatus === "loading"
@@ -693,7 +767,7 @@ export function Admin() {
               </span>
             </div>
           </div>
-          <div className="p-6">
+          <div className="p-4 sm:p-6">
             {interestsStatus === "loading" ? (
               <p role="status" className="py-8 text-center text-[#6FAE9C]">
                 Carregando interessados…
@@ -721,8 +795,10 @@ export function Admin() {
                   const animal = animals.find(
                     (candidate) => candidate.id === interest.animalId,
                   )
+
                   const links = buildInterestContactLinks({
                     whatsapp: interest.whatsapp,
+
                     email: interest.email,
                   })
 
@@ -734,14 +810,11 @@ export function Admin() {
                       <div className="flex flex-col gap-4 md:flex-row">
                         <div className="flex items-center gap-3 md:w-1/3">
                           {animal?.images[0] && (
-                            <img
-                              src={withImageParams(animal.images[0], {
-                                w: 60,
-                                h: 60,
-                                fit: "crop",
-                              })}
+                            <SafeImage
+                              src={animal.images[0]}
                               alt={interest.animalName}
-                              className="h-16 w-16 rounded-lg object-cover"
+                              params={{ w: 60, h: 60, fit: "crop" }}
+                              className="h-16 w-16 shrink-0 rounded-lg object-cover"
                             />
                           )}
                           <div>
@@ -751,11 +824,16 @@ export function Admin() {
                             <p className="text-xs text-[#6FAE9C]">
                               {new Date(interest.createdAt).toLocaleString(
                                 "pt-BR",
+
                                 {
                                   day: "2-digit",
+
                                   month: "2-digit",
+
                                   year: "numeric",
+
                                   hour: "2-digit",
+
                                   minute: "2-digit",
                                 },
                               )}

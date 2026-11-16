@@ -3,12 +3,19 @@
  * Preserva o comportamento anterior (`?w=...&h=...&fit=crop`) e continua correto
  * quando a URL já traz uma query string.
  */
+
 export function withImageParams(
   url: string,
 
   params: Record<string, string | number>,
 ): string {
   if (!url) return url
+
+  // Pré-visualizações locais não são URLs publicadas: acrescentar parâmetros
+
+  // quebraria o `blob:`/`data:` usado apenas no navegador.
+
+  if (url.startsWith("blob:") || url.startsWith("data:")) return url
 
   const separator = url.includes("?") ? "&" : "?"
 

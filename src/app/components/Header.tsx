@@ -19,19 +19,22 @@ export function Header() {
   return (
     <header className="sticky top-0 z-50 border-b border-[#2E7D6B]/10 bg-white/95 shadow-[0_8px_30px_rgba(46,125,107,0.06)] backdrop-blur-lg">
       <div className="container mx-auto px-4 py-3">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-2">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-3 group">
+          <Link
+            to="/"
+            className="group flex min-w-0 items-center gap-2 sm:gap-3"
+          >
             <img
               src={logoSaal}
               alt="SAAL - Santuário de Animais Anjos da Luz"
-              className="w-14 h-14 md:w-16 md:h-16 object-contain transition-transform group-hover:scale-105"
+              className="h-12 w-12 shrink-0 object-contain transition-transform group-hover:scale-105 sm:h-14 sm:w-14 md:h-16 md:w-16"
             />
-            <div className="hidden sm:block">
-              <h1 className="text-[#2E7D6B] font-bold text-lg leading-tight">
+            <div className="hidden min-w-0 sm:block">
+              <h1 className="text-lg font-bold leading-tight text-[#2E7D6B]">
                 SAAL
               </h1>
-              <p className="text-xs text-[#6FAE9C]">
+              <p className="truncate text-xs text-[#6FAE9C]">
                 Santuário de Animais Anjos da Luz
               </p>
             </div>
@@ -60,7 +63,7 @@ export function Header() {
           <button
             type="button"
             onClick={() => setMenuOpen(!menuOpen)}
-            className="md:hidden text-[#2E7D6B] p-2"
+            className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg p-2 text-[#2E7D6B] md:hidden"
             aria-label={menuOpen ? "Fechar menu" : "Abrir menu"}
             aria-expanded={menuOpen}
             aria-controls="mobile-primary-navigation"
@@ -74,32 +77,32 @@ export function Header() {
           <nav
             id="mobile-primary-navigation"
             aria-label="Navegação principal"
-            className="md:hidden mt-4 pb-4 flex flex-col gap-3"
+            className="md:hidden mt-4 flex flex-col gap-1 border-t border-[#2E7D6B]/10 pb-2 pt-4"
           >
             <Link
               to="/"
-              className="text-[#2E7D6B] hover:text-[#E4B04A] py-2 transition-colors"
+              className="flex min-h-11 items-center py-2 text-[#2E7D6B] transition-colors hover:text-[#E4B04A]"
               onClick={() => setMenuOpen(false)}
             >
               Início
             </Link>
             <Link
               to="/animais"
-              className="text-[#2E7D6B] hover:text-[#E4B04A] py-2 transition-colors"
+              className="flex min-h-11 items-center py-2 text-[#2E7D6B] transition-colors hover:text-[#E4B04A]"
               onClick={() => setMenuOpen(false)}
             >
               Animais
             </Link>
             <Link
               to="/contato"
-              className="text-[#2E7D6B] hover:text-[#E4B04A] py-2 transition-colors"
+              className="flex min-h-11 items-center py-2 text-[#2E7D6B] transition-colors hover:text-[#E4B04A]"
               onClick={() => setMenuOpen(false)}
             >
               Contato
             </Link>
             <Link
               to="/animais"
-              className="bg-[#E4B04A] text-white px-6 py-3 rounded-full text-center hover:bg-[#d4a03a] transition-all"
+              className="mt-2 flex min-h-11 items-center justify-center rounded-full bg-[#E4B04A] px-6 py-3 text-center text-white transition-all hover:bg-[#d4a03a]"
               onClick={() => setMenuOpen(false)}
             >
               Quero Adotar

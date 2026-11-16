@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest"
 
 import {
   AdminAuthError,
+  getAdminAuthErrorMessage,
   getAdminSession,
   loginAdmin,
   logoutAdmin,
@@ -28,6 +29,14 @@ describe("admin-auth service", () => {
 
       expect.objectContaining({ credentials: "include" }),
     )
+  })
+
+  it("trata 401/403 na consulta de sessão como visitante não autenticado", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(null, { status: 401 }),
+    )
+
+    await expect(getAdminSession()).resolves.toBe(false)
   })
 
   it("envia credenciais apenas no corpo e inclui o token CSRF", async () => {
@@ -90,7 +99,10 @@ describe("admin-auth service", () => {
     await expect(
       loginAdmin("synthetic-admin", "synthetic-password"),
     ).rejects.toEqual(
-      expect.objectContaining<Partial<AdminAuthError>>({ status: 429 }),
+      expect.objectContaining<Partial<AdminAuthError>>({
+        status: 429,
+        failure: "rate-limited",
+      }),
     )
   })
 
@@ -133,6 +145,67 @@ describe("admin-auth service", () => {
       new Response(JSON.stringify({ authenticated: "yes" }), { status: 200 }),
     )
 
-    await expect(getAdminSession()).rejects.toThrow("Resposta inválida")
+    await expect(getAdminSession()).rejects.toEqual(
+      expect.objectContaining<Partial<AdminAuthError>>({
+        failure: "invalid-response",
+      }),
+    )
+  })
+
+  it("classifica falha de rede sem confundir com credencial inválida", async () => {
+    vi.spyOn(globalThis, "fetch").mockRejectedValue(
+      new TypeError("Failed to fetch"),
+    )
+
+    await expect(getAdminSession()).rejects.toEqual(
+      expect.objectContaining<Partial<AdminAuthError>>({
+        status: 0,
+        failure: "network",
+      }),
+    )
+
+    const loginError = await loginAdmin(
+      "synthetic-admin",
+      "synthetic-password",
+    ).catch((error: unknown) => error)
+
+    expect(loginError).toBeInstanceOf(AdminAuthError)
+
+    expect(getAdminAuthErrorMessage(loginError, "login")).toContain(
+      "conectar ao servidor",
+    )
+  })
+
+  it("explica 404 como API ausente ou proxy /api não configurado", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(null, { status: 404 }),
+    )
+
+    const sessionError = await getAdminSession().catch(
+      (error: unknown) => error,
+    )
+
+    expect(sessionError).toBeInstanceOf(AdminAuthError)
+
+    expect(getAdminAuthErrorMessage(sessionError, "session")).toContain(
+      "proxy /api",
+    )
+  })
+
+  it("explica credencial inválida, 5xx e resposta não JSON com mensagens distintas", () => {
+    expect(getAdminAuthErrorMessage(new AdminAuthError(401), "login")).toBe(
+      "Usuário ou senha inválidos.",
+    )
+
+    expect(
+      getAdminAuthErrorMessage(new AdminAuthError(503), "login"),
+    ).toContain("temporariamente indisponível")
+
+    expect(
+      getAdminAuthErrorMessage(
+        new AdminAuthError(200, "invalid-response"),
+        "session",
+      ),
+    ).toContain("formato inesperado")
   })
 })

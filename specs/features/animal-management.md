@@ -24,7 +24,10 @@ No alvo, administrador autenticado e autorizado. No protótipo, login demonstrat
 - Campos obrigatórios, vocabulário de espécie/sexo/porte, idade, personalidade, informação
   médica, limites e visibilidade pública continuam `PENDENTE DE DECISÃO` (ONG-10).
 - Upload: formatos, tamanho, storage, EXIF, moderação e retenção `PENDENTE DE DECISÃO`
-  (ONG-06). URL/Base64 do protótipo não são solução de persistência.
+  (ONG-06). O cliente aplica limites técnicos provisórios (1–3 imagens, 5 MB por foto,
+  `image/*`) e prepara upload multipart via `VITE_PHOTO_UPLOAD_URL`; sem endpoint configurado,
+  fotos escolhidas permanecem apenas como prévia local e o salvamento é bloqueado. URL/Base64
+  do protótipo não são solução de persistência.
 - Exclusão/arquivamento de animais não adotados está fora do primeiro incremento
   (`PENDENTE DE DECISÃO`, ONG-03). Animais adotados permanecem cadastrados.
 
@@ -70,9 +73,10 @@ exclusão/arquivamento fica fora do primeiro incremento até ONG-03.
 
 ## 11. Validações
 
-Estado limitado a `AVAILABLE`/`ADOPTED`; 1–3 fotos. Campos obrigatórios, vocabulário,
-limites textuais, formato/tamanho de imagem e sanitização continuam pendentes; valores exatos
-não podem ser inferidos do protótipo.
+Estado limitado a `AVAILABLE`/`ADOPTED`; 1–3 fotos. O cliente valida tipo `image/*`, limite
+técnico provisório de 5 MB por foto e quantidade antes do envio. Campos obrigatórios,
+vocabulário, limites textuais, política definitiva de formato/tamanho, armazenamento e
+sanitização continuam pendentes; valores exatos não podem ser inferidos do protótipo.
 
 ## 12. Requisitos de segurança
 
@@ -102,5 +106,9 @@ sincronizados. Exclusão/arquivamento permanece fora do primeiro incremento.
 
 **Parcial no worktree.** CRUD de animais usa a API Spring e persiste via Flyway; os estados
 continuam somente `AVAILABLE` e `ADOPTED`. A exclusão definitiva não existe na API (DELETE
-retorna 405) nem na interface, enquanto ONG-03 estiver pendente. Fotos seguem como URLs e
-upload/armazenamento de arquivos não está implementado.
+retorna 405) nem na interface, enquanto ONG-03 estiver pendente. A interface permite escolher
+de 1 a 3 imagens da galeria, validar tipo/tamanho provisórios, pré-visualizar, remover,
+substituir e reordenar. O envio depende de um endpoint externo configurado em
+`VITE_PHOTO_UPLOAD_URL` e de storage remoto; sem essa configuração, fotos locais não são
+salvas e o formulário informa o bloqueio. O backend atual persiste apenas URLs de fotos e
+ainda não implementa upload binário nem storage definitivo (ONG-06).

@@ -1,11 +1,13 @@
-import { Instagram, Mail, MapPin, Phone } from "lucide-react";
-import { Link } from "react-router";
-import logoSaal from "../../imports/logo_fundo_0.png";
+import { Instagram, Mail, MapPin, Phone } from "lucide-react"
+
+import { Link } from "react-router"
+
+import logoSaal from "../../imports/logo_fundo_0.png"
 
 export function Footer() {
   return (
     <footer className="bg-[#2E7D6B] text-white">
-      <div className="container mx-auto px-4 py-12">
+      <div className="container mx-auto px-4 py-8 sm:py-12">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* Logo & Missão */}
           <div>
@@ -17,11 +19,14 @@ export function Footer() {
               />
               <div>
                 <h3 className="font-semibold">SAAL</h3>
-                <p className="text-xs text-[#F5EFE6]">Santuário de Animais Anjos da Luz</p>
+                <p className="text-xs text-[#F5EFE6]">
+                  Santuário de Animais Anjos da Luz
+                </p>
               </div>
             </div>
             <p className="text-sm text-[#F5EFE6]">
-              Resgatando, cuidando e encontrando lares amorosos para animais que precisam de uma segunda chance.
+              Resgatando, cuidando e encontrando lares amorosos para animais que
+              precisam de uma segunda chance.
             </p>
           </div>
 
@@ -29,16 +34,28 @@ export function Footer() {
           <div>
             <h4 className="font-semibold mb-4">Links Rápidos</h4>
             <div className="flex flex-col gap-2">
-              <Link to="/" className="text-sm text-[#F5EFE6] hover:text-[#E4B04A] transition-colors">
+              <Link
+                to="/"
+                className="flex min-h-11 items-center text-sm text-[#F5EFE6] transition-colors hover:text-[#E4B04A]"
+              >
                 Início
               </Link>
-              <Link to="/animais" className="text-sm text-[#F5EFE6] hover:text-[#E4B04A] transition-colors">
+              <Link
+                to="/animais"
+                className="flex min-h-11 items-center text-sm text-[#F5EFE6] transition-colors hover:text-[#E4B04A]"
+              >
                 Animais para Adoção
               </Link>
-              <Link to="/contato" className="text-sm text-[#F5EFE6] hover:text-[#E4B04A] transition-colors">
+              <Link
+                to="/contato"
+                className="flex min-h-11 items-center text-sm text-[#F5EFE6] transition-colors hover:text-[#E4B04A]"
+              >
                 Contato
               </Link>
-              <Link to="/admin" className="text-sm text-[#E4B04A] hover:text-white transition-colors font-semibold mt-2">
+              <Link
+                to="/admin"
+                className="mt-1 flex min-h-11 items-center text-sm font-semibold text-[#E4B04A] transition-colors hover:text-white"
+              >
                 Área Administrativa
               </Link>
             </div>
@@ -48,15 +65,26 @@ export function Footer() {
           <div>
             <h4 className="font-semibold mb-4">Contato</h4>
             <div className="flex flex-col gap-3">
-              <a href="tel:+5515996927636" className="flex items-center gap-2 text-sm text-[#F5EFE6] hover:text-[#E4B04A] transition-colors">
+              <a
+                href="tel:+5515996927636"
+                className="flex min-h-11 items-center gap-2 text-sm text-[#F5EFE6] transition-colors hover:text-[#E4B04A]"
+              >
                 <Phone size={16} />
                 (15) 99692-7636
               </a>
-              <a href="mailto:contato@saal.com.br" className="flex items-center gap-2 text-sm text-[#F5EFE6] hover:text-[#E4B04A] transition-colors">
+              <a
+                href="mailto:contato@saal.com.br"
+                className="flex min-h-11 items-center gap-2 break-all text-sm text-[#F5EFE6] transition-colors hover:text-[#E4B04A]"
+              >
                 <Mail size={16} />
                 contato@saal.com.br
               </a>
-              <a href="https://www.instagram.com/ongsaal" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-[#F5EFE6] hover:text-[#E4B04A] transition-colors">
+              <a
+                href="https://www.instagram.com/ongsaal"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex min-h-11 items-center gap-2 text-sm text-[#F5EFE6] transition-colors hover:text-[#E4B04A]"
+              >
                 <Instagram size={16} />
                 @ongsaal
               </a>
@@ -69,10 +97,15 @@ export function Footer() {
         </div>
 
         <div className="border-t border-[#6FAE9C] mt-8 pt-6 text-center text-sm text-[#F5EFE6]">
-          <p>© 2026 SAAL - Santuário de Animais Anjos da Luz. Todos os direitos reservados.</p>
-          <p className="text-xs mt-1 text-[#6FAE9C]">ONG sem fins lucrativos • Capão Bonito - SP</p>
+          <p>
+            © 2026 SAAL - Santuário de Animais Anjos da Luz. Todos os direitos
+            reservados.
+          </p>
+          <p className="text-xs mt-1 text-[#6FAE9C]">
+            ONG sem fins lucrativos • Capão Bonito - SP
+          </p>
         </div>
       </div>
     </footer>
-  );
+  )
 }

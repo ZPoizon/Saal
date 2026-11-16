@@ -34,4 +34,14 @@ describe("withImageParams", () => {
   it("devolve a própria URL quando ela é vazia", () => {
     expect(withImageParams("", { w: 100 })).toBe("")
   })
+
+  it("não altera prévias locais blob: nem data:", () => {
+    expect(withImageParams("blob:https://saal.example/abc", { w: 100 })).toBe(
+      "blob:https://saal.example/abc",
+    )
+
+    expect(withImageParams("data:image/png;base64,abc", { w: 100 })).toBe(
+      "data:image/png;base64,abc",
+    )
+  })
 })
