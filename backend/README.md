@@ -19,6 +19,21 @@ não operar com dados reais até resolução desses pontos. A política definiti
 (ONG-06) segue pendente: formato, limite de 5 MB, EXIF e retenção são decisões técnicas
 provisórias documentadas em ADR-007.
 
+## Desenvolvimento local com um comando
+
+Na raiz do repositório, com Docker Desktop aberto e as dependências do frontend instaladas,
+execute:
+
+```powershell
+pnpm dev
+```
+
+O comando gera credenciais locais aleatórias (na primeira execução), sobe MySQL e API com
+Docker Compose, aguarda a API e inicia o Vite em `http://localhost:8443`. A senha do
+administrador é exibida somente na primeira execução; preserve `backend/.env.dev`, que é
+ignorado pelo Git e também contém as credenciais do banco. `Ctrl+C` encerra os containers sem
+remover o volume do banco. Para pará-los separadamente, use `pnpm dev:stop` na raiz.
+
 ## Preparação
 
 - JDK 21 ativo (`java -version` e `javac -version`)

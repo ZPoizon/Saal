@@ -1,44 +1,29 @@
 # SAAL — Santuário de Animais Anjos da Luz
 
-Frontend web do SAAL em React 18, TypeScript, Vite e pnpm. A API Spring Boot, as migrations
-Flyway e o MySQL ficam em `backend/` e são **opcionais** para trabalhar na interface.
+Aplicação web do SAAL em React 18, TypeScript, Vite e pnpm, com API Spring Boot e MySQL local
+para desenvolver o painel administrativo.
 
 ## Abrir localmente
 
-Requisitos: Node.js 22 (`>=22.12 <23`, ver `.mise.toml`) e pnpm 10.34.3.
+Requisitos: Node.js 22 (`>=22.12 <23`), pnpm 10.34.3 e Docker Desktop aberto.
 
-```bash
+```powershell
 pnpm install --frozen-lockfile
 pnpm dev
 ```
 
-Abra <http://localhost:8443/>. **Não é necessário** Docker, MySQL ou Java.
+Abra <http://localhost:8443/> e acesse `/admin`. Na primeira execução, `pnpm dev` cria
+credenciais administrativas aleatórias para esta máquina e as mostra uma única vez no
+terminal. Guarde a senha; ela também fica no arquivo local ignorado pelo Git
+`backend/.env.dev`. O comando inicia MySQL e API em containers e encaminha `/api` para a API
+local. Não há conta padrão, backend simulado nem dependência da API publicada.
 
-Por padrão, `pnpm dev` encaminha `/api` para a API publicada em
-`https://saal-api.onrender.com`. Se a API estiver hibernando ou indisponível, o site continua
-abrindo: catálogo e listas aparecem vazios e `/admin` permanece bloqueado com aviso explícito.
-Nenhum dado é inventado ou gravado no navegador.
+Mantenha `backend/.env.dev`: ele contém as credenciais locais do banco e do administrador. Ao
+pressionar `Ctrl+C`, a aplicação e os containers são encerrados sem apagar os dados do banco.
+Se precisar parar os containers separadamente, use `pnpm dev:stop`.
 
-## Backend local (opcional)
-
-Necessário apenas para testar cadastro, login e persistência sem depender da API publicada. Em
-outro terminal, siga [`backend/README.md`](backend/README.md) para subir MySQL e a API (porta
-8080) e então aponte o proxy para ela:
-
-```powershell
-$env:SAAL_API_PROXY_TARGET = "http://localhost:8080"
-pnpm dev
-```
-
-Também é possível criar um `.env` na raiz com:
-
-```dotenv
-SAAL_API_PROXY_TARGET=http://localhost:8080
-```
-
-Sem essa variável, o Vite usa a API pública do Render; `pnpm dev` nunca depende de um backend
-ligado na sua máquina. `.env` é ignorado pelo Git; nunca coloque segredos em variáveis
-`VITE_*`, que vão para o bundle do navegador.
+O primeiro início pode demorar enquanto Docker baixa imagens e constrói a API. Se o Docker
+Desktop não estiver aberto, inicie-o e rode `pnpm dev` novamente.
 
 ## Fotos de animais
 
@@ -94,11 +79,11 @@ não comprova que já tenham rodado nem que sejam obrigatórios para merge.
 | Caminho | Finalidade |
 |---|---|
 | `src/` | Aplicação React/TypeScript, estilos e assets do frontend. |
-| `backend/` | API Spring Boot, migrations Flyway e Docker do MySQL (execução opcional). |
+| `backend/` | API Spring Boot, migrations Flyway, MySQL e configuração Docker local. |
 | `docs/` | Arquitetura, desenvolvimento, segurança, qualidade, diagnóstico e histórico; ver [`docs/README.md`](docs/README.md). |
 | `specs/` | Especificações SDD, contratos e ADRs vigentes. |
 | `openspec/` | Changes, tarefas e validação OpenSpec. |
-| `scripts/` | Utilitários de verificação do projeto. |
+| `scripts/` | Inicialização do ambiente local e utilitários de verificação. |
 | `.figma/` | Metadados e configuração do fluxo Figma Make. |
 | `guidelines/` | Orientações adicionais do projeto. |
 

@@ -17,6 +17,7 @@ migration_password="$(escape_sql_literal "$SAAL_DB_MIGRATION_PASSWORD")"
 
 MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysql --protocol=socket --user=root <<SQL
 CREATE USER 'saal_runtime'@'%' IDENTIFIED BY '${runtime_password}';
+GRANT SELECT, INSERT, UPDATE, DELETE ON saal.* TO 'saal_runtime'@'%';
 
 CREATE USER 'saal_migrator'@'%' IDENTIFIED BY '${migration_password}';
 GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER, INDEX, REFERENCES, SHOW VIEW, TRIGGER

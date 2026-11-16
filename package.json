@@ -10,7 +10,8 @@
   },
   "scripts": {
     "build": "vite build --config vite.figma.config.ts",
-    "dev": "vite --host 0.0.0.0 --config vite.figma.config.ts",
+    "dev": "node scripts/dev.mjs",
+    "dev:stop": "node scripts/dev.mjs --stop",
     "preview": "vite preview --config vite.figma.config.ts",
     "typecheck": "tsc --noEmit",
     "format": "oxfmt",

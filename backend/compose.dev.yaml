@@ -5,9 +5,9 @@ services:
     restart: unless-stopped
     environment:
       MYSQL_DATABASE: saal
-      MYSQL_ROOT_PASSWORD: ${SAAL_DB_ROOT_PASSWORD:?Defina SAAL_DB_ROOT_PASSWORD no terminal}
-      SAAL_DB_RUNTIME_PASSWORD: ${SAAL_DB_RUNTIME_PASSWORD:?Defina SAAL_DB_RUNTIME_PASSWORD no terminal}
-      SAAL_DB_MIGRATION_PASSWORD: ${SAAL_DB_MIGRATION_PASSWORD:?Defina SAAL_DB_MIGRATION_PASSWORD no terminal}
+      MYSQL_ROOT_PASSWORD: ${SAAL_DB_ROOT_PASSWORD:?Defina SAAL_DB_ROOT_PASSWORD em .env.dev}
+      SAAL_DB_RUNTIME_PASSWORD: ${SAAL_DB_RUNTIME_PASSWORD:?Defina SAAL_DB_RUNTIME_PASSWORD em .env.dev}
+      SAAL_DB_MIGRATION_PASSWORD: ${SAAL_DB_MIGRATION_PASSWORD:?Defina SAAL_DB_MIGRATION_PASSWORD em .env.dev}
     ports:
       - "127.0.0.1:3307:3306"
     volumes:
@@ -19,5 +19,24 @@ services:
       timeout: 5s
       retries: 24
       start_period: 20s
+  api:
+    build: .
+    restart: unless-stopped
+    environment:
+      PORT: 8080
+      SAAL_DB_RUNTIME_URL: jdbc:mysql://mysql:3306/saal
+      SAAL_DB_MIGRATION_URL: jdbc:mysql://mysql:3306/saal
+      SAAL_DB_USER: saal_runtime
+      SAAL_DB_PASSWORD: ${SAAL_DB_RUNTIME_PASSWORD:?Defina SAAL_DB_RUNTIME_PASSWORD em .env.dev}
+      SAAL_DB_MIGRATION_USER: saal_migrator
+      SAAL_DB_MIGRATION_PASSWORD: ${SAAL_DB_MIGRATION_PASSWORD:?Defina SAAL_DB_MIGRATION_PASSWORD em .env.dev}
+      SAAL_ADMIN_USERNAME: admin
+      SAAL_ADMIN_PASSWORD: ${SAAL_ADMIN_PASSWORD:?Defina SAAL_ADMIN_PASSWORD em .env.dev}
+      SAAL_SESSION_COOKIE_SECURE: "false"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:8080:8080"
 volumes:
   saal_mysql_data:
