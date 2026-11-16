@@ -7,6 +7,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.UUID;
 
+import br.org.saal.api.auth.TestAdminProperties;
 import org.flywaydb.core.Flyway;
 import org.flywaydb.core.api.MigrationVersion;
 import org.junit.jupiter.api.Test;
@@ -43,6 +44,7 @@ class MySqlFlywayIT {
 
     @DynamicPropertySource
     static void configureDatabase(DynamicPropertyRegistry registry) {
+        TestAdminProperties.register(registry);
         mysql.start();
         createDatabaseUsers();
         registry.add("spring.datasource.url", MySqlFlywayIT::runtimeJdbcUrl);
