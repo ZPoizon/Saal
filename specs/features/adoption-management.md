@@ -25,7 +25,8 @@ Existem manifestações persistidas e o administrador está autorizado.
 - Campos aprovados para consulta: nome, WhatsApp, cidade, e-mail e referência ao animal.
 - Filtro por animal, marcação de contato, exportação, resposta e histórico detalhado não
   existem no escopo aprovado.
-- Finalidade, retenção, acesso e autorização: `PENDENTE DE DECISÃO` (ONG-05).
+- Finalidade e retenção: `PENDENTE DE DECISÃO` (ONG-05). A autenticação/autorização técnica
+  das consultas é aplicada pelo backend; o acesso operacional ainda deve ser definido.
 
 ## 6. Fluxo principal
 
@@ -60,8 +61,8 @@ Não há status de aprovação nem histórico detalhado. Retenção e acesso pen
 
 ## 10. Contratos de API relacionados
 
-Planejado: `GET /admin/adoption-requests`, somente leitura. Não há endpoint de transição de
-status no escopo aprovado.
+Implementado: `GET /admin/interests` e `GET /admin/animals/{animalId}/interests`, somente
+leitura e protegidos por `ROLE_ADMIN`. Não há endpoint de transição de status.
 
 ## 11. Validações
 
@@ -92,7 +93,8 @@ de aprovação no escopo.
 
 ## 15. Estado atual
 
-**Protótipo parcial.** O painel não oferece transições de status; quando há dados fornecidos,
-apresenta ações manuais de WhatsApp, telefone e e-mail. O contexto atual não cria nem armazena
-solicitações e retorna uma lista vazia até integração com backend. Não há persistência,
-filtros, resposta, exportação ou histórico.
+**Implementado no worktree.** O painel consulta a API autenticada e exibe animal, nome,
+WhatsApp, cidade, e-mail e data/hora, com links manuais para WhatsApp, telefone e e-mail.
+Não há transições de status, mensagens automáticas, filtros, exportação ou histórico. A
+finalidade e retenção dos dados permanecem pendentes; a integração MySQL real deve ser
+validada antes da operação.

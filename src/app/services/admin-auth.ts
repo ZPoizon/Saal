@@ -1,6 +1,6 @@
 const authApiPath = "/api/v1/auth"
 
-const csrfHeaderName = "X-CSRF-TOKEN"
+export const csrfHeaderName = "X-CSRF-TOKEN"
 
 export class AdminAuthError extends Error {
   constructor(readonly status: number) {
@@ -83,7 +83,7 @@ export async function logoutAdmin(): Promise<void> {
   }
 }
 
-async function requestCsrfToken(): Promise<string> {
+export async function requestCsrfToken(): Promise<string> {
   const response = await fetch(`${authApiPath}/csrf`, {
     credentials: "include",
 

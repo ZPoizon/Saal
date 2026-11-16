@@ -5,11 +5,16 @@ O backend é um servidor HTTP Spring Boot 4.1.2 com Java 21. Esta árvore integr
 - fundação HTTP, health check e tratamento sanitizado de erros (I2);
 - MySQL 8.4, Flyway e separação entre credenciais de runtime e de migration (I3);
 - autenticação administrativa com sessão server-side, CSRF, CORS, rate limit e autorização
-  para `/api/v1/admin/**` (I4).
+  para `/api/v1/admin/**` (I4);
+- catálogo de animais persistido (`animal` e `animal_photo`), com CRUD administrativo e
+  leitura pública;
+- manifestações de interesse persistidas em `animal_interest`, com envio público e consultas
+  administrativas protegidas.
 
-Ainda **não** existem tabelas de negócio, CRUD de animais, upload, solicitações de adoção
-ou persistência de dados pessoais. As regras de domínio que dependem de decisão da ONG não
-foram inventadas.
+Ainda **não** existem upload de arquivos (as fotos são referências/URLs), solicitações de
+adoção com workflow nem mensagens automáticas. O intake armazena os campos definidos para
+contato; finalidade/base legal e retenção continuam pendentes, portanto não operar com dados
+reais até resolução desses pontos.
 
 ## Preparação
 
@@ -23,7 +28,7 @@ foram inventadas.
 Em PowerShell, use senhas pessoais SOMENTE locais. Não publique em commit, logs ou screenshots:
 
 ```powershell
-cd C:\Users\leona\IdeaProjects\Saal-integrado\backend
+cd C:\Users\nezio\IdeaProjects\Saal\backend
 $env:SAAL_DB_RUNTIME_PASSWORD = Read-Host 'Senha runtime local'
 $env:SAAL_DB_MIGRATION_PASSWORD = Read-Host 'Senha de migration local'
 $env:SAAL_DB_ROOT_PASSWORD = Read-Host 'Senha root somente local'
@@ -41,7 +46,7 @@ volume vazio; não remova um volume existente para reaplicar grants.
 ### Configurar o backend
 
 ```powershell
-cd C:\Users\leona\IdeaProjects\Saal-integrado\backend
+cd C:\Users\nezio\IdeaProjects\Saal\backend
 $env:SAAL_DB_RUNTIME_URL = 'jdbc:mysql://127.0.0.1:3307/saal'
 $env:SAAL_DB_MIGRATION_URL = 'jdbc:mysql://127.0.0.1:3307/saal'
 $env:SAAL_DB_USER = 'saal_runtime'
@@ -102,7 +107,8 @@ Respostas esperadas:
 - `GET /actuator/health` → `200` e `{"status":"UP"}`
 - `GET /api/v1/system/status` → `200` e `{"service":"saal-api","status":"RUNNING"}`
 - `GET /api/v1/auth/session` → `200` e `{"authenticated":false}` sem sessão
-- `GET /api/v1/animals` → `404` (não implementado; não existe catálogo falso)
+- `GET /api/v1/animals` → `200` com um array JSON dos animais disponíveis
+- `GET /api/v1/animals/{id}` → `200` com o animal ou `404` quando não existe
 
 ## Testes e build
 
@@ -112,11 +118,10 @@ Respostas esperadas:
 .\mvnw.cmd -B -ntp -Pdb-integration verify
 ```
 
-`test` usa H2 **somente para testes básicos** e preserva os testes da API I2, domínio,
-autenticação e autorização. O teste `MySqlFlywayIT` usa Testcontainers com MySQL 8.4 real;
-cria uma tabela **apenas em test/resources**, conferindo Flyway, credenciais separadas,
-privilégios limitados, upgrade com preservação de dados sintéticos e backup/restauração em
-schema isolado.
+`test` usa H2 em modo MySQL e cobre domínio, API I2, autenticação, autorização e o CRUD de
+animais (`AnimalApiHttpTest`). O teste `MySqlFlywayIT` usa Testcontainers com MySQL 8.4 real
+para conferir Flyway, credenciais separadas, privilégios limitados, upgrade com preservação
+de dados sintéticos e backup/restauração em schema isolado.
 
 O CI executa obrigatoriamente os testes unitários e o perfil `db-integration`; Docker local
 é opcional para os testes unitários, mas obrigatório para o teste de integração.
@@ -129,12 +134,13 @@ O CI executa obrigatoriamente os testes unitários e o perfil `db-integration`; 
 
 ## O que NÃO foi implementado
 
-- Nenhuma tabela real `Animal`, `AnimalImage`, `AdoptionRequest` ou `Administrator`;
-  campos, privacidade e storage continuam pendentes.
-- Nenhum endpoint de negócio `/api/v1/animals` ou POST administrativo de animais.
-- Nenhum upload, envio de interessados, deploy ou armazenamento de PII.
-- O frontend React mantém dados mockados e operações em memória; a integração atual cobre
-  identidade administrativa e infraestrutura, não a persistência do catálogo.
+- Upload e armazenamento de arquivos de imagem: as fotos são URLs (`animal_photo`), sem
+  storage próprio; a solução definitiva segue pendente (ONG-06).
+- Workflow de adoção, cadastro de interessados, mensagens automáticas e gerenciamento de
+  consentimento/retencao.
+- Deploy, envio de interessados e armazenamento de PII.
+- A integração MySQL real depende de executar `.\mvnw.cmd -B -ntp -Pdb-integration verify`;
+  a implantação e a API disponível fora do ambiente local não são presumidas.
 
 O ensaio de backup/restauração é somente mecânico e usa dados sintéticos em container
 descartável. Consulte [`docs/mysql-backup-restore.md`](docs/mysql-backup-restore.md) para o
@@ -146,6 +152,10 @@ procedimento validado e os gates operacionais antes de qualquer dado real.
 - `domain/AnimalStatus`: estados `AVAILABLE`, `ADOPTED` informados pela ONG.
 - `domain/AdoptionEligibilityPolicy`: regra de não aceitar interesse por animal adotado.
 - `domain/AnimalPhotoPolicy`: limite de 1 a 3 fotos.
+- `animal/`: entidade, repositório, serviço, DTOs e controllers público/administrativo.
+- `src/main/resources/db/migration/V1__create_animal_catalog.sql`: schema `animal`/`animal_photo`.
+- `src/main/resources/db/migration/V2__create_animal_interest.sql`: interesse associado a
+  animal; V1 permanece imutável.
 - `database/DatabaseCredentialSeparationValidator`: impede reutilização de credenciais.
 - `error/GlobalErrorHandler`: resposta sanitizada para exceções não previstas.
 - `auth/`: sessão, CSRF, credencial BCrypt, rate limit e autorização server-side.
@@ -154,9 +164,10 @@ procedimento validado e os gates operacionais antes de qualquer dado real.
 
 ## Quando as regras da ONG forem destravadas
 
-Adicionar migrations de negócio em `src/main/resources/db/migration` somente após aprovação
-dos campos/modelo, com FK, índices, restrições e testes MySQL. O registro atual ainda não
-aprova schema de produto. Nunca usar `ddl-auto=update` para schema em produção.
+Novas migrations devem seguir em `src/main/resources/db/migration`, com FK, índices,
+restrições e testes MySQL. O schema atual preserva o protótipo, mas ainda depende de
+aprovação de campos/modelo (ONG-05/ONG-10). Nunca usar `ddl-auto=update` para schema em
+produção.
 
 ## Referências de escopo
 

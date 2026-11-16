@@ -86,16 +86,34 @@ class MySqlFlywayIT {
     JdbcTemplate jdbc;
 
     @Test
-    void flywayMigraUsandoContaSeparadaEContaRuntimeNaoLeTabelas() throws SQLException {
+    void flywayAplicaCatalogoEInteressesSemDarAcessoDeLeituraAoRuntime() throws SQLException {
         assertEquals(1, jdbc.queryForObject("SELECT 1", Integer.class));
         assertThrows(
                 DataAccessException.class,
-                () -> jdbc.queryForObject("SELECT COUNT(*) FROM saal_test_pipeline", Integer.class));
+                () -> jdbc.queryForObject("SELECT COUNT(*) FROM animal", Integer.class));
+        assertThrows(
+                DataAccessException.class,
+                () -> jdbc.queryForObject("SELECT COUNT(*) FROM animal_interest", Integer.class));
 
         try (Connection connection = migrationConnection();
              Statement statement = connection.createStatement()) {
             try (ResultSet result = statement.executeQuery(
                     "SELECT COUNT(*) FROM flyway_schema_history WHERE success = 1")) {
+                result.next();
+                assertEquals(2, result.getInt(1));
+            }
+            try (ResultSet result = statement.executeQuery(
+                    "SELECT COUNT(*) FROM information_schema.tables "
+                            + "WHERE table_schema = 'saal_it' "
+                            + "AND table_name = 'animal_interest'")) {
+                result.next();
+                assertEquals(1, result.getInt(1));
+            }
+            try (ResultSet result = statement.executeQuery(
+                    "SELECT COUNT(*) FROM information_schema.key_column_usage "
+                            + "WHERE table_schema = 'saal_it' "
+                            + "AND table_name = 'animal_interest' "
+                            + "AND referenced_table_name = 'animal'")) {
                 result.next();
                 assertEquals(1, result.getInt(1));
             }

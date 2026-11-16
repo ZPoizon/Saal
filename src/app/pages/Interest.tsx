@@ -2,16 +2,37 @@ import { useParams, Link, useNavigate } from "react-router"
 
 import { ArrowLeft, Heart } from "lucide-react"
 
-import { getAnimalById } from "../data/animals"
+import { useRef, useState } from "react"
 
-import { useState } from "react"
+import { useAsync } from "../hooks/useAsync"
+
+import { AnimalApiError, getPublicAnimal } from "../services/animals-api"
+
+import {
+  InterestApiError,
+  submitAnimalInterest,
+} from "../services/interests-api"
+
+import { validateInterestForm } from "../utils/interest-validation"
+
+import { withImageParams } from "../utils/images"
 
 export function Interest() {
   const { id } = useParams<{ id: string }>()
 
   const navigate = useNavigate()
 
-  const animal = id ? getAnimalById(id) : undefined
+  const {
+    data: animal,
+
+    status,
+
+    error,
+
+    reload,
+  } = useAsync(`animal-${id ?? ""}`, () =>
+    id ? getPublicAnimal(id) : Promise.reject(new AnimalApiError(404)),
+  )
 
   const [formData, setFormData] = useState({
     name: "",
@@ -23,28 +44,132 @@ export function Interest() {
     city: "",
   })
 
-  if (!animal) {
+  const [fieldErrors, setFieldErrors] =
+    useState<Partial<Record<"name" | "whatsapp" | "city" | "email", string>>>(
+      {},
+    )
+
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const [submissionSucceeded, setSubmissionSucceeded] = useState(false)
+
+  const [submissionFailed, setSubmissionFailed] = useState(false)
+
+  const [submissionMessage, setSubmissionMessage] = useState<string | null>(
+    null,
+  )
+
+  const submissionLock = useRef(false)
+
+  if (status === "loading") {
+    return (
+      <div className="min-h-screen bg-[#F5EFE6] flex items-center justify-center">
+        <p role="status" className="text-[#2E7D6B]">
+          Carregando animal…
+        </p>
+      </div>
+    )
+  }
+
+  if (status === "error" || !animal) {
+    const notFound = error instanceof AnimalApiError && error.status === 404
+
     return (
       <div className="min-h-screen bg-[#F5EFE6] flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-bold text-[#2E7D6B] mb-4">
-            Animal não encontrado
+            {notFound
+              ? "Animal não encontrado"
+              : "Não foi possível carregar este animal"}
           </h2>
-          <Link to="/animais" className="text-[#E4B04A] hover:underline">
-            Voltar para lista de animais
-          </Link>
+          {notFound ? (
+            <Link to="/animais" className="text-[#E4B04A] hover:underline">
+              Voltar para lista de animais
+            </Link>
+          ) : (
+            <button
+              type="button"
+              onClick={reload}
+              className="text-[#E4B04A] hover:underline"
+            >
+              Tentar novamente
+            </button>
+          )}
         </div>
       </div>
     )
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({
-      ...formData,
+    const { name, value } = e.target
 
-      [e.target.name]: e.target.value,
-    })
+    setFormData((current) => ({ ...current, [name]: value }))
+
+    setFieldErrors((current) => ({ ...current, [name]: undefined }))
   }
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+
+    if (submissionLock.current || submissionSucceeded) return
+
+    const errors = validateInterestForm({
+      fullName: formData.name,
+      whatsapp: formData.whatsapp,
+      city: formData.city,
+      email: formData.email,
+    })
+
+    setFieldErrors({
+      name: errors.fullName,
+      whatsapp: errors.whatsapp,
+      city: errors.city,
+      email: errors.email,
+    })
+    setSubmissionMessage(null)
+    setSubmissionFailed(false)
+
+    if (Object.keys(errors).length > 0) return
+
+    submissionLock.current = true
+    setIsSubmitting(true)
+
+    try {
+      const receipt = await submitAnimalInterest(animal.id, {
+        fullName: formData.name,
+        whatsapp: formData.whatsapp,
+        city: formData.city,
+        email: formData.email,
+      })
+
+      if (!receipt.received) {
+        throw new Error("A API não confirmou o recebimento.")
+      }
+
+      setSubmissionSucceeded(true)
+      setSubmissionMessage(
+        "Recebemos sua manifestação de interesse. A equipe fará a avaliação manual; este envio não confirma a adoção.",
+      )
+    } catch (error) {
+      const status = error instanceof InterestApiError ? error.status : null
+
+      setSubmissionFailed(true)
+      setSubmissionMessage(
+        status === 409
+          ? "Este animal não está mais disponível para receber manifestações."
+          : status === 429
+            ? "Não foi possível registrar agora. Tente novamente mais tarde."
+            : status === 400
+              ? "Revise os dados informados e tente novamente."
+              : "Não foi possível enviar sua manifestação. Seus dados permanecem no formulário; tente novamente.",
+      )
+    } finally {
+      submissionLock.current = false
+      setIsSubmitting(false)
+    }
+  }
+
+  const animalAvailable = animal.status === "available"
 
   return (
     <div className="min-h-screen bg-[#F5EFE6] py-8">
@@ -75,7 +200,13 @@ export function Interest() {
           <div className="bg-white rounded-2xl p-6 md:p-8 shadow-lg mb-6">
             <div className="flex items-center gap-4 pb-6 border-b border-[#F5EFE6]">
               <img
-                src={`${animal.images[0]}?w=100&h=100&fit=crop`}
+                src={withImageParams(animal.images[0] ?? "", {
+                  w: 100,
+
+                  h: 100,
+
+                  fit: "crop",
+                })}
                 alt={animal.name}
                 className="w-20 h-20 rounded-xl object-cover"
               />
@@ -91,7 +222,7 @@ export function Interest() {
             </div>
 
             <form
-              onSubmit={(event) => event.preventDefault()}
+              onSubmit={handleSubmit}
               className="mt-6 space-y-4"
               aria-describedby="interest-form-status"
             >
@@ -103,11 +234,28 @@ export function Interest() {
                   type="text"
                   id="name"
                   name="name"
+                  required
+                  maxLength={120}
+                  autoComplete="name"
+                  aria-invalid={Boolean(fieldErrors.name)}
+                  aria-describedby={fieldErrors.name ? "name-error" : undefined}
+                  disabled={
+                    !animalAvailable || isSubmitting || submissionSucceeded
+                  }
                   value={formData.name}
                   onChange={handleChange}
                   className="w-full px-4 py-3 bg-[#F5EFE6] rounded-lg border-none focus:outline-none focus:ring-2 focus:ring-[#E4B04A]"
                   placeholder="Seu nome completo"
                 />
+                {fieldErrors.name && (
+                  <p
+                    id="name-error"
+                    role="alert"
+                    className="mt-1 text-sm text-red-700"
+                  >
+                    {fieldErrors.name}
+                  </p>
+                )}
               </div>
 
               <div>
@@ -118,11 +266,30 @@ export function Interest() {
                   type="tel"
                   id="whatsapp"
                   name="whatsapp"
+                  required
+                  maxLength={32}
+                  autoComplete="tel"
+                  aria-invalid={Boolean(fieldErrors.whatsapp)}
+                  aria-describedby={
+                    fieldErrors.whatsapp ? "whatsapp-error" : undefined
+                  }
+                  disabled={
+                    !animalAvailable || isSubmitting || submissionSucceeded
+                  }
                   value={formData.whatsapp}
                   onChange={handleChange}
                   className="w-full px-4 py-3 bg-[#F5EFE6] rounded-lg border-none focus:outline-none focus:ring-2 focus:ring-[#E4B04A]"
                   placeholder="(11) 99999-9999"
                 />
+                {fieldErrors.whatsapp && (
+                  <p
+                    id="whatsapp-error"
+                    role="alert"
+                    className="mt-1 text-sm text-red-700"
+                  >
+                    {fieldErrors.whatsapp}
+                  </p>
+                )}
               </div>
 
               <div>
@@ -133,11 +300,28 @@ export function Interest() {
                   type="text"
                   id="city"
                   name="city"
+                  required
+                  maxLength={120}
+                  autoComplete="address-level2"
+                  aria-invalid={Boolean(fieldErrors.city)}
+                  aria-describedby={fieldErrors.city ? "city-error" : undefined}
+                  disabled={
+                    !animalAvailable || isSubmitting || submissionSucceeded
+                  }
                   value={formData.city}
                   onChange={handleChange}
                   className="w-full px-4 py-3 bg-[#F5EFE6] rounded-lg border-none focus:outline-none focus:ring-2 focus:ring-[#E4B04A]"
                   placeholder="Sua cidade"
                 />
+                {fieldErrors.city && (
+                  <p
+                    id="city-error"
+                    role="alert"
+                    className="mt-1 text-sm text-red-700"
+                  >
+                    {fieldErrors.city}
+                  </p>
+                )}
               </div>
 
               <div>
@@ -148,37 +332,67 @@ export function Interest() {
                   type="email"
                   id="email"
                   name="email"
+                  required
+                  maxLength={160}
+                  autoComplete="email"
+                  aria-invalid={Boolean(fieldErrors.email)}
+                  aria-describedby={
+                    fieldErrors.email ? "email-error" : undefined
+                  }
+                  disabled={
+                    !animalAvailable || isSubmitting || submissionSucceeded
+                  }
                   value={formData.email}
                   onChange={handleChange}
                   className="w-full px-4 py-3 bg-[#F5EFE6] rounded-lg border-none focus:outline-none focus:ring-2 focus:ring-[#E4B04A]"
                   placeholder="seu.email@exemplo.com"
                 />
+                {fieldErrors.email && (
+                  <p
+                    id="email-error"
+                    role="alert"
+                    className="mt-1 text-sm text-red-700"
+                  >
+                    {fieldErrors.email}
+                  </p>
+                )}
               </div>
 
               <p
                 id="interest-form-status"
-                role="status"
-                className="rounded-lg border border-[#E4B04A]/50 bg-[#F5EFE6] p-3 text-sm text-[#416f65]"
+                role={submissionFailed ? "alert" : "status"}
+                aria-live={submissionFailed ? "assertive" : "polite"}
+                className={`rounded-lg border p-3 text-sm ${
+                  submissionFailed
+                    ? "border-red-300 bg-red-50 text-red-700"
+                    : "border-[#E4B04A]/50 bg-[#F5EFE6] text-[#416f65]"
+                }`}
               >
-                O envio ainda não está conectado ao backend. Os dados digitados
-                ficam somente nesta tela e não são enviados nem persistidos pelo
-                SAAL.
+                {!animalAvailable
+                  ? "Este animal não está disponível para receber manifestações de interesse."
+                  : (submissionMessage ??
+                    "A manifestação será registrada para avaliação manual da equipe. O envio não confirma a adoção.")}
               </p>
-              <button
-                type="button"
-                disabled
-                className="w-full cursor-not-allowed rounded-full bg-[#E4B04A] py-4 font-semibold text-white opacity-60 shadow-md"
-              >
-                Envio indisponível nesta versão
-              </button>
+              {animalAvailable && (
+                <button
+                  type="submit"
+                  disabled={isSubmitting || submissionSucceeded}
+                  className="w-full rounded-full bg-[#E4B04A] py-4 font-semibold text-white shadow-md transition-all hover:bg-[#d4a03a] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {isSubmitting
+                    ? "Enviando…"
+                    : submissionSucceeded
+                      ? "Manifestação recebida"
+                      : "Enviar manifestação"}
+                </button>
+              )}
             </form>
           </div>
 
           <div className="bg-[#2E7D6B]/10 border border-[#2E7D6B] rounded-xl p-4 text-sm text-[#2E7D6B]">
             <p>
               <strong>Importante:</strong> A manifestação não aprova a adoção. A
-              avaliação é manual; o envio será habilitado quando o backend
-              estiver integrado.
+              avaliação é feita manualmente pela equipe.
             </p>
           </div>
         </div>

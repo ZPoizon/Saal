@@ -22,11 +22,13 @@ Visitante interessado; equipe SAAL como destinatária futura.
 
 - Campos aprovados para coleta: nome, WhatsApp, cidade e e-mail, além da referência ao animal
   (ONG-05, parcial).
+- Os quatro campos são obrigatórios. Nome tem 3–120 caracteres; cidade, 2–120; WhatsApp,
+  até 32 caracteres e 10–15 dígitos; e-mail, até 160 caracteres.
 - O campo de mensagem do protótipo não foi aprovado e não deve ser persistido.
 - A avaliação é manual pela ONG; o contato é feito pelo WhatsApp. Não há workflow de status
   nem transições de aprovação/recusa (ONG-04, parcial).
-- Obrigatoriedade individual, consentimento/base legal, finalidade, aviso de privacidade,
-  duplicidade, retenção, acesso e prazo de resposta: `PENDENTE DE DECISÃO`.
+- Consentimento/base legal, finalidade, aviso de privacidade, duplicidade entre envios,
+  retenção, acesso e prazo de resposta: `PENDENTE DE DECISÃO`.
 
 ## 6. Fluxo principal
 
@@ -61,13 +63,15 @@ acesso continuam `PENDENTE DE DECISÃO` (ONG-05).
 
 ## 10. Contratos de API relacionados
 
-Planejado: `POST /adoption-requests`. Não implementado.
+Implementado: `POST /animals/{animalId}/interests`; a resposta pública contém somente recibo
+mínimo, sem PII. Animal ausente retorna 404 e animal não disponível retorna 409.
 
 ## 11. Validações
 
-Cliente: formato dos campos aprovados. Servidor futuro: todos os campos, limites de tamanho,
-animal existente e `AVAILABLE` e normalização de WhatsApp. Obrigatoriedade e limites são
-`PENDENTE DE DECISÃO`; a validação do servidor é autoritativa.
+Cliente e servidor validam todos os campos e limites acima; o servidor verifica
+autoritativamente se o animal existe e está `AVAILABLE`. Limites antiabuso: até cinco
+registros por IP em dez minutos, com bloqueio por quinze minutos; o controle é em memória e
+por instância.
 
 ## 12. Requisitos de segurança
 
@@ -91,7 +95,9 @@ automatizados, typecheck/build válidos e documentação LGPD aprovada.
 
 ## 15. Estado atual
 
-**Protótipo.** A interface apresenta somente nome, WhatsApp, cidade e e-mail, sem campo de
-mensagem. O envio permanece desabilitado até existir integração aprovada com backend; os
-dados digitados não são transmitidos nem armazenados. Não há persistência, consentimento,
-anti-spam, API ou notificação.
+**Implementado no worktree.** Formulário React valida e envia os quatro campos à API Spring;
+há estados de carregamento, confirmação somente após resposta positiva, tratamento genérico
+de erro e trava contra cliques duplicados. Flyway V2 persiste a manifestação associada ao
+animal. Não há login do visitante, workflow, mensagens automáticas ou exposição pública de
+PII. Finalidade, base legal, aviso de privacidade e retenção continuam pendentes; não operar
+com dados reais até sua definição.

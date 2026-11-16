@@ -59,15 +59,24 @@ class SystemStatusHttpTest {
     }
 
     @Test
-    void endpointDeNegocioNaoImplementadoNaoEhSimulado() throws Exception {
+    void catalogoPublicoDeAnimaisRespondeComListaJson() throws Exception {
         HttpResponse<String> response = get("/api/v1/animals");
+        assertEquals(200, response.statusCode());
+        assertEquals(
+                MediaType.APPLICATION_JSON_VALUE,
+                response.headers().firstValue("Content-Type").orElse(null));
+        assertTrue(response.body().startsWith("["), response.body());
+        assertFalse(response.body().contains("\"animals\":"), response.body());
+    }
+
+    @Test
+    void recursoInexistenteRetornaProblemDetailSemConteudoInterno() throws Exception {
+        HttpResponse<String> response = get("/api/v1/recurso-inexistente");
         assertEquals(404, response.statusCode());
         assertEquals(
                 MediaType.APPLICATION_PROBLEM_JSON_VALUE,
                 response.headers().firstValue("Content-Type").orElse(null));
         assertTrue(response.body().contains("\"status\":404"), response.body());
-        assertTrue(response.body().contains("\"instance\":\"/api/v1/animals\""), response.body());
-        assertFalse(response.body().contains("\"animals\":"));
     }
 
     @Test

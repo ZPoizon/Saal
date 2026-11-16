@@ -7,10 +7,11 @@ desenvolvimento e os dados da ONG. Usa OWASP ASVS e OWASP Top 10 como referênci
 com controles proporcionais ao sistema. Não é uma certificação ASVS nem afirma conformidade
 regulatória.
 
-O estado atual é um protótipo frontend sem servidor ou persistência. A rota e autenticação
-administrativas atuais não oferecem segurança real. Regras de acesso no cliente são apenas
-UX; toda autorização e validação de segurança deve ser aplicada no servidor quando este
-existir. O contrato OpenAPI é planejado, não um backend ativo.
+O repositório contém backend Spring Boot com autenticação por sessão, CSRF, autorização
+server-side, validação e persistência Flyway/MySQL configurável. Isso não prova deploy,
+integração MySQL operacional ou conformidade de produção. Regras de acesso no cliente são
+apenas UX; autorização e validação de segurança são aplicadas no servidor. A finalidade,
+base legal e retenção dos dados pessoais permanecem pendentes.
 
 ## Requisitos para implementação
 

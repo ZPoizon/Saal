@@ -19,8 +19,8 @@ O identificador existe no conjunto de dados acessível.
 
 ## 5. Regras de negócio
 
-- Exibir galeria de 1–3 fotos e estado. Nome, idade, porte, sexo, espécie, descrição,
-  personalidade e informação médica continuam `PENDENTE DE DECISÃO` (ONG-10).
+- Exibir galeria de 1–3 fotos e estado. Informação médica não deve ser retornada nem exibida
+  publicamente até definição dos campos autorizados (ONG-05/ONG-10).
 - Exibir ação de manifestação de interesse apenas para estado `AVAILABLE`.
 - Para `ADOPTED`, identificar o animal como adotado e não oferecer a ação. A visibilidade
   pública de adotados depende de ONG-02.
@@ -38,7 +38,7 @@ O identificador existe no conjunto de dados acessível.
 
 - ID inexistente: mostrar mensagem e retorno ao catálogo.
 - Navegador sem Web Share API: o botão atual não executa fallback.
-- Falha futura da API: apresentação `PENDENTE DE IMPLEMENTAÇÃO`.
+- Falha da API: exibir erro recuperável e permitir nova tentativa.
 
 ## 8. Critérios de aceitação
 
@@ -58,7 +58,7 @@ campos públicos continuam `PENDENTE DE DECISÃO` (ONG-10).
 
 ## 10. Contratos de API relacionados
 
-Planejado: `GET /animals/{animalId}`. Não implementado.
+Implementado: `GET /animals/{animalId}`. A resposta pública omite informação médica.
 
 ## 11. Validações
 
@@ -85,5 +85,5 @@ validada, typecheck/build válidos e interface preservada.
 
 ## 15. Estado atual
 
-**Protótipo.** Funciona com dados mockados e Web Share API; sem API e sem fallback de
-compartilhamento.
+**Parcial no worktree.** O detalhe usa a API, indica status e oferece interesse somente para
+animais disponíveis. A informação médica não é pública; Web Share API não possui fallback.

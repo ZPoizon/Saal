@@ -1,17 +1,23 @@
 export type AnimalStatus = "available" | "adopted"
 
+export type AnimalSpecies = "dog" | "cat"
+
+export type AnimalSize = "pequeno" | "médio" | "grande"
+
+export type AnimalSex = "macho" | "fêmea"
+
 export interface Animal {
   id: string
 
   name: string
 
-  species: "dog" | "cat"
+  species: AnimalSpecies
 
   age: string
 
-  size: "pequeno" | "médio" | "grande"
+  size: AnimalSize
 
-  sex: "macho" | "fêmea"
+  sex: AnimalSex
 
   status: AnimalStatus
 
@@ -24,211 +30,28 @@ export interface Animal {
   images: string[]
 }
 
-export const mockAnimals: Animal[] = [
-  {
-    id: "1",
+/**
+ * Dados aceitos para cadastro/edição. As fotos continuam sendo referências (URLs),
+ * sem upload de arquivos: a API persiste os endereços informados.
+ */
+export interface AnimalInput {
+  name: string
 
-    name: "Thor",
+  species: AnimalSpecies
 
-    species: "dog",
+  age: string
 
-    age: "3 anos",
+  size: AnimalSize
 
-    size: "grande",
+  sex: AnimalSex
 
-    sex: "macho",
+  status: AnimalStatus
 
-    status: "available",
+  description: string
 
-    description:
-      "Thor é um cachorro dócil e carinhoso que adora brincar. Foi resgatado das ruas e está pronto para encontrar uma família amorosa.",
+  personality: string[]
 
-    personality: ["Dócil", "Brincalhão", "Protetor", "Sociável"],
+  medicalInfo: string
 
-    medicalInfo: "Vacinado, castrado e vermifugado. Saudável.",
-
-    images: [
-      "https://images.unsplash.com/photo-1587300003388-59208cc962cb",
-
-      "https://images.unsplash.com/photo-1583511655857-d19b40a7a54e",
-    ],
-  },
-
-  {
-    id: "2",
-
-    name: "Luna",
-
-    species: "cat",
-
-    age: "2 anos",
-
-    size: "pequeno",
-
-    sex: "fêmea",
-
-    status: "available",
-
-    description:
-      "Luna é uma gatinha carinhosa e tranquila. Adora carinho e é perfeita para apartamento.",
-
-    personality: ["Carinhosa", "Tranquila", "Independente"],
-
-    medicalInfo: "Vacinada, castrada e saudável.",
-
-    images: [
-      "https://images.unsplash.com/photo-1574158622682-e40e69881006",
-
-      "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba",
-    ],
-  },
-
-  {
-    id: "3",
-
-    name: "Mel",
-
-    species: "dog",
-
-    age: "5 anos",
-
-    size: "médio",
-
-    sex: "fêmea",
-
-    status: "available",
-
-    description:
-      "Mel é uma cadela meiga e calma, ideal para famílias com crianças. Muito companheira e leal.",
-
-    personality: ["Meiga", "Calma", "Leal", "Ama crianças"],
-
-    medicalInfo: "Vacinada, castrada. Em tratamento de pele (melhorando).",
-
-    images: [
-      "https://images.unsplash.com/photo-1558788353-f76d92427f16",
-
-      "https://images.unsplash.com/photo-1537151608828-ea2b11777ee8",
-    ],
-  },
-
-  {
-    id: "5",
-
-    name: "Bob",
-
-    species: "dog",
-
-    age: "4 anos",
-
-    size: "médio",
-
-    sex: "macho",
-
-    status: "available",
-
-    description:
-      "Bob é um cachorro alegre e energético. Perfeito para quem gosta de atividades ao ar livre.",
-
-    personality: ["Energético", "Alegre", "Aventureiro"],
-
-    medicalInfo: "Vacinado e castrado. Totalmente saudável.",
-
-    images: [
-      "https://images.unsplash.com/photo-1552053831-71594a27632d",
-
-      "https://images.unsplash.com/photo-1561037404-61cd46aa615b",
-    ],
-  },
-
-  {
-    id: "6",
-
-    name: "Belinha",
-
-    species: "cat",
-
-    age: "6 meses",
-
-    size: "pequeno",
-
-    sex: "fêmea",
-
-    status: "available",
-
-    description:
-      "Belinha é uma filhotinha cheia de energia e amor para dar. Adora brincar e explorar.",
-
-    personality: ["Brincalhona", "Curiosa", "Amorosa"],
-
-    medicalInfo: "Primeira dose de vacina. Aguardando idade para castração.",
-
-    images: [
-      "https://images.unsplash.com/photo-1606214174585-fe31582dc6ee",
-
-      "https://images.unsplash.com/photo-1543852786-1cf6624b9987",
-    ],
-  },
-
-  {
-    id: "7",
-
-    name: "Rex",
-
-    species: "dog",
-
-    age: "7 anos",
-
-    size: "grande",
-
-    sex: "macho",
-
-    status: "adopted",
-
-    description:
-      "Rex encontrou seu lar para sempre! Era um cão muito leal e protetor.",
-
-    personality: ["Leal", "Protetor", "Calmo"],
-
-    medicalInfo: "Saudável.",
-
-    images: ["https://images.unsplash.com/photo-1568572933382-74d440642117"],
-  },
-
-  {
-    id: "8",
-
-    name: "Nina",
-
-    species: "cat",
-
-    age: "3 anos",
-
-    size: "pequeno",
-
-    sex: "fêmea",
-
-    status: "available",
-
-    description:
-      "Nina é uma gata elegante e carinhosa. Adora um cantinho quentinho para dormir.",
-
-    personality: ["Elegante", "Carinhosa", "Sonolenta"],
-
-    medicalInfo: "Vacinada e castrada.",
-
-    images: [
-      "https://images.unsplash.com/photo-1596854407944-bf87f6fdd49e",
-
-      "https://images.unsplash.com/photo-1513245543132-31f507417b26",
-    ],
-  },
-]
-
-export function getAnimalById(id: string): Animal | undefined {
-  return mockAnimals.find((animal) => animal.id === id)
-}
-
-export function getAvailableAnimals(): Animal[] {
-  return mockAnimals.filter((animal) => animal.status === "available")
+  images: string[]
 }

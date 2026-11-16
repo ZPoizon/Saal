@@ -6,6 +6,8 @@ import { motion } from "motion/react"
 
 import { Animal } from "../data/animals"
 
+import { withImageParams } from "../utils/images"
+
 interface AnimalCardProps {
   animal: Animal
 }
@@ -32,7 +34,13 @@ export function AnimalCard({ animal }: AnimalCardProps) {
       <Link to={`/animais/${animal.id}`} className="block">
         <div className="relative h-64 overflow-hidden bg-[#F5EFE6]">
           <img
-            src={`${animal.images[0]}?w=500&h=500&fit=crop`}
+            src={withImageParams(animal.images[0] ?? "", {
+              w: 500,
+
+              h: 500,
+
+              fit: "crop",
+            })}
             alt={animal.name}
             className="w-full h-full object-cover hover:scale-110 transition-transform duration-300"
           />

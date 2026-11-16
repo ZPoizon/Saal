@@ -4,16 +4,22 @@ import { Heart, Users, Home as HomeIcon, MapPin, Lock } from "lucide-react"
 
 import { motion } from "motion/react"
 
-import { getAvailableAnimals } from "../data/animals"
-
 import { AnimalCard } from "../components/AnimalCard"
+
+import { useAsync } from "../hooks/useAsync"
+
+import { listPublicAnimals } from "../services/animals-api"
 
 import { ScrollReveal } from "../components/ScrollReveal"
 
 import { HelpBanner } from "../components/HelpBanner"
 
 export function Home() {
-  const availableAnimals = getAvailableAnimals().slice(0, 3)
+  const { data, status, reload } = useAsync("home-animals", () =>
+    listPublicAnimals(),
+  )
+
+  const availableAnimals = (data ?? []).slice(0, 3)
 
   return (
     <div>
@@ -210,6 +216,31 @@ export function Home() {
               <AnimalCard key={animal.id} animal={animal} />
             ))}
           </div>
+
+          {status === "loading" && (
+            <p role="status" className="text-center text-[#6FAE9C]">
+              Carregando animais…
+            </p>
+          )}
+          {status === "error" && (
+            <div className="text-center">
+              <p role="alert" className="text-[#6FAE9C]">
+                Não foi possível carregar os animais agora.
+              </p>
+              <button
+                type="button"
+                onClick={reload}
+                className="mt-3 text-sm font-semibold text-[#527f74] underline underline-offset-4 hover:text-[#E4B04A]"
+              >
+                Tentar novamente
+              </button>
+            </div>
+          )}
+          {status === "success" && availableAnimals.length === 0 && (
+            <p className="text-center text-[#6FAE9C]">
+              Nenhum animal disponível no momento.
+            </p>
+          )}
 
           <div className="text-center">
             <Link

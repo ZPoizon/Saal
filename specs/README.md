@@ -36,19 +36,19 @@ Consulte-as antes de implementar e ao revisar alterações.
 
 | Área | Documento | Estado atual |
 |---|---|---|
-| Catálogo | `features/animal-catalog.md` | Protótipo |
-| Detalhes | `features/animal-details.md` | Protótipo |
-| Solicitação de adoção | `features/adoption-request.md` | Protótipo |
-| Gestão de animais | `features/animal-management.md` | Protótipo |
+| Catálogo | `features/animal-catalog.md` | Implementado no worktree |
+| Detalhes | `features/animal-details.md` | Parcial no worktree |
+| Solicitação de adoção | `features/adoption-request.md` | Implementado no worktree; política de privacidade pendente |
+| Gestão de animais | `features/animal-management.md` | Parcial no worktree; exclusão desabilitada |
 | Autenticação admin | `features/admin-authentication.md` | Parcial somente nas branches de implementação; `main` ainda não integrado |
-| Gestão de adoções | `features/adoption-management.md` | Protótipo (workflow não aprovado) |
+| Gestão de adoções | `features/adoption-management.md` | Implementado no worktree, somente leitura |
 | Contato geral | — | Fora do primeiro incremento (ONG-07) |
 
 ## Rastreabilidade
 
 - [Requisitos legados](../docs/legacy/REQUISITOS_FUNCIONAIS.md).
 - [Documentação legada](../docs/legacy/DOCUMENTACAO_PROJETO.md).
-- Contrato futuro: `contracts/openapi.yaml`; ele descreve o alvo e **não endpoints ativos**.
+- Contrato: `contracts/openapi.yaml`; descreve as rotas implementadas neste worktree, não um deploy ativo.
 - Modelo conceitual: `contracts/data-model.md`.
 - Mudanças arquiteturais: novo ADR em `decisions/`.
 
@@ -58,7 +58,7 @@ Consulte-as antes de implementar e ao revisar alterações.
   administrador; sessão server-side, CSRF e topologia same-site estão aprovados em ADR-006.
   Não há papéis diferenciados (ONG-01).
 - Não há workflow de status de manifestação; a avaliação é manual e a gestão é somente leitura
-  (ONG-04). Definir duplicidade e antiabuso (ONG-09).
+  (ONG-04). Definir duplicidade e revisar limites operacionais antiabuso (ONG-09).
 - Definir finalidade, consentimento/base legal, aviso, acesso, retenção e exclusão dos dados
   pessoais conforme LGPD (ONG-05).
 - Definir publicação/visibilidade de adotados e exclusão/arquivamento de animais (ONG-02/ONG-03).
@@ -68,6 +68,5 @@ Consulte-as antes de implementar e ao revisar alterações.
   de contato geral está fora do primeiro incremento (ONG-07).
 - Escopo e retenção de logs mínimos de segurança (ONG-08).
 - Ampliar testes além da base Vitest/Oxlint de I0, incluindo integrações backend e browser.
-- Flyway está escolhido para uso futuro; schema/migrations continuam não implementados e
-  dependem do modelo de domínio aprovado.
-- Implementar backend Spring Boot e banco MySQL 8 em projeto próprio quando aprovado.
+- Flyway V1/V2 e backend Spring Boot existem no worktree. A integração MySQL real e a
+  implantação não são presumidas; decisões de finalidade e retenção de PII continuam pendentes.

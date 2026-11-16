@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 
 import {
   ArrowLeft,
@@ -22,13 +22,24 @@ import {
   logoutAdmin,
 } from "../services/admin-auth"
 
-import { mockAnimals, Animal } from "../data/animals"
+import { Animal, AnimalInput } from "../data/animals"
+
+import {
+  AnimalApiError,
+  createAnimal,
+  listAdminAnimals,
+  updateAnimal,
+} from "../services/animals-api"
+
+import { InterestApiError, listAdminInterests } from "../services/interests-api"
+
+import type { AdminAnimalInterest } from "../data/interests"
+
+import { withImageParams } from "../utils/images"
 
 import logoSaal from "../../imports/logo_fundo_0.png"
 
 import { AnimalForm } from "../components/admin/AnimalForm"
-
-import { useInterest } from "../contexts/InterestContext"
 
 import { buildInterestContactLinks } from "../utils/contact-links"
 
@@ -58,7 +69,19 @@ export function Admin() {
 
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const [animals, setAnimals] = useState<Animal[]>(mockAnimals)
+  const [animals, setAnimals] = useState<Animal[]>([])
+
+  const [animalsStatus, setAnimalsStatus] =
+    useState<"loading" | "success" | "error">("loading")
+
+  const [animalsMessage, setAnimalsMessage] = useState<string | null>(null)
+
+  const [interests, setInterests] = useState<AdminAnimalInterest[]>([])
+
+  const [interestsStatus, setInterestsStatus] =
+    useState<"loading" | "success" | "error">("loading")
+
+  const [interestsMessage, setInterestsMessage] = useState<string | null>(null)
 
   const [showForm, setShowForm] = useState(false)
 
@@ -66,9 +89,70 @@ export function Admin() {
 
   const [openContactId, setOpenContactId] = useState<string | null>(null)
 
-  const ownedPreviewUrls = useRef(new Set<string>())
+  const loadAnimals = useCallback(async () => {
+    setAnimalsStatus("loading")
 
-  const { interests } = useInterest()
+    setAnimalsMessage(null)
+
+    try {
+      setAnimals(await listAdminAnimals())
+
+      setAnimalsStatus("success")
+    } catch (error) {
+      if (
+        error instanceof AnimalApiError &&
+        (error.status === 401 || error.status === 403)
+      ) {
+        setAuthStatus("anonymous")
+
+        setAuthMessage("Sessão expirada. Entre novamente.")
+
+        return
+      }
+
+      setAnimalsStatus("error")
+
+      setAnimalsMessage(
+        "Não foi possível carregar os animais. Verifique a conexão e tente novamente.",
+      )
+    }
+  }, [])
+
+  const loadInterests = useCallback(async () => {
+    setInterestsStatus("loading")
+    setInterestsMessage(null)
+
+    try {
+      setInterests(await listAdminInterests())
+      setInterestsStatus("success")
+    } catch (error) {
+      if (
+        error instanceof InterestApiError &&
+        (error.status === 401 || error.status === 403)
+      ) {
+        setAuthStatus("anonymous")
+        setAuthMessage("Sessão expirada. Entre novamente.")
+        return
+      }
+
+      setInterestsStatus("error")
+      setInterestsMessage(
+        "Não foi possível carregar os interessados. Verifique a conexão e tente novamente.",
+      )
+    }
+  }, [])
+
+  useEffect(() => {
+    if (authStatus !== "authenticated") return
+
+    void loadAnimals()
+  }, [authStatus, loadAnimals])
+
+  useEffect(() => {
+    if (authStatus !== "authenticated") return
+
+    void loadInterests()
+  }, [authStatus, loadInterests])
 
   useEffect(() => {
     let active = true
@@ -131,14 +215,6 @@ export function Admin() {
       document.removeEventListener("visibilitychange", verifySession)
     }
   }, [authStatus])
-
-  useEffect(() => {
-    return () => {
-      ownedPreviewUrls.current.forEach((url) => URL.revokeObjectURL(url))
-
-      ownedPreviewUrls.current.clear()
-    }
-  }, [])
 
   const retrySessionCheck = async () => {
     setAuthStatus("checking")
@@ -210,72 +286,41 @@ export function Admin() {
     setShowForm(true)
   }
 
-  const handleSaveAnimal = (animalData: Partial<Animal>) => {
-    if (editingAnimal) {
-      const nextImages = animalData.images ?? editingAnimal.images
+  const handleSaveAnimal = async (input: AnimalInput) => {
+    try {
+      if (editingAnimal) {
+        const updated = await updateAnimal(editingAnimal.id, input)
 
-      editingAnimal.images
-
-        .filter(
-          (image) => image.startsWith("blob:") && !nextImages.includes(image),
+        setAnimals((current) =>
+          current.map((animal) =>
+            animal.id === updated.id ? updated : animal,
+          ),
         )
+      } else {
+        const created = await createAnimal(input)
 
-        .forEach((image) => {
-          URL.revokeObjectURL(image)
-
-          ownedPreviewUrls.current.delete(image)
-        })
-
-      nextImages
-
-        .filter((image) => image.startsWith("blob:"))
-
-        .forEach((image) => ownedPreviewUrls.current.add(image))
-
-      setAnimals((current) =>
-        current.map((animal) =>
-          animal.id === editingAnimal.id
-            ? { ...animal, ...animalData }
-            : animal,
-        ),
-      )
-    } else {
-      const newAnimal: Animal = {
-        id: String(Date.now()),
-
-        name: animalData.name!,
-
-        species: animalData.species!,
-
-        age: animalData.age!,
-
-        size: animalData.size!,
-
-        sex: animalData.sex!,
-
-        status: animalData.status!,
-
-        description: animalData.description!,
-
-        personality: animalData.personality || [],
-
-        medicalInfo: animalData.medicalInfo || "",
-
-        images: animalData.images || [],
+        setAnimals((current) => [...current, created])
       }
 
-      newAnimal.images
+      setAnimalsStatus("success")
 
-        .filter((image) => image.startsWith("blob:"))
+      setAnimalsMessage(null)
 
-        .forEach((image) => ownedPreviewUrls.current.add(image))
+      setShowForm(false)
 
-      setAnimals((current) => [newAnimal, ...current])
+      setEditingAnimal(null)
+    } catch (error) {
+      if (
+        error instanceof AnimalApiError &&
+        (error.status === 401 || error.status === 403)
+      ) {
+        setAuthStatus("anonymous")
+
+        setAuthMessage("Sessão expirada. Entre novamente.")
+      }
+
+      throw error
     }
-
-    setShowForm(false)
-
-    setEditingAnimal(null)
   }
 
   if (authStatus !== "authenticated") {
@@ -411,8 +456,9 @@ export function Admin() {
           role="status"
           className="mb-6 rounded-xl border border-[#E4B04A]/50 bg-white px-4 py-3 text-sm text-[#416f65]"
         >
-          Protótipo: alterações ficam somente nesta sessão. Fotos escolhidas são
-          prévias locais e não são enviadas ao servidor.
+          Os cadastros são salvos no servidor. As fotos são referências (URLs):
+          o upload de arquivos ainda não está disponível e o armazenamento
+          definitivo das imagens segue pendente de decisão da ONG.
         </p>
 
         <nav
@@ -480,7 +526,7 @@ export function Admin() {
               <Mail className="text-[#E4B04A]" size={20} />
             </div>
             <p className="text-3xl font-bold text-[#2E7D6B]">
-              {interests.length}
+              {interestsStatus === "success" ? interests.length : "—"}
             </p>
           </div>
         </div>
@@ -506,6 +552,14 @@ export function Admin() {
               Animais Cadastrados
             </h2>
           </div>
+          {animalsMessage && (
+            <p
+              role="alert"
+              className="mx-6 mt-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700"
+            >
+              {animalsMessage}
+            </p>
+          )}
           <div className="overflow-x-auto">
             <table className="w-full min-w-[640px]">
               <thead className="bg-[#F5EFE6]">
@@ -521,57 +575,99 @@ export function Admin() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#F5EFE6]">
-                {animals.map((animal) => (
-                  <tr
-                    key={animal.id}
-                    className="hover:bg-[#F5EFE6]/50 transition-colors"
-                  >
-                    <td className="px-6 py-4">
-                      <img
-                        src={
-                          animal.images[0]?.startsWith("blob:")
-                            ? animal.images[0]
-                            : animal.images[0]
-                              ? `${animal.images[0]}?w=60&h=60&fit=crop`
-                              : "https://via.placeholder.com/60"
-                        }
-                        alt={animal.name}
-                        className="w-12 h-12 rounded-lg object-cover"
-                      />
-                    </td>
-                    <td className="px-6 py-4 font-semibold text-[#2E7D6B]">
-                      {animal.name}
-                    </td>
-                    <td className="px-6 py-4 text-[#6FAE9C]">
-                      {animal.species === "dog" ? "Cachorro" : "Gato"}
-                    </td>
-                    <td className="px-6 py-4 text-[#6FAE9C]">{animal.age}</td>
-                    <td className="px-6 py-4">
-                      <span
-                        className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                          animal.status === "available"
-                            ? "bg-[#2E7D6B] text-white"
-                            : "bg-gray-400 text-white"
-                        }`}
-                      >
-                        {animal.status === "available"
-                          ? "Disponível"
-                          : "Adotado"}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => handleEditAnimal(animal)}
-                          className="p-2 text-[#2E7D6B] hover:bg-[#F5EFE6] rounded-lg transition-colors"
-                          aria-label={`Editar ${animal.name}`}
-                        >
-                          <Edit size={18} />
-                        </button>
-                      </div>
+                {animalsStatus === "loading" && (
+                  <tr>
+                    <td
+                      colSpan={6}
+                      className="px-6 py-8 text-center text-[#6FAE9C]"
+                      role="status"
+                    >
+                      Carregando animais…
                     </td>
                   </tr>
-                ))}
+                )}
+                {animalsStatus === "error" && (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-8 text-center">
+                      <p role="alert" className="font-semibold text-[#2E7D6B]">
+                        Não foi possível carregar os animais.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => void loadAnimals()}
+                        className="mt-3 text-sm font-semibold text-[#527f74] underline underline-offset-4 hover:text-[#E4B04A]"
+                      >
+                        Tentar novamente
+                      </button>
+                    </td>
+                  </tr>
+                )}
+                {animalsStatus === "success" && animals.length === 0 && (
+                  <tr>
+                    <td
+                      colSpan={6}
+                      className="px-6 py-8 text-center text-[#6FAE9C]"
+                    >
+                      Nenhum animal cadastrado.
+                    </td>
+                  </tr>
+                )}
+                {animalsStatus === "success" &&
+                  animals.map((animal) => (
+                    <tr
+                      key={animal.id}
+                      className="hover:bg-[#F5EFE6]/50 transition-colors"
+                    >
+                      <td className="px-6 py-4">
+                        <img
+                          src={
+                            animal.images[0]
+                              ? withImageParams(animal.images[0], {
+                                  w: 60,
+
+                                  h: 60,
+
+                                  fit: "crop",
+                                })
+                              : "https://via.placeholder.com/60"
+                          }
+                          alt={animal.name}
+                          className="w-12 h-12 rounded-lg object-cover"
+                        />
+                      </td>
+                      <td className="px-6 py-4 font-semibold text-[#2E7D6B]">
+                        {animal.name}
+                      </td>
+                      <td className="px-6 py-4 text-[#6FAE9C]">
+                        {animal.species === "dog" ? "Cachorro" : "Gato"}
+                      </td>
+                      <td className="px-6 py-4 text-[#6FAE9C]">{animal.age}</td>
+                      <td className="px-6 py-4">
+                        <span
+                          className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                            animal.status === "available"
+                              ? "bg-[#2E7D6B] text-white"
+                              : "bg-gray-400 text-white"
+                          }`}
+                        >
+                          {animal.status === "available"
+                            ? "Disponível"
+                            : "Adotado"}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleEditAnimal(animal)}
+                            className="p-2 text-[#2E7D6B] hover:bg-[#F5EFE6] rounded-lg transition-colors"
+                            aria-label={`Editar ${animal.name}`}
+                          >
+                            <Edit size={18} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
               </tbody>
             </table>
           </div>
@@ -589,147 +685,167 @@ export function Admin() {
                 Solicitações de Adoção
               </h2>
               <span className="bg-[#E4B04A] text-white px-3 py-1 rounded-full text-sm font-semibold">
-                {interests.length} registros
+                {interestsStatus === "success"
+                  ? `${interests.length} registros`
+                  : interestsStatus === "loading"
+                    ? "Carregando…"
+                    : "Indisponível"}
               </span>
             </div>
           </div>
           <div className="p-6">
-            {interests.length === 0 ? (
+            {interestsStatus === "loading" ? (
+              <p role="status" className="py-8 text-center text-[#6FAE9C]">
+                Carregando interessados…
+              </p>
+            ) : interestsStatus === "error" ? (
+              <div className="py-8 text-center">
+                <p role="alert" className="text-[#2E7D6B]">
+                  {interestsMessage}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => void loadInterests()}
+                  className="mt-3 text-sm font-semibold text-[#527f74] underline underline-offset-4 hover:text-[#E4B04A]"
+                >
+                  Tentar novamente
+                </button>
+              </div>
+            ) : interests.length === 0 ? (
               <p className="text-[#6FAE9C] text-center py-8">
-                Nenhum dado de solicitação está disponível nesta demonstração. A
-                lista ainda não está conectada ao backend.
+                Nenhum interessado registrado.
               </p>
             ) : (
               <div className="space-y-4">
-                {interests.map((interest) => (
-                  <div
-                    key={interest.id}
-                    className="rounded-xl border border-[#E4B04A]/60 bg-[#E4B04A]/5 p-4"
-                  >
-                    <div className="flex flex-col md:flex-row gap-4">
-                      {/* Animal Info */}
-                      <div className="flex items-center gap-3 md:w-1/3">
-                        <img
-                          src={`${interest.animalImage}?w=60&h=60&fit=crop`}
-                          alt={interest.animalName}
-                          className="w-16 h-16 rounded-lg object-cover"
-                        />
-                        <div>
+                {interests.map((interest) => {
+                  const animal = animals.find(
+                    (candidate) => candidate.id === interest.animalId,
+                  )
+                  const links = buildInterestContactLinks({
+                    whatsapp: interest.whatsapp,
+                    email: interest.email,
+                  })
+
+                  return (
+                    <div
+                      key={interest.id}
+                      className="rounded-xl border border-[#E4B04A]/60 bg-[#E4B04A]/5 p-4"
+                    >
+                      <div className="flex flex-col gap-4 md:flex-row">
+                        <div className="flex items-center gap-3 md:w-1/3">
+                          {animal?.images[0] && (
+                            <img
+                              src={withImageParams(animal.images[0], {
+                                w: 60,
+                                h: 60,
+                                fit: "crop",
+                              })}
+                              alt={interest.animalName}
+                              className="h-16 w-16 rounded-lg object-cover"
+                            />
+                          )}
+                          <div>
+                            <p className="font-semibold text-[#2E7D6B]">
+                              {interest.animalName}
+                            </p>
+                            <p className="text-xs text-[#6FAE9C]">
+                              {new Date(interest.createdAt).toLocaleString(
+                                "pt-BR",
+                                {
+                                  day: "2-digit",
+                                  month: "2-digit",
+                                  year: "numeric",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                },
+                              )}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex-1 md:w-1/3">
                           <p className="font-semibold text-[#2E7D6B]">
-                            {interest.animalName}
+                            {interest.fullName}
                           </p>
-                          <p className="text-xs text-[#6FAE9C]">
-                            {new Date(interest.date).toLocaleDateString(
-                              "pt-BR",
-
-                              {
-                                day: "2-digit",
-
-                                month: "2-digit",
-
-                                year: "numeric",
-
-                                hour: "2-digit",
-
-                                minute: "2-digit",
-                              },
-                            )}
+                          <p className="text-sm text-[#6FAE9C]">
+                            {interest.city}
+                          </p>
+                          <p className="text-sm text-[#6FAE9C]">
+                            {interest.email}
+                          </p>
+                          <p className="text-sm text-[#6FAE9C]">
+                            {interest.whatsapp}
                           </p>
                         </div>
-                      </div>
 
-                      {/* Person Info */}
-                      <div className="flex-1 md:w-1/3">
-                        <p className="font-semibold text-[#2E7D6B]">
-                          {interest.name}
-                        </p>
-                        <p className="text-sm text-[#6FAE9C]">
-                          {interest.city}
-                        </p>
-                        <p className="text-sm text-[#6FAE9C]">
-                          {interest.email}
-                        </p>
-                        <p className="text-sm text-[#6FAE9C]">
-                          {interest.whatsapp}
-                        </p>
-                      </div>
-
-                      {/* Actions */}
-                      <div className="flex md:flex-col gap-2 md:w-1/3 md:justify-center">
-                        <button
-                          type="button"
-                          aria-expanded={openContactId === interest.id}
-                          aria-controls={`contact-actions-${interest.id}`}
-                          onClick={() =>
-                            setOpenContactId((current) =>
-                              current === interest.id ? null : interest.id,
-                            )
-                          }
-                          className="flex-1 rounded-lg bg-[#2E7D6B] px-4 py-2 font-semibold text-white transition-colors hover:bg-[#6FAE9C] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E4B04A] md:flex-none"
-                        >
-                          Entrar em contato
-                        </button>
-                        <div
-                          id={`contact-actions-${interest.id}`}
-                          className={
-                            openContactId === interest.id
-                              ? "flex flex-wrap gap-2 md:flex-col"
-                              : "hidden"
-                          }
-                        >
-                          {(() => {
-                            const links = buildInterestContactLinks(interest)
-
-                            return (
-                              <>
-                                {links.whatsapp && (
-                                  <a
-                                    href={links.whatsapp}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#25D366] px-3 py-2 text-sm font-semibold text-white hover:bg-[#1fae54] md:flex-none"
-                                  >
-                                    <MessageCircle size={16} />
-                                    WhatsApp
-                                  </a>
-                                )}
-                                {links.phone && (
-                                  <a
-                                    href={links.phone}
-                                    className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg border border-[#2E7D6B] px-3 py-2 text-sm font-semibold text-[#2E7D6B] hover:bg-[#F5EFE6] md:flex-none"
-                                  >
-                                    <Phone size={16} />
-                                    Ligar
-                                  </a>
-                                )}
-                                {links.email && (
-                                  <a
-                                    href={links.email}
-                                    className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg border border-[#2E7D6B] px-3 py-2 text-sm font-semibold text-[#2E7D6B] hover:bg-[#F5EFE6] md:flex-none"
-                                  >
-                                    <AtSign size={16} />
-                                    Enviar e-mail
-                                  </a>
-                                )}
-                                {!links.whatsapp &&
-                                  !links.phone &&
-                                  !links.email && (
-                                    <p className="text-sm text-gray-600">
-                                      Dados de contato indisponíveis.
-                                    </p>
-                                  )}
-                              </>
-                            )
-                          })()}
-                          <p className="w-full text-xs text-gray-500">
-                            Os links abrem o aplicativo escolhido; nenhuma
-                            mensagem é enviada automaticamente.
-                          </p>
+                        <div className="flex md:w-1/3 md:flex-col md:justify-center">
+                          <button
+                            type="button"
+                            aria-expanded={openContactId === interest.id}
+                            aria-controls={`contact-actions-${interest.id}`}
+                            onClick={() =>
+                              setOpenContactId((current) =>
+                                current === interest.id ? null : interest.id,
+                              )
+                            }
+                            className="flex-1 rounded-lg bg-[#2E7D6B] px-4 py-2 font-semibold text-white transition-colors hover:bg-[#6FAE9C] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E4B04A] md:flex-none"
+                          >
+                            Entrar em contato
+                          </button>
+                          <div
+                            id={`contact-actions-${interest.id}`}
+                            className={
+                              openContactId === interest.id
+                                ? "flex flex-wrap gap-2 md:flex-col"
+                                : "hidden"
+                            }
+                          >
+                            {links.whatsapp && (
+                              <a
+                                href={links.whatsapp}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#25D366] px-3 py-2 text-sm font-semibold text-white hover:bg-[#1fae54] md:flex-none"
+                              >
+                                <MessageCircle size={16} />
+                                WhatsApp
+                              </a>
+                            )}
+                            {links.phone && (
+                              <a
+                                href={links.phone}
+                                className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg border border-[#2E7D6B] px-3 py-2 text-sm font-semibold text-[#2E7D6B] hover:bg-[#F5EFE6] md:flex-none"
+                              >
+                                <Phone size={16} />
+                                Ligar
+                              </a>
+                            )}
+                            {links.email && (
+                              <a
+                                href={links.email}
+                                className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg border border-[#2E7D6B] px-3 py-2 text-sm font-semibold text-[#2E7D6B] hover:bg-[#F5EFE6] md:flex-none"
+                              >
+                                <AtSign size={16} />
+                                Enviar e-mail
+                              </a>
+                            )}
+                            {!links.whatsapp &&
+                              !links.phone &&
+                              !links.email && (
+                                <p className="text-sm text-gray-600">
+                                  Dados de contato indisponíveis.
+                                </p>
+                              )}
+                            <p className="w-full text-xs text-gray-500">
+                              Os links abrem o aplicativo escolhido; nenhuma
+                              mensagem é enviada automaticamente.
+                            </p>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             )}
           </div>

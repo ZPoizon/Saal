@@ -22,6 +22,11 @@ spring:
     # Exige identidade e senha distintas da conta de runtime.
     user: ${SAAL_DB_MIGRATION_USER}
     password: ${SAAL_DB_MIGRATION_PASSWORD}
+  jpa:
+    # O schema e propriedade do Flyway; o Hibernate nao cria nem altera tabelas.
+    hibernate:
+      ddl-auto: none
+    open-in-view: false
 server:
   port: ${PORT:8080}
   servlet:

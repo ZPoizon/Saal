@@ -1,40 +1,74 @@
 import { useParams, Link, useNavigate } from "react-router"
 
-import {
-  ArrowLeft,
-  Heart,
-  Calendar,
-  Ruler,
-  Info,
-  Stethoscope,
-  Share2,
-} from "lucide-react"
+import { ArrowLeft, Heart, Calendar, Ruler, Info, Share2 } from "lucide-react"
 
 import { motion } from "motion/react"
 
-import { getAnimalById } from "../data/animals"
+import { useEffect, useState } from "react"
 
-import { useState } from "react"
+import { useAsync } from "../hooks/useAsync"
+
+import { AnimalApiError, getPublicAnimal } from "../services/animals-api"
+
+import { withImageParams } from "../utils/images"
 
 export function AnimalDetail() {
   const { id } = useParams<{ id: string }>()
 
   const navigate = useNavigate()
 
-  const animal = id ? getAnimalById(id) : undefined
+  const {
+    data: animal,
+
+    status,
+
+    error,
+
+    reload,
+  } = useAsync(`animal-${id ?? ""}`, () =>
+    id ? getPublicAnimal(id) : Promise.reject(new AnimalApiError(404)),
+  )
 
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
 
-  if (!animal) {
+  useEffect(() => {
+    setCurrentImageIndex(0)
+  }, [animal?.id])
+
+  if (status === "loading") {
+    return (
+      <div className="min-h-screen bg-[#F5EFE6] flex items-center justify-center">
+        <p role="status" className="text-[#2E7D6B]">
+          Carregando animal…
+        </p>
+      </div>
+    )
+  }
+
+  if (status === "error" || !animal) {
+    const notFound = error instanceof AnimalApiError && error.status === 404
+
     return (
       <div className="min-h-screen bg-[#F5EFE6] flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-bold text-[#2E7D6B] mb-4">
-            Animal não encontrado
+            {notFound
+              ? "Animal não encontrado"
+              : "Não foi possível carregar este animal"}
           </h2>
-          <Link to="/animais" className="text-[#E4B04A] hover:underline">
-            Voltar para lista de animais
-          </Link>
+          {notFound ? (
+            <Link to="/animais" className="text-[#E4B04A] hover:underline">
+              Voltar para lista de animais
+            </Link>
+          ) : (
+            <button
+              type="button"
+              onClick={reload}
+              className="text-[#E4B04A] hover:underline"
+            >
+              Tentar novamente
+            </button>
+          )}
         </div>
       </div>
     )
@@ -70,7 +104,13 @@ export function AnimalDetail() {
             <div className="bg-white rounded-2xl overflow-hidden shadow-lg mb-4">
               <div className="relative h-96 bg-[#F5EFE6]">
                 <img
-                  src={`${animal.images[currentImageIndex]}?w=800&h=800&fit=crop`}
+                  src={withImageParams(animal.images[currentImageIndex] ?? "", {
+                    w: 800,
+
+                    h: 800,
+
+                    fit: "crop",
+                  })}
                   alt={animal.name}
                   className="w-full h-full object-cover"
                 />
@@ -98,7 +138,13 @@ export function AnimalDetail() {
                     } transition-all`}
                   >
                     <img
-                      src={`${image}?w=200&h=200&fit=crop`}
+                      src={withImageParams(image, {
+                        w: 200,
+
+                        h: 200,
+
+                        fit: "crop",
+                      })}
                       alt={`${animal.name} ${index + 1}`}
                       className="w-full h-full object-cover"
                     />
@@ -181,15 +227,6 @@ export function AnimalDetail() {
                   </span>
                 ))}
               </div>
-            </div>
-
-            {/* Medical Info */}
-            <div className="bg-white rounded-xl p-6 shadow-md mb-6">
-              <h3 className="font-semibold text-[#2E7D6B] mb-3 flex items-center gap-2">
-                <Stethoscope size={18} className="text-[#E4B04A]" />
-                Informações Médicas
-              </h3>
-              <p className="text-gray-700">{animal.medicalInfo}</p>
             </div>
 
             {/* Share Button */}

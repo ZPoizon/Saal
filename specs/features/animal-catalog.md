@@ -40,7 +40,7 @@ Visitante.
 ## 7. Fluxos alternativos
 
 - Sem resultados: exibir estado vazio e permitir limpar filtros.
-- Falha futura da API: exibir erro recuperável; apresentação ainda não implementada.
+- Falha da API: exibir erro recuperável e permitir nova tentativa.
 
 ## 8. Critérios de aceitação
 
@@ -60,8 +60,8 @@ idade, sexo, porte, descrição, imagem principal e demais campos públicos cont
 
 ## 10. Contratos de API relacionados
 
-Planejado: `GET /animals?species=&search=`. O servidor MUST filtrar `AVAILABLE`
-independentemente de parâmetro do cliente. Não implementado.
+Implementado: `GET /animals?species=&search=`. O servidor filtra `AVAILABLE`
+independentemente do cliente e a listagem usa dados remotos.
 
 ## 11. Validações
 
@@ -89,5 +89,6 @@ typecheck/build válidos e spec atualizada sem regressão visual.
 
 ## 15. Estado atual
 
-**Protótipo.** Interface e filtros funcionam com dados estáticos. Não há API, loading,
-erro remoto, paginação nem persistência.
+**Implementado no worktree.** A listagem consulta a API e exibe estados de carregamento,
+erro recuperável e vazio. O catálogo apresenta somente animais disponíveis; não há
+paginação.

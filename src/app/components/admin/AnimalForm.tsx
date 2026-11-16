@@ -1,13 +1,15 @@
-import { useEffect, useRef, useState } from "react"
+import { useState } from "react"
 
-import { X, Upload, Image as ImageIcon } from "lucide-react"
+import { X, Plus, Image as ImageIcon } from "lucide-react"
 
-import { Animal, AnimalStatus } from "../../data/animals"
+import { Animal, AnimalInput, AnimalStatus } from "../../data/animals"
+
+import { withImageParams } from "../../utils/images"
 
 interface AnimalFormProps {
   animal?: Animal
 
-  onSave: (animal: Partial<Animal>) => void
+  onSave: (input: AnimalInput) => Promise<void>
 
   onCancel: () => void
 }
@@ -33,31 +35,21 @@ export function AnimalForm({ animal, onSave, onCancel }: AnimalFormProps) {
     medicalInfo: animal?.medicalInfo || "",
   })
 
-  const [selectedImages, setSelectedImages] = useState<Array<{
-    file: File
-
-    url: string
-  }>>([])
-
-  const [removedImages, setRemovedImages] = useState<string[]>([])
+  const [photoUrls, setPhotoUrls] = useState<string[]>(
+    animal?.images && animal.images.length > 0 ? [...animal.images] : [""],
+  )
 
   const [photoError, setPhotoError] = useState("")
 
-  const previewUrls = useRef(new Set<string>())
+  const [submitError, setSubmitError] = useState("")
 
-  const previewsTransferred = useRef(false)
+  const [submitting, setSubmitting] = useState(false)
 
-  const currentImages = (animal?.images ?? []).filter(
-    (image) => !removedImages.includes(image),
-  )
+  const validPhotos = photoUrls
 
-  useEffect(() => {
-    return () => {
-      if (!previewsTransferred.current) {
-        previewUrls.current.forEach((url) => URL.revokeObjectURL(url))
-      }
-    }
-  }, [])
+    .map((url) => url.trim())
+
+    .filter((url) => url.length > 0)
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>,
@@ -69,94 +61,80 @@ export function AnimalForm({ animal, onSave, onCancel }: AnimalFormProps) {
     })
   }
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.currentTarget.files ?? [])
-
-    const availableSlots = Math.max(
-      0,
-
-      3 - currentImages.length - selectedImages.length,
+  const handlePhotoChange = (index: number, value: string) => {
+    setPhotoUrls((current) =>
+      current.map((url, position) => (position === index ? value : url)),
     )
-
-    const imageFiles = files.filter((file) => file.type.startsWith("image/"))
-
-    const acceptedFiles = imageFiles.slice(0, availableSlots)
-
-    if (imageFiles.length !== files.length) {
-      setPhotoError("Selecione somente arquivos de imagem.")
-    } else if (files.length > availableSlots) {
-      setPhotoError("Cada animal pode ter no máximo 3 fotos.")
-    } else {
-      setPhotoError("")
-    }
-
-    const previews = acceptedFiles.map((file) => {
-      const url = URL.createObjectURL(file)
-
-      previewUrls.current.add(url)
-
-      return { file, url }
-    })
-
-    setSelectedImages((current) => [...current, ...previews])
-
-    e.currentTarget.value = ""
-  }
-
-  const handleRemoveSelectedImage = (url: string) => {
-    URL.revokeObjectURL(url)
-
-    previewUrls.current.delete(url)
-
-    setSelectedImages((current) => current.filter((image) => image.url !== url))
 
     setPhotoError("")
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleAddPhoto = () => {
+    setPhotoUrls((current) =>
+      current.length >= 3 ? current : [...current, ""],
+    )
+  }
+
+  const handleRemovePhoto = (index: number) => {
+    setPhotoUrls((current) => {
+      const next = current.filter((_, position) => position !== index)
+
+      return next.length > 0 ? next : [""]
+    })
+
+    setPhotoError("")
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    const images = [
-      ...currentImages,
-
-      ...selectedImages.map((image) => image.url),
-    ]
-
-    if (images.length < 1 || images.length > 3) {
-      setPhotoError("Selecione entre 1 e 3 fotos para o animal.")
+    if (validPhotos.length < 1 || validPhotos.length > 3) {
+      setPhotoError("Informe entre 1 e 3 fotos (URLs) para o animal.")
 
       return
     }
 
-    const animalData: Partial<Animal> = {
-      ...formData,
+    setPhotoError("")
 
-      personality: formData.personality
+    setSubmitError("")
 
-        .split(",")
+    setSubmitting(true)
 
-        .map((p) => p.trim())
+    try {
+      await onSave({
+        name: formData.name.trim(),
 
-        .filter((p) => p),
+        species: formData.species as "dog" | "cat",
 
-      images,
+        age: formData.age.trim(),
 
-      species: formData.species as "dog" | "cat",
+        size: formData.size as "pequeno" | "médio" | "grande",
 
-      size: formData.size as "pequeno" | "médio" | "grande",
+        sex: formData.sex as "macho" | "fêmea",
 
-      sex: formData.sex as "macho" | "fêmea",
+        status: formData.status as AnimalStatus,
 
-      status: formData.status as AnimalStatus,
+        description: formData.description.trim(),
+
+        personality: formData.personality
+
+          .split(",")
+
+          .map((trait) => trait.trim())
+
+          .filter((trait) => trait.length > 0),
+
+        medicalInfo: formData.medicalInfo.trim(),
+
+        images: validPhotos,
+      })
+    } catch {
+      setSubmitError(
+        "Não foi possível salvar o animal. Verifique a conexão e tente novamente.",
+      )
+    } finally {
+      setSubmitting(false)
     }
-
-    if (animal) {
-      animalData.id = animal.id
-    }
-
-    previewsTransferred.current = true
-
-    onSave(animalData)
   }
 
   return (
@@ -189,85 +167,71 @@ export function AnimalForm({ animal, onSave, onCancel }: AnimalFormProps) {
         >
           <fieldset>
             <legend className="mb-2 font-semibold text-[#2E7D6B]">
-              Fotos do animal ({currentImages.length + selectedImages.length}/3)
+              Fotos do animal ({validPhotos.length}/3)
             </legend>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-              {currentImages.map((image, index) => (
-                <div
-                  key={image}
-                  className="relative aspect-square overflow-hidden rounded-lg bg-[#F5EFE6]"
-                >
-                  <img
-                    src={
-                      image.startsWith("blob:")
-                        ? image
-                        : `${image}?w=300&h=300&fit=crop`
-                    }
-                    alt={`Foto ${index + 1} de ${animal?.name ?? "prévia do animal"}`}
-                    className="h-full w-full object-cover"
+            <div className="space-y-3">
+              {photoUrls.map((url, index) => (
+                <div key={index} className="flex items-center gap-3">
+                  <div className="h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-[#F5EFE6]">
+                    {url.trim() ? (
+                      <img
+                        src={withImageParams(url.trim(), {
+                          w: 300,
+
+                          h: 300,
+
+                          fit: "crop",
+                        })}
+                        alt={`Prévia da foto ${index + 1} de ${
+                          animal?.name ?? "prévia do animal"
+                        }`}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center text-[#6FAE9C]">
+                        <ImageIcon size={24} aria-hidden="true" />
+                      </div>
+                    )}
+                  </div>
+                  <input
+                    type="url"
+                    inputMode="url"
+                    value={url}
+                    onChange={(e) => handlePhotoChange(index, e.target.value)}
+                    placeholder="https://exemplo.com/foto.jpg"
+                    aria-label={`URL da foto ${index + 1}`}
+                    className="w-full px-4 py-3 bg-[#F5EFE6] rounded-lg border-none focus:outline-none focus:ring-2 focus:ring-[#E4B04A]"
                   />
                   <button
                     type="button"
                     aria-label={`Remover foto ${index + 1}`}
-                    onClick={() =>
-                      setRemovedImages((current) => [...current, image])
-                    }
-                    className="absolute right-2 top-2 rounded-full bg-white/95 p-2 text-red-600 shadow hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#E4B04A]"
+                    onClick={() => handleRemovePhoto(index)}
+                    className="shrink-0 rounded-full bg-white p-2 text-red-600 shadow hover:bg-[#F5EFE6] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#E4B04A]"
                   >
                     <X size={16} />
                   </button>
                 </div>
               ))}
-              {selectedImages.map((image, index) => (
-                <div
-                  key={image.url}
-                  className="relative aspect-square overflow-hidden rounded-lg bg-[#F5EFE6]"
-                >
-                  <img
-                    src={image.url}
-                    alt={`Prévia local da foto ${currentImages.length + index + 1}`}
-                    className="h-full w-full object-cover"
-                  />
-                  <button
-                    type="button"
-                    aria-label={`Remover prévia de ${image.file.name}`}
-                    onClick={() => handleRemoveSelectedImage(image.url)}
-                    className="absolute right-2 top-2 rounded-full bg-white/95 p-2 text-red-600 shadow hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#E4B04A]"
-                  >
-                    <X size={16} />
-                  </button>
-                </div>
-              ))}
-              {currentImages.length + selectedImages.length === 0 && (
-                <div className="col-span-full flex min-h-32 flex-col items-center justify-center rounded-lg border-2 border-dashed border-[#6FAE9C]/50 bg-[#F5EFE6]/60 p-4 text-center text-[#6FAE9C]">
-                  <ImageIcon size={28} aria-hidden="true" />
-                  <span className="mt-2 text-sm">
-                    Selecione de 1 a 3 fotos para visualizar
-                  </span>
-                </div>
-              )}
             </div>
 
             <div className="mt-3 flex flex-wrap items-center gap-3">
-              <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-[#6FAE9C] px-4 py-3 font-semibold text-white transition-colors hover:bg-[#2E7D6B] focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[#E4B04A]">
-                <Upload size={20} />
-                Escolher fotos
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  disabled={currentImages.length + selectedImages.length >= 3}
-                  onChange={handleFileUpload}
-                  className="sr-only"
-                />
-              </label>
+              <button
+                type="button"
+                onClick={handleAddPhoto}
+                disabled={photoUrls.length >= 3}
+                className="inline-flex items-center gap-2 rounded-lg bg-[#6FAE9C] px-4 py-3 font-semibold text-white transition-colors hover:bg-[#2E7D6B] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E4B04A] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <Plus size={20} />
+                Adicionar foto
+              </button>
               <span className="text-xs text-[#6FAE9C]">
-                Selecione arquivos ou escolha imagens da galeria do celular.
+                Informe de 1 a 3 endereços (URLs) de fotos já publicadas.
               </span>
             </div>
             <p role="status" className="mt-2 text-xs text-[#416f65]">
-              As prévias são locais. As fotos não são enviadas nem salvas no
-              servidor nesta versão.
+              O upload de arquivos ainda não está disponível. As fotos são
+              referências (URLs): nenhum arquivo é enviado, e o armazenamento
+              definitivo das imagens segue pendente de decisão da ONG.
             </p>
             {photoError && (
               <p role="alert" className="mt-2 text-sm text-red-600">
@@ -432,20 +396,35 @@ export function AnimalForm({ animal, onSave, onCancel }: AnimalFormProps) {
             />
           </div>
 
+          {submitError && (
+            <p
+              role="alert"
+              className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700"
+            >
+              {submitError}
+            </p>
+          )}
+
           {/* Botões */}
           <div className="flex flex-col-reverse gap-3 pt-4 sm:flex-row">
             <button
               type="button"
               onClick={onCancel}
-              className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-full font-semibold hover:bg-gray-300 transition-colors"
+              disabled={submitting}
+              className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-full font-semibold hover:bg-gray-300 transition-colors disabled:cursor-not-allowed disabled:opacity-60"
             >
               Cancelar
             </button>
             <button
               type="submit"
-              className="flex-1 bg-[#E4B04A] text-white py-3 rounded-full font-semibold hover:bg-[#d4a03a] transition-colors"
+              disabled={submitting}
+              className="flex-1 bg-[#E4B04A] text-white py-3 rounded-full font-semibold hover:bg-[#d4a03a] transition-colors disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {animal ? "Salvar Alterações" : "Adicionar Animal"}
+              {submitting
+                ? "Salvando…"
+                : animal
+                  ? "Salvar Alterações"
+                  : "Adicionar Animal"}
             </button>
           </div>
         </form>
