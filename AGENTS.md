@@ -6,8 +6,9 @@ Instruções permanentes para assistentes de IA que trabalhem neste repositório
 
 - Aplicação oficial: React 18 + TypeScript + Vite, gerenciada com pnpm.
 - Identidade visual existente: deve ser preservada integralmente.
-- Estado atual: frontend de protótipo com dados de demonstração; alterações do catálogo ficam
-  no armazenamento local do navegador e solicitações permanecem em memória.
+- Estado atual: frontend de protótipo com dados de demonstração; alterações do catálogo e dos
+  indicadores da ONG ficam no armazenamento local do navegador e solicitações permanecem em
+  memória.
 - Arquitetura futura aprovada: API REST em Java + Spring Boot e MySQL 8.
 - O backend futuro não está implementado. Nunca descreva protótipos locais como persistência real.
 

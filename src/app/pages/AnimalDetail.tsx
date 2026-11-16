@@ -15,6 +15,7 @@ import { motion } from "motion/react"
 import { useState } from "react"
 
 import { useAnimals } from "../contexts/AnimalContext"
+import { useSiteSettings } from "../contexts/SiteSettingsContext"
 
 import { getAnimalImageUrl } from "../data/animalImages"
 
@@ -24,6 +25,7 @@ export function AnimalDetail() {
   const navigate = useNavigate()
 
   const { animals } = useAnimals()
+  const { settings } = useSiteSettings()
 
   const animal = id ? animals.find((entry) => entry.id === id) : undefined
 
@@ -231,19 +233,27 @@ export function AnimalDetail() {
             </div>
 
             {/* CTA Button */}
-            {animal.status === "available" && (
-              <motion.div
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                <Link
-                  to={`/interesse/${animal.id}`}
-                  className="block w-full bg-[#E4B04A] text-white text-center py-4 rounded-full font-semibold hover:bg-[#d4a03a] transition-all shadow-lg hover:shadow-xl"
+            {animal.status === "available" &&
+              settings.adoption.acceptingInterests && (
+                <motion.div
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                 >
-                  Tenho Interesse em Adotar
-                </Link>
-              </motion.div>
-            )}
+                  <Link
+                    to={`/interesse/${animal.id}`}
+                    className="block w-full bg-[#E4B04A] text-white text-center py-4 rounded-full font-semibold hover:bg-[#d4a03a] transition-all shadow-lg hover:shadow-xl"
+                  >
+                    Tenho Interesse em Adotar
+                  </Link>
+                </motion.div>
+              )}
+
+            {animal.status === "available" &&
+              !settings.adoption.acceptingInterests && (
+                <div className="rounded-xl border-2 border-[#E4B04A] bg-[#E4B04A]/10 py-4 text-center text-[#2E7D6B]">
+                  No momento, o recebimento de novos interesses está pausado.
+                </div>
+              )}
 
             {animal.status === "treatment" && (
               <div className="bg-[#E4B04A]/10 border-2 border-[#E4B04A] text-[#2E7D6B] text-center py-4 rounded-xl">

@@ -26,10 +26,11 @@ Administrador ativo cadastrado no backend futuro.
 ## 6. Fluxo principal
 
 1. Administrador informa identificador e senha.
-2. Backend valida credenciais.
-3. Sistema estabelece sessão segura.
-4. Administrador acessa o painel.
-5. Logout invalida/encerra a sessão e retorna à tela de entrada.
+2. No formulário, administrador pode alternar entre exibir e ocultar a senha digitada.
+3. Backend valida credenciais.
+4. Sistema estabelece sessão segura.
+5. Administrador acessa o painel.
+6. Logout invalida/encerra a sessão e retorna à tela de entrada.
 
 ## 7. Fluxos alternativos
 
@@ -46,6 +47,8 @@ Administrador ativo cadastrado no backend futuro.
 - **Dado** usuário não autenticado, **quando** chamar endpoint administrativo, **então**
   receberá 401/403.
 - **Dado** sessão ativa, **quando** sair, **então** operações posteriores serão bloqueadas.
+- **Dado** o formulário de login, **quando** acionar o botão de visibilidade, **então** a
+  senha digitada será exibida ou ocultada sem enviar o formulário.
 
 ## 9. Dados necessários
 
@@ -72,6 +75,7 @@ conforme mecanismo, cookies `HttpOnly/Secure/SameSite` se usados, rotação e au
 - expiração e logout;
 - rota e API sem sessão;
 - credenciais ausentes;
+- alternância de exibição/ocultação da senha sem envio acidental do formulário;
 - ausência de senha/token em logs e storage inseguro.
 
 ## 14. Definição de pronto
@@ -81,5 +85,7 @@ integração, segredos externos ao código e documentação operacional aprovada
 
 ## 15. Estado atual
 
-**Protótipo inseguro.** `Admin.tsx` compara `admin`/`saal2026` no cliente e guarda login
-somente em estado React. A rota `/admin` não possui proteção real.
+**Demonstração local sem autenticação.** `Admin.tsx` apresenta um aviso e permite abrir o
+painel sem credenciais. A rota `/admin` não possui proteção; todas as pessoas com acesso ao
+navegador podem editar configurações e dados locais. O segredo anteriormente comparado no
+cliente foi removido, mas isso não implementa autorização. Não usar em produção.

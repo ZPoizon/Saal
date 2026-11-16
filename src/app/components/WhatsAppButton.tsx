@@ -1,9 +1,19 @@
-import { MessageCircle } from "lucide-react";
+import { MessageCircle } from "lucide-react"
+
+import { useSiteSettings } from "../contexts/SiteSettingsContext"
+
+import { getWhatsAppHref } from "../data/siteLinks"
 
 export function WhatsAppButton() {
+  const { settings } = useSiteSettings()
+
+  const href = getWhatsAppHref(settings.contact.whatsapp)
+
+  if (!href) return null
+
   return (
     <a
-      href="https://wa.me/5515996927636?text=Olá!%20Vim%20pelo%20site%20e%20gostaria%20de%20saber%20mais%20sobre%20adoção."
+      href={href}
       target="_blank"
       rel="noopener noreferrer"
       className="fixed bottom-6 right-6 bg-[#25D366] text-white w-14 h-14 rounded-full shadow-lg hover:shadow-xl flex items-center justify-center transition-all hover:scale-110 z-50 group"
@@ -14,5 +24,5 @@ export function WhatsAppButton() {
         Fale conosco!
       </span>
     </a>
-  );
+  )
 }

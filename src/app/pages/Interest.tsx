@@ -9,6 +9,7 @@ import { useState } from "react"
 import { useInterest } from "../contexts/InterestContext"
 
 import { useAnimals } from "../contexts/AnimalContext"
+import { useSiteSettings } from "../contexts/SiteSettingsContext"
 
 import { getAnimalImageUrl } from "../data/animalImages"
 
@@ -22,6 +23,7 @@ export function Interest() {
   const animal = id ? animals.find((entry) => entry.id === id) : undefined
 
   const { addInterest } = useInterest()
+  const { settings } = useSiteSettings()
 
   const [submitted, setSubmitted] = useState(false)
 
@@ -52,8 +54,40 @@ export function Interest() {
     )
   }
 
+  if (animal.status !== "available" || !settings.adoption.acceptingInterests) {
+    return (
+      <div className="min-h-screen bg-[#F5EFE6] px-4 py-16">
+        <div className="mx-auto max-w-xl rounded-2xl bg-white p-8 text-center shadow-lg">
+          <Heart className="mx-auto mb-4 h-12 w-12 text-[#E4B04A]" />
+          <h1 className="mb-3 text-2xl font-bold text-[#2E7D6B]">
+            {animal.status !== "available"
+              ? "Este animal não está disponível para adoção"
+              : "Recebimento de interesses pausado"}
+          </h1>
+          <p className="mb-6 text-gray-600">
+            {animal.status !== "available"
+              ? "O formulário só pode ser enviado para animais disponíveis."
+              : "No momento, não estamos recebendo novas manifestações de interesse."}
+          </p>
+          <Link
+            to="/animais"
+            className="inline-flex min-h-12 items-center justify-center rounded-full bg-[#2E7D6B] px-6 font-semibold text-white hover:bg-[#6FAE9C]"
+          >
+            Voltar aos animais
+          </Link>
+        </div>
+      </div>
+    )
+  }
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    if (
+      animal.status !== "available" ||
+      !settings.adoption.acceptingInterests
+    ) {
+      return
+    }
 
     setLoading(true)
 
@@ -113,9 +147,11 @@ export function Interest() {
             Interesse Registrado!
           </h2>
           <p className="text-gray-600 mb-8">
-            Recebemos seu interesse em adotar <strong>{animal.name}</strong>.
-            Entraremos em contato em breve para dar continuidade ao processo de
-            adoção.
+            {settings.adoption.submissionMessage}
+          </p>
+          <p className="mb-6 rounded-lg bg-[#E4B04A]/10 p-3 text-left text-sm text-[#6b5425]">
+            Demonstração: este interesse fica somente na memória desta sessão e
+            não é enviado à equipe da ONG.
           </p>
           <div className="flex flex-col gap-3">
             <Link
@@ -260,11 +296,22 @@ export function Interest() {
 
           <div className="bg-[#2E7D6B]/10 border border-[#2E7D6B] rounded-xl p-4 text-sm text-[#2E7D6B]">
             <p>
-              <strong>Importante:</strong> Após o envio, nossa equipe entrará em
-              contato para agendar uma entrevista e visita. O processo de adoção
-              é cuidadoso para garantir o bem-estar do animal.
+              <strong>Importante:</strong> {settings.adoption.explanation}
             </p>
           </div>
+          {settings.adoption.requirements && (
+            <div className="mt-4 rounded-xl bg-white p-4 text-sm text-[#2E7D6B] shadow-sm">
+              <strong>Requisitos e orientações</strong>
+              <ul className="mt-2 list-inside list-disc space-y-1">
+                {settings.adoption.requirements
+                  .split(/\r?\n/)
+                  .filter(Boolean)
+                  .map((item, index) => (
+                    <li key={`${item}-${index}`}>{item}</li>
+                  ))}
+              </ul>
+            </div>
+          )}
         </div>
       </div>
     </div>

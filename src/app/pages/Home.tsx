@@ -2,11 +2,12 @@ import { Link } from "react-router"
 
 import {
   Heart,
-  Users,
   Home as HomeIcon,
   Stethoscope,
   MapPin,
   Lock,
+  CalendarDays,
+  PawPrint,
 } from "lucide-react"
 
 import { motion } from "motion/react"
@@ -18,17 +19,72 @@ import { ScrollReveal } from "../components/ScrollReveal"
 import { HelpBanner } from "../components/HelpBanner"
 
 import { useAnimals } from "../contexts/AnimalContext"
+import { useSiteSettings } from "../contexts/SiteSettingsContext"
+import {
+  getActiveCampaigns,
+  getCurrentAnimalCounts,
+  getHistoricalImpactTotals,
+} from "../data/siteSettings"
 
 export function Home() {
   const { animals } = useAnimals()
+  const { settings } = useSiteSettings()
+  const { statistics, home, about, adoption } = settings
   const availableAnimals = animals
     .filter((animal) => animal.status === "available")
     .slice(0, 3)
+  const counts = getCurrentAnimalCounts(animals)
+  const impactTotals = getHistoricalImpactTotals(statistics, animals)
+  const campaigns = getActiveCampaigns(settings.campaigns)
+  const publicStats: {
+    icon: typeof Heart
+    label: string
+    value: number
+  }[] = []
+  if (statistics.showRescued) {
+    publicStats.push({
+      icon: Heart,
+      label: "Animais Resgatados",
+      value: impactTotals.rescued,
+    })
+  }
+  if (statistics.showAdoptions) {
+    publicStats.push({
+      icon: HomeIcon,
+      label: "Adoções Realizadas",
+      value: impactTotals.adoptions,
+    })
+  }
+  if (statistics.showTreatment) {
+    publicStats.push({
+      icon: Stethoscope,
+      label: "Em Tratamento",
+      value: counts.treatment,
+    })
+  }
+  if (statistics.showStartYear && statistics.startYear !== null) {
+    publicStats.push({
+      icon: CalendarDays,
+      label: "Desde",
+      value: statistics.startYear,
+    })
+  }
 
   return (
     <div>
       {/* Hero Section */}
-      <section className="relative bg-gradient-to-br from-[#2E7D6B] to-[#6FAE9C] text-white py-20 md:py-32 overflow-hidden">
+      <section
+        className="relative overflow-hidden bg-gradient-to-br from-[#2E7D6B] to-[#6FAE9C] py-20 text-white md:py-32"
+        style={
+          home.heroImageUrl
+            ? {
+                backgroundImage: `linear-gradient(120deg, rgba(46,125,107,.9), rgba(111,174,156,.82)), url("${home.heroImageUrl}")`,
+                backgroundPosition: "center",
+                backgroundSize: "cover",
+              }
+            : undefined
+        }
+      >
         <div className="absolute inset-0 opacity-10">
           <div className="absolute top-10 left-10 w-32 h-32 bg-white rounded-full blur-3xl"></div>
           <div className="absolute bottom-20 right-20 w-40 h-40 bg-[#E4B04A] rounded-full blur-3xl"></div>
@@ -55,7 +111,7 @@ export function Home() {
               transition={{ delay: 0.3, duration: 0.8 }}
               className="text-4xl md:text-6xl font-bold mb-6 leading-tight"
             >
-              Ajude um anjo a encontrar um lar
+              {home.title}
             </motion.h1>
             <motion.p
               initial={{ opacity: 0 }}
@@ -63,8 +119,7 @@ export function Home() {
               transition={{ delay: 0.5, duration: 0.8 }}
               className="text-lg md:text-xl mb-4 text-[#F5EFE6]"
             >
-              Cada animal merece uma segunda chance de ser amado. Adote,
-              transforme vidas.
+              {home.subtitle}
             </motion.p>
             <motion.div
               initial={{ opacity: 0 }}
@@ -73,19 +128,28 @@ export function Home() {
               className="flex items-center justify-center gap-2 text-sm text-[#F5EFE6] mb-8"
             >
               <MapPin size={16} />
-              <span>Capão Bonito - SP</span>
+              <span>
+                {[settings.contact.city, settings.contact.state]
+                  .filter(Boolean)
+                  .join(" - ")}
+              </span>
             </motion.div>
+            {home.highlightMessage && (
+              <p className="mb-6 rounded-xl bg-white/15 px-4 py-3 text-sm text-white">
+                {home.highlightMessage}
+              </p>
+            )}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.7, duration: 0.5 }}
-              className="flex flex-col sm:flex-row gap-4 items-center justify-center"
+              className="relative z-10 flex flex-col sm:flex-row gap-4 items-center justify-center"
             >
               <Link
-                to="/animais"
+                to={home.primaryButtonDestination}
                 className="inline-block bg-[#E4B04A] text-white px-8 py-4 rounded-full font-semibold hover:bg-[#d4a03a] transition-all shadow-lg hover:shadow-xl hover:scale-105"
               >
-                Quero Adotar Agora
+                {home.primaryButtonText}
               </Link>
               <Link
                 to="/admin"
@@ -99,7 +163,7 @@ export function Home() {
         </div>
 
         {/* Decorative wave */}
-        <div className="absolute bottom-0 left-0 right-0">
+        <div className="pointer-events-none absolute bottom-0 left-0 right-0">
           <svg
             viewBox="0 0 1440 120"
             fill="none"
@@ -114,45 +178,105 @@ export function Home() {
       </section>
 
       {/* Stats Section */}
-      <section className="py-16 bg-[#F5EFE6]">
-        <div className="container mx-auto px-4">
-          <ScrollReveal>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-              <div className="bg-white rounded-2xl p-6 text-center shadow-md hover:shadow-lg transition-shadow">
-                <div className="w-12 h-12 bg-[#E4B04A] rounded-full flex items-center justify-center mx-auto mb-3">
-                  <Heart className="w-6 h-6 text-white" />
+      {campaigns.length > 0 && (
+        <section aria-label="Campanhas e avisos" className="bg-white py-8">
+          <div className="container mx-auto grid gap-4 px-4 md:grid-cols-2">
+            {campaigns.map((campaign) => (
+              <article
+                key={campaign.id}
+                className="overflow-hidden rounded-2xl border border-[#2E7D6B]/10 bg-[#F5EFE6] shadow-sm"
+              >
+                {campaign.imageUrl && (
+                  <img
+                    src={campaign.imageUrl}
+                    alt=""
+                    className="h-40 w-full object-cover"
+                  />
+                )}
+                <div className="p-5">
+                  <p className="mb-2 text-xs font-bold uppercase tracking-wide text-[#E4B04A]">
+                    {campaign.type === "feira"
+                      ? "Feira de adoção"
+                      : campaign.type}
+                  </p>
+                  <h2 className="text-xl font-bold text-[#2E7D6B]">
+                    {campaign.title}
+                  </h2>
+                  {campaign.description && (
+                    <p className="mt-2 whitespace-pre-line text-sm text-gray-700">
+                      {campaign.description}
+                    </p>
+                  )}
+                  {campaign.endDate && (
+                    <p className="mt-3 text-xs text-[#527f74]">
+                      Até{" "}
+                      {new Date(
+                        `${campaign.endDate}T00:00:00`,
+                      ).toLocaleDateString("pt-BR")}
+                    </p>
+                  )}
                 </div>
-                <p className="text-3xl font-bold text-[#2E7D6B] mb-1">67</p>
-                <p className="text-sm text-[#6FAE9C]">Animais Resgatados</p>
-              </div>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
 
-              <div className="bg-white rounded-2xl p-6 text-center shadow-md hover:shadow-lg transition-shadow">
-                <div className="w-12 h-12 bg-[#E4B04A] rounded-full flex items-center justify-center mx-auto mb-3">
-                  <HomeIcon className="w-6 h-6 text-white" />
-                </div>
-                <p className="text-3xl font-bold text-[#2E7D6B] mb-1">280+</p>
-                <p className="text-sm text-[#6FAE9C]">Adoções Realizadas</p>
+      {publicStats.length > 0 || statistics.showSystemCounts ? (
+        <section className="py-16 bg-[#F5EFE6]">
+          <div className="container mx-auto px-4">
+            <ScrollReveal>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                {publicStats.map(({ icon: Icon, label, value }) => (
+                  <div
+                    key={label}
+                    className="rounded-2xl bg-white p-6 text-center shadow-md transition-shadow hover:shadow-lg"
+                  >
+                    <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[#E4B04A]">
+                      <Icon className="h-6 w-6 text-white" />
+                    </div>
+                    <p className="mb-1 text-3xl font-bold text-[#2E7D6B]">
+                      {value.toLocaleString("pt-BR")}
+                      {label.includes("Realizadas") ||
+                      label.includes("Resgatados")
+                        ? "+"
+                        : ""}
+                    </p>
+                    <p className="text-sm text-[#6FAE9C]">{label}</p>
+                  </div>
+                ))}
+                {statistics.showSystemCounts &&
+                  [
+                    ["Cadastrados", counts.registered],
+                    ["Disponíveis", counts.available],
+                    ["Adotados", counts.adopted],
+                  ].map(([label, value]) => (
+                    <div
+                      key={label}
+                      className="rounded-2xl bg-white p-6 text-center shadow-md"
+                    >
+                      <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[#E4B04A]">
+                        <PawPrint className="h-6 w-6 text-white" />
+                      </div>
+                      <p className="mb-1 text-3xl font-bold text-[#2E7D6B]">
+                        {value}
+                      </p>
+                      <p className="text-sm text-[#6FAE9C]">{label}</p>
+                    </div>
+                  ))}
               </div>
-
-              <div className="bg-white rounded-2xl p-6 text-center shadow-md hover:shadow-lg transition-shadow">
-                <div className="w-12 h-12 bg-[#E4B04A] rounded-full flex items-center justify-center mx-auto mb-3">
-                  <Stethoscope className="w-6 h-6 text-white" />
-                </div>
-                <p className="text-3xl font-bold text-[#2E7D6B] mb-1">15</p>
-                <p className="text-sm text-[#6FAE9C]">Em Tratamento</p>
-              </div>
-
-              <div className="bg-white rounded-2xl p-6 text-center shadow-md hover:shadow-lg transition-shadow">
-                <div className="w-12 h-12 bg-[#E4B04A] rounded-full flex items-center justify-center mx-auto mb-3">
-                  <Users className="w-6 h-6 text-white" />
-                </div>
-                <p className="text-3xl font-bold text-[#2E7D6B] mb-1">1.2k+</p>
-                <p className="text-sm text-[#6FAE9C]">Famílias Felizes</p>
-              </div>
-            </div>
-          </ScrollReveal>
-        </div>
-      </section>
+              {statistics.historicalUpdatedAt && (
+                <p className="mt-4 text-center text-xs text-gray-500">
+                  Números históricos atualizados em{" "}
+                  {new Date(
+                    `${statistics.historicalUpdatedAt}T00:00:00`,
+                  ).toLocaleDateString("pt-BR")}
+                </p>
+              )}
+            </ScrollReveal>
+          </div>
+        </section>
+      ) : null}
 
       {/* About Section */}
       <section className="py-16 bg-white">
@@ -163,19 +287,17 @@ export function Home() {
                 <h2 className="text-3xl md:text-4xl font-bold text-[#2E7D6B] mb-4">
                   Sobre o SAAL
                 </h2>
-                <p className="text-gray-700 mb-4 leading-relaxed">
-                  O <strong>Santuário de Animais Anjos da Luz (SAAL)</strong> é
-                  uma ONG sem fins lucrativos localizada em{" "}
-                  <strong>Capão Bonito - SP</strong>, dedicada ao resgate,
-                  cuidado e adoção responsável de animais em situação de
-                  abandono.
+                <p className="whitespace-pre-line text-gray-700 mb-4 leading-relaxed">
+                  {about.history}
                 </p>
-                <p className="text-gray-700 mb-6 leading-relaxed">
-                  Nossa missão é proporcionar uma segunda chance para cada
-                  animal que chega até nós, oferecendo tratamento veterinário,
-                  alimentação adequada e muito amor até encontrarem uma família
-                  para sempre.
+                <p className="whitespace-pre-line text-gray-700 mb-6 leading-relaxed">
+                  {about.institutionalText}
                 </p>
+                {about.additionalInfo && (
+                  <p className="whitespace-pre-line text-gray-700 mb-6 leading-relaxed">
+                    {about.additionalInfo}
+                  </p>
+                )}
                 <div className="flex flex-col sm:flex-row gap-4">
                   <Link
                     to="/animais"
@@ -198,12 +320,22 @@ export function Home() {
                     fill="#E4B04A"
                   />
                   <h3 className="text-2xl font-bold mb-3">Nossa Missão</h3>
-                  <p className="text-[#F5EFE6] leading-relaxed">
-                    Resgatar, proteger e encontrar lares amorosos para animais
-                    abandonados, promovendo a adoção responsável e o bem-estar
-                    animal em Capão Bonito e região.
+                  <p className="whitespace-pre-line text-[#F5EFE6] leading-relaxed">
+                    {about.mission}
                   </p>
                 </div>
+                {about.photoUrls.length > 0 && (
+                  <div className="mt-4 grid grid-cols-2 gap-3">
+                    {about.photoUrls.slice(0, 4).map((photoUrl) => (
+                      <img
+                        key={photoUrl}
+                        src={photoUrl}
+                        alt="Fotografia institucional do SAAL"
+                        className="h-28 w-full rounded-xl object-cover"
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -218,8 +350,7 @@ export function Home() {
               Animais Disponíveis para Adoção
             </h2>
             <p className="text-[#6FAE9C] max-w-2xl mx-auto">
-              Conheça alguns dos nossos anjinhos que estão esperando por uma
-              família cheia de amor
+              {home.presentationText}
             </p>
           </div>
 
@@ -248,57 +379,64 @@ export function Home() {
               Como Funciona a Adoção
             </h2>
             <p className="text-[#6FAE9C] max-w-2xl mx-auto">
-              Nosso processo é cuidadoso para garantir o bem-estar do animal e a
-              compatibilidade com sua família
+              {adoption.explanation}
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-[#E4B04A] rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
-                <span className="text-2xl font-bold text-white">1</span>
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {adoption.steps.map((step, index) => (
+              <div key={`${step.title}-${index}`} className="text-center">
+                <div className="w-16 h-16 bg-[#E4B04A] rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+                  <span className="text-2xl font-bold text-white">
+                    {index + 1}
+                  </span>
+                </div>
+                <h3 className="font-semibold text-[#2E7D6B] mb-2">
+                  {step.title}
+                </h3>
+                <p className="whitespace-pre-line text-sm text-gray-600">
+                  {step.description}
+                </p>
               </div>
-              <h3 className="font-semibold text-[#2E7D6B] mb-2">
-                Escolha o Animal
-              </h3>
-              <p className="text-sm text-gray-600">
-                Navegue pelo catálogo e encontre o pet que conquistou seu
-                coração
-              </p>
-            </div>
-
-            <div className="text-center">
-              <div className="w-16 h-16 bg-[#E4B04A] rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
-                <span className="text-2xl font-bold text-white">2</span>
-              </div>
-              <h3 className="font-semibold text-[#2E7D6B] mb-2">
-                Manifeste Interesse
-              </h3>
-              <p className="text-sm text-gray-600">
-                Preencha o formulário com seus dados e conte sobre você
-              </p>
-            </div>
-
-            <div className="text-center">
-              <div className="w-16 h-16 bg-[#E4B04A] rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
-                <span className="text-2xl font-bold text-white">3</span>
-              </div>
-              <h3 className="font-semibold text-[#2E7D6B] mb-2">Entrevista</h3>
-              <p className="text-sm text-gray-600">
-                Nossa equipe entrará em contato para conhecê-lo melhor
-              </p>
-            </div>
-
-            <div className="text-center">
-              <div className="w-16 h-16 bg-[#E4B04A] rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
-                <span className="text-2xl font-bold text-white">4</span>
-              </div>
-              <h3 className="font-semibold text-[#2E7D6B] mb-2">Adote!</h3>
-              <p className="text-sm text-gray-600">
-                Após aprovação, leve seu novo amigo para casa com muito amor
-              </p>
-            </div>
+            ))}
           </div>
+          {adoption.requirements && (
+            <div className="mx-auto mt-8 max-w-3xl rounded-xl bg-[#F5EFE6] p-5">
+              <h3 className="mb-3 font-semibold text-[#2E7D6B]">
+                Requisitos e orientações
+              </h3>
+              <ul className="list-inside list-disc space-y-2 text-sm text-gray-700">
+                {adoption.requirements
+                  .split(/\r?\n/)
+                  .filter(Boolean)
+                  .map((requirement, index) => (
+                    <li key={`${requirement}-${index}`}>{requirement}</li>
+                  ))}
+              </ul>
+            </div>
+          )}
+          {adoption.faqs.length > 0 && (
+            <div className="mx-auto mt-8 max-w-3xl space-y-3">
+              {adoption.faqs.map((faq) => (
+                <details
+                  key={faq.question}
+                  className="rounded-xl bg-[#F5EFE6] p-4"
+                >
+                  <summary className="cursor-pointer font-semibold text-[#2E7D6B]">
+                    {faq.question}
+                  </summary>
+                  <p className="mt-3 whitespace-pre-line text-sm text-gray-700">
+                    {faq.answer}
+                  </p>
+                </details>
+              ))}
+            </div>
+          )}
+          {!adoption.acceptingInterests && (
+            <p className="mx-auto mt-8 max-w-3xl rounded-xl border border-[#E4B04A] bg-[#E4B04A]/10 p-4 text-center text-[#6b5425]">
+              No momento, o recebimento de novos interesses está pausado.
+            </p>
+          )}
         </div>
       </section>
 

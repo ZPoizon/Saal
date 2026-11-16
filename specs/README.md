@@ -40,7 +40,9 @@ Consulte-as antes de implementar e ao revisar alterações.
 | Detalhes | `features/animal-details.md` | Protótipo |
 | Solicitação de adoção | `features/adoption-request.md` | Protótipo |
 | Gestão de animais | `features/animal-management.md` | Protótipo |
-| Autenticação admin | `features/admin-authentication.md` | Protótipo inseguro |
+| Indicadores públicos da ONG | `features/organization-impact-stats.md` | Protótipo |
+| Configurações públicas do site | `features/site-settings.md` | Protótipo local |
+| Autenticação admin | `features/admin-authentication.md` | Não implementada; demonstração aberta |
 | Gestão de adoções | `features/adoption-management.md` | Protótipo |
 
 ## Rastreabilidade
