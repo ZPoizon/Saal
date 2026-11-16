@@ -28,7 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /** Teste de integracao EXECUTADO somente com: mvnw -Pdb-integration verify. */
 @Testcontainers
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
 class MySqlFlywayIT {
     private static final String ROOT_PASSWORD = randomPassword();
     private static final String MIGRATION_PASSWORD = randomPassword();
