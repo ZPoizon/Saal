@@ -151,7 +151,7 @@ export function Home() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.7, duration: 0.5 }}
-              className="flex w-full flex-col items-center justify-center gap-3 sm:w-auto sm:flex-row sm:gap-4"
+              className="relative z-10 flex w-full flex-col items-center justify-center gap-3 sm:w-auto sm:flex-row sm:gap-4"
             >
               <Link
                 to={home.primaryButtonDestination}
@@ -171,7 +171,10 @@ export function Home() {
         </div>
 
         {/* Decorative wave */}
-        <div className="absolute bottom-0 left-0 right-0">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute bottom-0 left-0 right-0"
+        >
           <svg
             viewBox="0 0 1440 120"
             fill="none"
