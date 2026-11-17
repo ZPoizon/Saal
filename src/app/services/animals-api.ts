@@ -1,17 +1,20 @@
-import type {
-  Animal,
-  AnimalInput,
-  AnimalSex,
-  AnimalSize,
-  AnimalSpecies,
-  AnimalStatus,
-} from "../data/animals"
+import type { Animal, AnimalInput } from "../data/animals"
 
-import { csrfHeaderName, requestCsrfToken } from "./admin-auth"
+import {
+  browserStorage,
+  loadLocalAnimals,
+  nextLocalId,
+  saveLocalAnimals,
+} from "../data/local-store"
 
-const publicAnimalsPath = "/api/v1/animals"
-
-const adminAnimalsPath = "/api/v1/admin/animals"
+/**
+ * Catálogo em modo protótipo local (sem API).
+ *
+ * Lê e escreve os animais no `localStorage` do navegador. Nenhum dado chega a
+ * um servidor: os cadastros valem apenas neste navegador e dispositivo. A
+ * integração real com a API está registrada em `specs/contracts/openapi.yaml`
+ * e volta a valer quando o modo local for desligado (ADR-008).
+ */
 
 export class AnimalApiError extends Error {
   constructor(readonly status: number) {
@@ -21,134 +24,10 @@ export class AnimalApiError extends Error {
   }
 }
 
-interface RequestOptions {
-  /** Requisições de mutação precisam do token CSRF da sessão administrativa. */
+function localAnimalFromInput(input: AnimalInput, id: string): Animal {
+  return {
+    id,
 
-  csrf?: boolean
-}
-
-async function request(
-  path: string,
-
-  init: RequestInit,
-
-  options: RequestOptions = {},
-): Promise<Response> {
-  const headers = new Headers(init.headers)
-
-  headers.set("Accept", "application/json")
-
-  if (init.body !== undefined) {
-    headers.set("Content-Type", "application/json")
-  }
-
-  if (options.csrf) {
-    headers.set(csrfHeaderName, await requestCsrfToken())
-  }
-
-  const response = await fetch(path, {
-    ...init,
-
-    credentials: "include",
-
-    headers,
-  })
-
-  if (!response.ok) {
-    throw new AnimalApiError(response.status)
-  }
-
-  return response
-}
-
-async function requestJson(
-  path: string,
-
-  init: RequestInit,
-
-  options: RequestOptions = {},
-): Promise<unknown> {
-  const response = await request(path, init, options)
-
-  return response.json()
-}
-
-/** Catalogo publico: somente animais disponiveis. */
-
-export async function listPublicAnimals(): Promise<Animal[]> {
-  const payload = await requestJson(publicAnimalsPath, { method: "GET" })
-
-  return parseAnimalList(payload)
-}
-
-/** Detalhe publico: aceita qualquer estado aprovado (inclusive adotados). */
-
-export async function getPublicAnimal(id: string): Promise<Animal> {
-  const payload = await requestJson(
-    `${publicAnimalsPath}/${encodeURIComponent(id)}`,
-
-    { method: "GET" },
-  )
-
-  return parseAnimal(payload)
-}
-
-/** Listagem administrativa: inclui animais disponiveis e adotados. */
-
-export async function listAdminAnimals(): Promise<Animal[]> {
-  const payload = await requestJson(adminAnimalsPath, { method: "GET" })
-
-  return parseAnimalList(payload)
-}
-
-export async function getAdminAnimal(id: string): Promise<Animal> {
-  const payload = await requestJson(
-    `${adminAnimalsPath}/${encodeURIComponent(id)}`,
-
-    { method: "GET" },
-  )
-
-  return parseAnimal(payload)
-}
-
-export async function createAnimal(input: AnimalInput): Promise<Animal> {
-  const payload = await requestJson(
-    adminAnimalsPath,
-
-    {
-      method: "POST",
-
-      body: serializeAnimalInput(input),
-    },
-
-    { csrf: true },
-  )
-
-  return parseAnimal(payload)
-}
-
-export async function updateAnimal(
-  id: string,
-
-  input: AnimalInput,
-): Promise<Animal> {
-  const payload = await requestJson(
-    `${adminAnimalsPath}/${encodeURIComponent(id)}`,
-
-    {
-      method: "PUT",
-
-      body: serializeAnimalInput(input),
-    },
-
-    { csrf: true },
-  )
-
-  return parseAnimal(payload)
-}
-
-function serializeAnimalInput(input: AnimalInput): string {
-  return JSON.stringify({
     name: input.name,
 
     species: input.species,
@@ -159,7 +38,7 @@ function serializeAnimalInput(input: AnimalInput): string {
 
     sex: input.sex,
 
-    status: input.status === "available" ? "AVAILABLE" : "ADOPTED",
+    status: input.status,
 
     description: input.description,
 
@@ -167,91 +46,117 @@ function serializeAnimalInput(input: AnimalInput): string {
 
     medicalInfo: input.medicalInfo,
 
-    photos: input.images,
-  })
-}
-
-function parseAnimalList(value: unknown): Animal[] {
-  if (!Array.isArray(value)) {
-    throw new Error("Resposta inválida da API de animais.")
-  }
-
-  return value.map(parseAnimal)
-}
-
-function parseAnimal(value: unknown): Animal {
-  if (typeof value !== "object" || value === null) {
-    throw new Error("Resposta inválida da API de animais.")
-  }
-
-  const record = value as Record<string, unknown>
-
-  return {
-    id: requireString(record.id),
-
-    name: requireString(record.name),
-
-    species: parseSpecies(record.species),
-
-    age: requireString(record.age),
-
-    size: parseSize(record.size),
-
-    sex: parseSex(record.sex),
-
-    status: parseStatus(record.status),
-
-    description: requireString(record.description),
-
-    personality: requireStringList(record.personality),
-
-    medicalInfo:
-      typeof record.medicalInfo === "string" ? record.medicalInfo : "",
-
-    images: requireStringList(record.photos),
+    images: input.images,
   }
 }
 
-function requireString(value: unknown): string {
-  if (typeof value !== "string") {
-    throw new Error("Campo textual inválido na resposta da API de animais.")
+/** Catálogo público local: somente animais disponiveis. */
+
+export async function listPublicAnimals(
+  storage: Storage = browserStorage(),
+): Promise<Animal[]> {
+  const animals = loadLocalAnimals(storage)
+
+  return animals.filter((animal) => animal.status === "available")
+}
+
+/** Detalhe público local: aceita qualquer estado (inclusive adotados). */
+
+export async function getPublicAnimal(
+  id: string,
+
+  storage: Storage = browserStorage(),
+): Promise<Animal> {
+  const animals = loadLocalAnimals(storage)
+
+  const animal = animals.find((candidate) => candidate.id === id)
+
+  if (!animal) {
+    throw new AnimalApiError(404)
   }
 
-  return value
+  return animal
 }
 
-function requireStringList(value: unknown): string[] {
-  if (!Array.isArray(value) || value.some((item) => typeof item !== "string")) {
-    throw new Error("Lista inválida na resposta da API de animais.")
+/** Listagem administrativa local: inclui disponiveis e adotados. */
+
+export async function listAdminAnimals(
+  storage: Storage = browserStorage(),
+): Promise<Animal[]> {
+  return loadLocalAnimals(storage)
+}
+
+export async function getAdminAnimal(
+  id: string,
+
+  storage: Storage = browserStorage(),
+): Promise<Animal> {
+  return getPublicAnimal(id, storage)
+}
+
+export async function createAnimal(
+  input: AnimalInput,
+
+  storage: Storage = browserStorage(),
+): Promise<Animal> {
+  const animals = loadLocalAnimals(storage)
+
+  const animal = localAnimalFromInput(
+    input,
+
+    nextLocalId(animals.map((candidate) => candidate.id)),
+  )
+
+  saveLocalAnimals(storage, [...animals, animal])
+
+  return animal
+}
+
+export async function updateAnimal(
+  id: string,
+
+  input: AnimalInput,
+
+  storage: Storage = browserStorage(),
+): Promise<Animal> {
+  const animals = loadLocalAnimals(storage)
+
+  const index = animals.findIndex((candidate) => candidate.id === id)
+
+  if (index === -1) {
+    throw new AnimalApiError(404)
   }
 
-  return value as string[]
+  const updated = localAnimalFromInput(input, id)
+
+  const next = [...animals]
+
+  next[index] = updated
+
+  saveLocalAnimals(storage, next)
+
+  return updated
 }
 
-function parseSpecies(value: unknown): AnimalSpecies {
-  if (value === "dog" || value === "cat") return value
+/**
+ * Exclusão local, habilitada por decisão do responsável (ADR-008): remove o
+ * animal do catálogo deste navegador. Manifestações de interesse anteriores
+ * mantêm o nome do animal, pois ele é copiado no registro. A exclusão
+ * definitiva/arquivamento no modo com API continua pendente (ONG-03).
+ */
 
-  throw new Error("Espécie inválida na resposta da API de animais.")
-}
+export async function deleteAnimal(
+  id: string,
 
-function parseSize(value: unknown): AnimalSize {
-  if (value === "pequeno" || value === "médio" || value === "grande") {
-    return value
+  storage: Storage = browserStorage(),
+): Promise<void> {
+  const animals = loadLocalAnimals(storage)
+
+  const next = animals.filter((candidate) => candidate.id !== id)
+
+  if (next.length === animals.length) {
+    throw new AnimalApiError(404)
   }
 
-  throw new Error("Porte inválido na resposta da API de animais.")
-}
-
-function parseSex(value: unknown): AnimalSex {
-  if (value === "macho" || value === "fêmea") return value
-
-  throw new Error("Sexo inválido na resposta da API de animais.")
-}
-
-function parseStatus(value: unknown): AnimalStatus {
-  if (value === "AVAILABLE") return "available"
-
-  if (value === "ADOPTED") return "adopted"
-
-  throw new Error("Status inválido na resposta da API de animais.")
+  saveLocalAnimals(storage, next)
 }

@@ -1,23 +1,12 @@
-import { AdminAuthError, csrfHeaderName, requestCsrfToken } from "./admin-auth"
-
 /**
- * Upload de fotografias para a API SAAL.
+ * Fotos em modo protótipo local (sem API).
  *
- * Contrato:
- * - `POST /api/v1/admin/photos` com `multipart/form-data`;
- * - um campo `photos` por arquivo;
- * - cabeçalho CSRF da sessão administrativa;
- * - resposta `{ "urls": ["/api/v1/photos/123"] }` com uma URL persistente por arquivo.
- *
- * Antes do envio, cada imagem é redesenhada em canvas: a orientação EXIF é
- * aplicada, o maior lado é limitado a 1600 px e os metadados são removidos. O
- * envio é sequencial (uma foto por requisição) para reduzir o tamanho do corpo
- * e evitar limites de proxy.
+ * A normalização continua real: a orientação EXIF é aplicada, o maior lado é
+ * limitado a 1600 px e os metadados são removidos. Em vez de enviar o arquivo
+ * a um servidor, o resultado é convertido em `data:` URL e passa a compor o
+ * cadastro do animal, que fica salvo apenas neste navegador (ADR-008). Quando
+ * a API for religada, o envio volta a ser `POST /api/v1/admin/photos`.
  */
-
-const defaultUploadUrl = "/api/v1/admin/photos"
-
-const uploadFieldName = "photos"
 
 const maxPhotosPerUpload = 3
 
@@ -47,58 +36,10 @@ export class PhotoUploadError extends Error {
   }
 }
 
-export function getPhotoUploadUrl(): string {
-  const configured = import.meta.env.VITE_PHOTO_UPLOAD_URL
-
-  if (typeof configured !== "string") return defaultUploadUrl
-
-  const trimmed = configured.trim()
-
-  return trimmed.length > 0 ? trimmed : defaultUploadUrl
-}
+/** O armazenamento local sempre está disponível neste modo. */
 
 export function isPhotoStorageConfigured(): boolean {
   return true
-}
-
-function failureFromStatus(status: number): PhotoUploadFailure {
-  if (status === 401 || status === 403) return "unauthorized"
-
-  if (status === 413) return "too-large"
-
-  if (status === 415) return "unsupported"
-
-  if (status === 429) return "rate-limited"
-
-  if (status >= 500) return "server"
-
-  return "rejected"
-}
-
-function isPersistentPhotoUrl(value: string): boolean {
-  return value.startsWith("/") || /^https?:\/\//i.test(value)
-}
-
-function readUploadedUrls(payload: unknown): string[] | null {
-  if (typeof payload !== "object" || payload === null || !("urls" in payload)) {
-    return null
-  }
-
-  const urls = payload.urls
-
-  if (!Array.isArray(urls)) return null
-
-  if (
-    urls.length === 0 ||
-    !urls.every(
-      (url): url is string =>
-        typeof url === "string" && isPersistentPhotoUrl(url.trim()),
-    )
-  ) {
-    return null
-  }
-
-  return urls.map((url) => url.trim())
 }
 
 export interface PhotoUploadOptions {
@@ -257,108 +198,28 @@ export async function normalizePhotoFile(file: File): Promise<File> {
   }
 }
 
-function uploadSingle(
-  endpoint: string,
+function fileToDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
 
-  csrfToken: string,
-
-  file: File,
-
-  signal: AbortSignal | undefined,
-
-  onProgress: (fraction: number) => void,
-): Promise<string> {
-  return new Promise<string>((resolve, reject) => {
-    const request = new XMLHttpRequest()
-
-    const settle = (action: () => void) => {
-      signal?.removeEventListener("abort", abort)
-
-      action()
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        resolve(reader.result)
+      } else {
+        reject(new PhotoUploadError("unsupported"))
+      }
     }
 
-    const abort = () => {
-      request.abort()
-    }
+    reader.onerror = () => reject(new PhotoUploadError("unsupported"))
 
-    request.open("POST", endpoint, true)
-
-    request.withCredentials = true
-
-    request.setRequestHeader("Accept", "application/json")
-
-    request.setRequestHeader(csrfHeaderName, csrfToken)
-
-    request.upload.onprogress = (event) => {
-      if (!event.lengthComputable || event.total === 0) {
-        onProgress(0)
-
-        return
-      }
-
-      onProgress(Math.min(1, event.loaded / event.total))
-    }
-
-    request.onerror = () =>
-      settle(() => reject(new PhotoUploadError("network")))
-
-    request.ontimeout = () =>
-      settle(() => reject(new PhotoUploadError("network")))
-
-    request.onabort = () =>
-      settle(() => reject(new PhotoUploadError("aborted")))
-
-    request.onload = () => {
-      if (request.status < 200 || request.status >= 300) {
-        settle(() =>
-          reject(
-            new PhotoUploadError(
-              failureFromStatus(request.status),
-
-              request.status,
-            ),
-          ),
-        )
-
-        return
-      }
-
-      let payload: unknown
-
-      try {
-        payload = (JSON.parse(request.responseText) as unknown)
-      } catch {
-        settle(() =>
-          reject(new PhotoUploadError("invalid-response", request.status)),
-        )
-
-        return
-      }
-
-      const urls = readUploadedUrls(payload)
-
-      if (!urls || urls.length !== 1) {
-        settle(() =>
-          reject(new PhotoUploadError("invalid-response", request.status)),
-        )
-
-        return
-      }
-
-      onProgress(1)
-
-      settle(() => resolve(urls[0] as string))
-    }
-
-    signal?.addEventListener("abort", abort)
-
-    const body = new FormData()
-
-    body.append(uploadFieldName, file, file.name)
-
-    request.send(body)
+    reader.readAsDataURL(file)
   })
 }
+
+/**
+ * Processa as fotos localmente e devolve `data:` URLs (sem servidor). O
+ * consumo de espaço do navegador é limitado por `maxPhotosPerUpload`.
+ */
 
 export async function uploadAnimalPhotos(
   files: readonly File[],
@@ -371,62 +232,28 @@ export async function uploadAnimalPhotos(
     throw new PhotoUploadError("rejected")
   }
 
-  let csrfToken: string
+  const urls: string[] = []
 
-  try {
-    csrfToken = await requestCsrfToken()
-  } catch (error) {
-    if (error instanceof AdminAuthError && error.failure === "network") {
-      throw new PhotoUploadError("network")
-    }
-
-    throw new PhotoUploadError(
-      "csrf",
-
-      error instanceof AdminAuthError ? error.status : 0,
-    )
-  }
-
-  const normalized: File[] = []
-
-  for (const file of files) {
+  for (let index = 0; index < files.length; index++) {
     if (options.signal?.aborted) {
       throw new PhotoUploadError("aborted")
     }
 
+    let normalized: File
+
     try {
-      normalized.push(await normalizePhotoFile(file))
+      normalized = await normalizePhotoFile(files[index] as File)
     } catch {
       throw new PhotoUploadError("unsupported")
     }
-  }
 
-  const endpoint = getPhotoUploadUrl()
-
-  const urls: string[] = []
-
-  for (let index = 0; index < normalized.length; index++) {
-    if (options.signal?.aborted) {
-      throw new PhotoUploadError("aborted")
-    }
-
-    const url = await uploadSingle(
-      endpoint,
-
-      csrfToken,
-
-      normalized[index] as File,
-
-      options.signal,
-
-      (fraction) => {
-        const percent = ((index + fraction) / normalized.length) * 100
-
-        options.onProgress?.(Math.min(100, Math.round(percent)))
-      },
-    )
+    const url = await fileToDataUrl(normalized)
 
     urls.push(url)
+
+    options.onProgress?.(
+      Math.min(100, Math.round(((index + 1) / files.length) * 100)),
+    )
   }
 
   options.onProgress?.(100)
@@ -440,9 +267,6 @@ export function getPhotoUploadErrorMessage(error: unknown): string {
   }
 
   switch (error.failure) {
-    case "not-configured":
-      return "O armazenamento de fotos não está configurado neste ambiente. As fotos escolhidas ficaram apenas como prévia local e não foram salvas."
-
     case "network":
       return "Não foi possível enviar as fotos por falha de conexão. Verifique sua conexão e tente novamente."
 
@@ -470,7 +294,10 @@ export function getPhotoUploadErrorMessage(error: unknown): string {
     case "aborted":
       return "O envio das fotos foi cancelado. Tente novamente."
 
+    case "rejected":
+      return `É permitido enviar no máximo ${maxPhotosPerUpload} fotos por animal.`
+
     default:
-      return "O servidor recusou as fotos. Revise os arquivos e tente novamente."
+      return "Não foi possível enviar as fotos. Tente novamente."
   }
 }

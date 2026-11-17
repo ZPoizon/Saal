@@ -14,12 +14,13 @@ import { Animal, AnimalInput, AnimalStatus } from "../../data/animals"
 
 import { AnimalApiError } from "../../services/animals-api"
 
+import { PhotoUploadError } from "../../services/photo-storage"
+
 import {
-  PhotoUploadError,
   getPhotoUploadErrorMessage,
   isPhotoStorageConfigured,
   uploadAnimalPhotos,
-} from "../../services/photo-storage"
+} from "../../services/supabase-photos"
 
 import {
   MAX_ANIMAL_PHOTOS,
@@ -395,7 +396,7 @@ export function AnimalForm({ animal, onSave, onCancel }: AnimalFormProps) {
               Fotos do animal ({gallery.length}/{MAX_ANIMAL_PHOTOS})
             </legend>
 
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3">
               {gallery.map((photo, index) => (
                 <div
                   key={photo.id}
@@ -437,18 +438,18 @@ export function AnimalForm({ animal, onSave, onCancel }: AnimalFormProps) {
                         onClick={() => handleMovePhoto(index, index - 1)}
                         disabled={submitting || index === 0}
                         aria-label={`Mover foto ${index + 1} para a esquerda`}
-                        className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-[#2E7D6B] hover:bg-[#F5EFE6] disabled:cursor-not-allowed disabled:opacity-40"
+                        className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-[#2E7D6B] hover:bg-[#F5EFE6] disabled:cursor-not-allowed disabled:opacity-40"
                       >
-                        <ChevronLeft size={18} />
+                        <ChevronLeft size={20} />
                       </button>
                       <button
                         type="button"
                         onClick={() => handleMovePhoto(index, index + 1)}
                         disabled={submitting || index === gallery.length - 1}
                         aria-label={`Mover foto ${index + 1} para a direita`}
-                        className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-[#2E7D6B] hover:bg-[#F5EFE6] disabled:cursor-not-allowed disabled:opacity-40"
+                        className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-[#2E7D6B] hover:bg-[#F5EFE6] disabled:cursor-not-allowed disabled:opacity-40"
                       >
-                        <ChevronRight size={18} />
+                        <ChevronRight size={20} />
                       </button>
                     </div>
 
@@ -458,18 +459,18 @@ export function AnimalForm({ animal, onSave, onCancel }: AnimalFormProps) {
                         onClick={() => openFilePicker(photo.id)}
                         disabled={submitting}
                         aria-label={`Substituir foto ${index + 1}`}
-                        className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-[#2E7D6B] hover:bg-[#F5EFE6] disabled:cursor-not-allowed disabled:opacity-40"
+                        className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-[#2E7D6B] hover:bg-[#F5EFE6] disabled:cursor-not-allowed disabled:opacity-40"
                       >
-                        <RefreshCw size={16} />
+                        <RefreshCw size={20} />
                       </button>
                       <button
                         type="button"
                         onClick={() => handleRemovePhoto(photo.id)}
                         disabled={submitting}
                         aria-label={`Remover foto ${index + 1}`}
-                        className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40"
+                        className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40"
                       >
-                        <X size={18} />
+                        <X size={20} />
                       </button>
                     </div>
                   </div>
@@ -481,7 +482,7 @@ export function AnimalForm({ animal, onSave, onCancel }: AnimalFormProps) {
                   type="button"
                   onClick={() => openFilePicker(null)}
                   disabled={submitting}
-                  className="flex aspect-square w-full flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-[#6FAE9C]/60 bg-white p-2 text-center text-[#2E7D6B] transition-colors hover:border-[#2E7D6B] hover:bg-[#F5EFE6]/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#E4B04A] disabled:cursor-not-allowed disabled:opacity-40"
+                  className="flex min-h-[80px] max-h-[110px] w-full flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-[#6FAE9C]/60 bg-white p-2 text-center text-[#2E7D6B] transition-colors hover:border-[#2E7D6B] hover:bg-[#F5EFE6]/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#E4B04A] disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   <Plus size={24} aria-hidden="true" />
                   <span className="text-sm font-semibold">Adicionar foto</span>
@@ -588,8 +589,8 @@ export function AnimalForm({ animal, onSave, onCancel }: AnimalFormProps) {
                 onChange={handleChange}
                 className="w-full rounded-lg border-none bg-[#F5EFE6] px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#E4B04A]"
               >
-                <option value="dog">Cachorro</option>
-                <option value="cat">Gato</option>
+                <option value="dog">Canino</option>
+                <option value="cat">Felino</option>
               </select>
             </div>
 
@@ -724,7 +725,7 @@ export function AnimalForm({ animal, onSave, onCancel }: AnimalFormProps) {
           )}
 
           {/* Botões */}
-          <div className="flex flex-col-reverse gap-3 pt-4 sm:flex-row">
+          <div className="flex flex-col-reverse gap-3 pt-4 pb-6 px-4 sm:flex-row sm:px-6">
             <button
               type="button"
               onClick={onCancel}

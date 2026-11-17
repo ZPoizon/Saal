@@ -1,8 +1,13 @@
 import { useCallback, useEffect, useState } from "react"
 
 import {
+  AlertCircle,
   ArrowLeft,
   AtSign,
+  Check,
+  ChevronDown,
+  Eye,
+  EyeOff,
   Heart,
   Mail,
   MessageCircle,
@@ -11,6 +16,8 @@ import {
   Plus,
   Settings,
   Edit,
+  Trash2,
+  X,
 } from "lucide-react"
 
 import { Link } from "react-router"
@@ -18,21 +25,25 @@ import { Link } from "react-router"
 import {
   AdminAuthError,
   getAdminAuthErrorMessage,
+} from "../services/admin-auth"
+
+import {
   getAdminSession,
   loginAdmin,
   logoutAdmin,
-} from "../services/admin-auth"
+} from "../services/supabase-auth"
 
-import { Animal, AnimalInput } from "../data/animals"
+import { Animal, AnimalInput, AnimalStatus } from "../data/animals"
 
 import {
   AnimalApiError,
   createAnimal,
+  deleteAnimal,
   listAdminAnimals,
   updateAnimal,
-} from "../services/animals-api"
+} from "../services/supabase-animals"
 
-import { InterestApiError, listAdminInterests } from "../services/interests-api"
+import { InterestApiError, listAdminInterests } from "../services/supabase-interests"
 
 import type { AdminAnimalInterest } from "../data/interests"
 
@@ -82,6 +93,8 @@ export function Admin() {
 
   const [credentials, setCredentials] = useState({ username: "", password: "" })
 
+  const [showPassword, setShowPassword] = useState(false)
+
   const [authMessage, setAuthMessage] = useState<string | null>(null)
 
   const [sessionWarning, setSessionWarning] = useState<string | null>(null)
@@ -108,11 +121,24 @@ export function Admin() {
 
   const [editingAnimal, setEditingAnimal] = useState<Animal | null>(null)
 
-  const [showSiteSettings, setShowSiteSettings] = useState(false)
-
   const [siteSettingsDirty, setSiteSettingsDirty] = useState(false)
 
   const [openContactId, setOpenContactId] = useState<string | null>(null)
+
+  const [openStatusId, setOpenStatusId] = useState<string | null>(null)
+
+  const [activeTab, setActiveTab] = useState<"animals" | "interests" | "settings">("animals")
+
+  const [updatingStatus, setUpdatingStatus] = useState<{
+    id: string
+    status: AnimalStatus
+  } | null>(null)
+
+  const [confirmingAdoption, setConfirmingAdoption] = useState<{
+    interestId: string
+    animalId: string
+    animalName: string
+  } | null>(null)
 
   const checkSession = useCallback(
     async (mode: "initial" | "revalidate") => {
@@ -125,9 +151,9 @@ export function Admin() {
       }
 
       try {
-        const authenticated = await getAdminSession()
+        const session = await getAdminSession()
 
-        if (!authenticated) {
+        if (!session) {
           setAuthStatus("anonymous")
 
           setSessionWarning(null)
@@ -260,6 +286,66 @@ export function Admin() {
     }
   }, [authStatus, checkSession])
 
+  useEffect(() => {
+    const hash = window.location.hash.replace("#", "")
+    if (
+      hash === "" ||
+      hash === "animals" ||
+      hash === "interests" ||
+      hash === "settings"
+    ) {
+      setActiveTab(((hash as "animals" | "interests" | "settings") || "animals") as "animals" | "interests" | "settings")
+    }
+  }, [])
+
+  useEffect(() => {
+    if (window.location.hash.replace("#", "") !== activeTab) {
+      window.location.hash = activeTab
+    }
+  }, [activeTab])
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash.replace("#", "")
+      if (hash === "animals" || hash === "interests" || hash === "settings") {
+        if (hash !== activeTab && activeTab === "settings" && siteSettingsDirty) {
+          if (
+            !window.confirm(
+              "Há alterações não salvas nas configurações do site. Descartá-las e mudar de seção?",
+            )
+          ) {
+            window.location.hash = activeTab
+            return
+          }
+          setSiteSettingsDirty(false)
+        }
+        setActiveTab(hash as "animals" | "interests" | "settings")
+      }
+    }
+    window.addEventListener("hashchange", handleHashChange)
+    return () => {
+      window.removeEventListener("hashchange", handleHashChange)
+    }
+  }, [])
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (openStatusId !== null) {
+        const target = event.target as Node
+        if (
+          !document.body.contains(target) ||
+          !(target as HTMLElement).closest('[aria-haspopup="listbox"]')
+        ) {
+          setOpenStatusId(null)
+        }
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside)
+    }
+  }, [openStatusId])
+
   const retrySessionCheck = () => {
     void checkSession("initial")
   }
@@ -330,6 +416,20 @@ export function Admin() {
     }
   }
 
+  const requestTabChange = (nextTab: "animals" | "interests" | "settings"): boolean => {
+    if (activeTab === "settings" && siteSettingsDirty && nextTab !== "settings") {
+      if (
+        !window.confirm(
+          "Há alterações não salvas nas configurações do site. Descartá-las e mudar de seção?",
+        )
+      ) {
+        return false
+      }
+      setSiteSettingsDirty(false)
+    }
+    return true
+  }
+
   const handleAddAnimal = () => {
     setEditingAnimal(null)
 
@@ -340,6 +440,28 @@ export function Admin() {
     setEditingAnimal(animal)
 
     setShowForm(true)
+  }
+
+  const handleDeleteAnimal = async (animal: Animal) => {
+    const confirmed = window.confirm(
+      `Excluir "${animal.name}" do catálogo? Esta ação não pode ser desfeita.`,
+    )
+
+    if (!confirmed) return
+
+    try {
+      await deleteAnimal(animal.id)
+
+      setAnimals((current) => current.filter((item) => item.id !== animal.id))
+
+      setAnimalsStatus("success")
+
+      setAnimalsMessage(null)
+    } catch (error) {
+      setAnimalsStatus("error")
+
+      setAnimalsMessage(adminResourceErrorMessage(error, "animais"))
+    }
   }
 
   const handleSaveAnimal = async (input: AnimalInput) => {
@@ -376,6 +498,80 @@ export function Admin() {
       }
 
       throw error
+    }
+  }
+
+  const handleChangeStatus = async (
+    animal: Animal,
+    newStatus: AnimalStatus,
+  ) => {
+    if (animal.status === newStatus) return
+
+    setUpdatingStatus({ id: animal.id, status: newStatus })
+
+    try {
+      const updated = await updateAnimal(animal.id, {
+        ...animal,
+        status: newStatus,
+      } as AnimalInput)
+
+      setAnimals((current) =>
+        current.map((item) =>
+          item.id === updated.id ? updated : item,
+        ),
+      )
+    } catch (error) {
+      setUpdatingStatus(null)
+      if (
+        error instanceof AnimalApiError &&
+        (error.status === 401 || error.status === 403)
+      ) {
+        setAuthStatus("anonymous")
+        setAuthMessage("Sessão expirada. Entre novamente.")
+        return
+      }
+    } finally {
+      setUpdatingStatus(null)
+    }
+  }
+
+  const handleConfirmAdoption = async () => {
+    if (!confirmingAdoption) return
+
+    setUpdatingStatus({ id: confirmingAdoption.animalId, status: "adopted" })
+
+    try {
+      const animal = animals.find((a) => a.id === confirmingAdoption.animalId)
+
+      if (!animal) {
+        setConfirmingAdoption(null)
+        setUpdatingStatus(null)
+        return
+      }
+
+      const updated = await updateAnimal(animal.id, {
+        ...animal,
+        status: "adopted",
+      } as AnimalInput)
+
+      setAnimals((current) =>
+        current.map((item) =>
+          item.id === updated.id ? updated : item,
+        ),
+      )
+    } catch (error) {
+      setUpdatingStatus(null)
+      if (
+        error instanceof AnimalApiError &&
+        (error.status === 401 || error.status === 403)
+      ) {
+        setAuthStatus("anonymous")
+        setAuthMessage("Sessão expirada. Entre novamente.")
+        return
+      }
+    } finally {
+      setConfirmingAdoption(null)
+      setUpdatingStatus(null)
     }
   }
 
@@ -451,19 +647,35 @@ export function Admin() {
                 <label htmlFor="password" className="block text-[#2E7D6B] mb-2">
                   Senha
                 </label>
-                <input
-                  type="password"
-                  id="password"
-                  autoComplete="current-password"
-                  required
-                  disabled={authStatus === "checking" || isSubmitting}
-                  value={credentials.password}
-                  onChange={(e) =>
-                    setCredentials({ ...credentials, password: e.target.value })
-                  }
-                  className="w-full px-4 py-3 bg-[#F5EFE6] rounded-lg border-none focus:outline-none focus:ring-2 focus:ring-[#E4B04A]"
-                  placeholder="••••••••"
-                />
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    id="password"
+                    autoComplete="current-password"
+                    required
+                    disabled={authStatus === "checking" || isSubmitting}
+                    value={credentials.password}
+                    onChange={(e) =>
+                      setCredentials({
+                        ...credentials,
+                        password: e.target.value,
+                      })
+                    }
+                    className="w-full px-4 py-3 pr-12 bg-[#F5EFE6] rounded-lg border-none focus:outline-none focus:ring-2 focus:ring-[#E4B04A]"
+                    placeholder="••••••••"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((visible) => !visible)}
+                    aria-label={
+                      showPassword ? "Ocultar senha" : "Mostrar senha"
+                    }
+                    aria-pressed={showPassword}
+                    className="absolute right-2 top-1/2 inline-flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-lg text-[#6FAE9C] transition-colors hover:text-[#2E7D6B] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#E4B04A]"
+                  >
+                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                  </button>
+                </div>
               </div>
 
               <button
@@ -489,12 +701,20 @@ export function Admin() {
             <h1 className="mb-2 text-2xl font-bold text-[#2E7D6B] sm:text-3xl">
               Painel Administrativo
             </h1>
-            <p className="text-[#6FAE9C]">Gerencie os animais e interessados</p>
+            <p className="text-[#6FAE9C]">
+              Gerencie os animais e interessados
+              <span
+                className="ml-2 inline-block rounded-full bg-[#E4B04A]/15 px-2 py-0.5 align-middle text-xs font-semibold text-[#6b5425]"
+                title="Dados salvos somente neste navegador, sem servidor"
+              >
+                protótipo local
+              </span>
+            </p>
           </div>
           <button
             onClick={handleLogout}
             disabled={isSubmitting}
-            className="inline-flex min-h-11 items-center justify-center rounded-lg bg-red-500 px-4 py-2 text-white transition-colors hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-60 sm:self-start"
+            className="inline-flex min-h-11 items-center justify-center rounded-lg bg-red-500 px-4 py-2 text-white transition-colors hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto max-w-xs sm:max-w-none"
           >
             {isSubmitting ? "Aguarde…" : "Sair"}
           </button>
@@ -525,59 +745,62 @@ export function Admin() {
           </div>
         )}
 
-        <p
-          role="status"
-          className="mb-6 rounded-xl border border-[#E4B04A]/50 bg-white px-4 py-3 text-sm text-[#416f65]"
-        >
-          Os cadastros são salvos no servidor. As fotos podem vir da galeria do
-          celular quando o armazenamento remoto estiver configurado; sem esse
-          serviço, a prévia local não é enviada nem persistida.
-        </p>
-
         <nav
           aria-label="Navegação administrativa"
-          className="mb-8 flex flex-wrap items-center gap-2 rounded-2xl bg-white p-3 shadow-md"
+          className="mb-8 flex flex-wrap justify-center items-center gap-1 rounded-2xl bg-white p-2 sm:p-3 shadow-md"
         >
-          <a
-            href="#animals"
-            className="inline-flex min-h-11 items-center rounded-full px-4 py-2 text-sm font-semibold text-[#2E7D6B] hover:bg-[#F5EFE6] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#E4B04A]"
-          >
-            Animais
-          </a>
-          <a
-            href="#interests"
-            className="inline-flex min-h-11 items-center rounded-full px-4 py-2 text-sm font-semibold text-[#2E7D6B] hover:bg-[#F5EFE6] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#E4B04A]"
-          >
-            Interessados
-          </a>
           <button
             type="button"
-            aria-pressed={showSiteSettings}
+            aria-pressed={activeTab === "animals"}
             onClick={() => {
-              if (
-                showSiteSettings &&
-                siteSettingsDirty &&
-                !window.confirm(
-                  "Há alterações não salvas nas configurações do site. Descartá-las e voltar ao painel?",
-                )
-              ) {
-                return
+              if (requestTabChange("animals")) {
+                setActiveTab("animals")
               }
-
-              setShowSiteSettings((visible) => !visible)
             }}
-            className={`inline-flex min-h-11 items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#E4B04A] ${
-              showSiteSettings
+            className={`inline-flex min-h-11 items-center rounded-full px-3 py-1.5 text-xs font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#E4B04A] sm:px-4 sm:py-2 sm:text-sm ${
+              activeTab === "animals"
                 ? "bg-[#2E7D6B] text-white"
                 : "text-[#2E7D6B] hover:bg-[#F5EFE6]"
             }`}
           >
-            <Settings size={16} />
-            {showSiteSettings ? "Voltar ao painel" : "Configurações do Site"}
+            Animais
+          </button>
+          <button
+            type="button"
+            aria-pressed={activeTab === "interests"}
+            onClick={() => {
+              if (requestTabChange("interests")) {
+                setActiveTab("interests")
+              }
+            }}
+            className={`inline-flex min-h-11 items-center rounded-full px-3 py-1.5 text-xs font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#E4B04A] sm:px-4 sm:py-2 sm:text-sm ${
+              activeTab === "interests"
+                ? "bg-[#2E7D6B] text-white"
+                : "text-[#2E7D6B] hover:bg-[#F5EFE6]"
+            }`}
+          >
+            Interessados
+          </button>
+          <button
+            type="button"
+            aria-pressed={activeTab === "settings"}
+            onClick={() => {
+              if (requestTabChange("settings")) {
+                setActiveTab("settings")
+              }
+            }}
+            className={`inline-flex min-h-11 items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#E4B04A] sm:px-4 sm:py-2 sm:text-sm ${
+              activeTab === "settings"
+                ? "bg-[#2E7D6B] text-white"
+                : "text-[#2E7D6B] hover:bg-[#F5EFE6]"
+            }`}
+          >
+            <Settings size={14} />
+            Configuração
           </button>
         </nav>
 
-        {showSiteSettings ? (
+        {activeTab === "settings" ? (
           <SiteSettingsPanel
             onLogout={handleLogout}
             onDirtyChange={setSiteSettingsDirty}
@@ -585,6 +808,8 @@ export function Admin() {
           />
         ) : (
           <>
+            {activeTab === "animals" && (
+              <>
             {/* Stats */}
             <div className="mb-6 grid grid-cols-2 gap-3 sm:mb-8 sm:gap-4 lg:grid-cols-4">
               <div className="rounded-xl bg-white p-4 shadow-md sm:p-6">
@@ -756,23 +981,100 @@ export function Admin() {
                             {animal.name}
                           </td>
                           <td className="hidden px-6 py-4 text-[#6FAE9C] sm:table-cell">
-                            {animal.species === "dog" ? "Cachorro" : "Gato"}
+                            {animal.species === "dog" ? "Canino" : "Felino"}
                           </td>
                           <td className="hidden px-6 py-4 text-[#6FAE9C] md:table-cell">
                             {animal.age}
                           </td>
                           <td className="px-2 py-3 sm:px-6 sm:py-4">
-                            <span
-                              className={`inline-block rounded-full px-2 py-1 text-[11px] font-semibold sm:px-3 sm:text-xs ${
-                                animal.status === "available"
-                                  ? "bg-[#2E7D6B] text-white"
-                                  : "bg-gray-400 text-white"
-                              }`}
-                            >
-                              {animal.status === "available"
-                                ? "Disponível"
-                                : "Adotado"}
-                            </span>
+                            <div className="relative inline-block w-full">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  setOpenStatusId(
+                                    openStatusId === animal.id ? null : animal.id,
+                                  )
+                                }}
+                                aria-expanded={openStatusId === animal.id}
+                                aria-haspopup="listbox"
+                                aria-label={`Status do ${animal.name}: ${animal.status === "available" ? "Disponível" : "Adotado"}`}
+                                className={`flex w-full items-center justify-between gap-2 rounded-full px-4 py-2 text-xs font-semibold transition-all duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E4B04A] sm:text-sm sm:px-3 sm:py-2 ${
+                                  animal.status === "available"
+                                    ? "bg-[#2E7D6B]/10 border border-[#2E7D6B]/30 text-[#2E7D6B] hover:bg-[#2E7D6B]/20"
+                                    : "bg-[#E4B04A]/10 border border-[#E4B04A]/30 text-[#b45309] hover:bg-[#E4B04A]/20"
+                                }                                 ${updatingStatus?.id === animal.id
+                                  ? "opacity-50 cursor-not-allowed"
+                                  : "cursor-pointer"
+                                }`}
+                                disabled={updatingStatus?.id === animal.id}
+                              >
+                                <span>
+                                  {animal.status === "available"
+                                    ? "Disponível"
+                                    : "Adotado"}
+                                </span>
+                                <ChevronDown
+                                  className={`w-4 h-4 shrink-0 transition-transform duration-200 ${
+                                    openStatusId === animal.id
+                                      ? "rotate-180"
+                                      : ""
+                                  }`}
+                                />
+                              </button>
+
+                              {openStatusId === animal.id && !(
+                                updatingStatus?.id === animal.id
+                              ) && (
+                                <div
+                                  className="absolute z-50 mt-2 w-full rounded-2xl border border-[#e6eee9] bg-white shadow-md overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200"
+                                >
+                                  <ul
+                                    role="listbox"
+                                    aria-labelledby={`status-${animal.id}`}
+                                    className="py-1.5 text-sm"
+                                  >
+                                    {(["available", "adopted"] as const).map(
+                                      (optionStatus) => {
+                                        const isSelected =
+                                          optionStatus === animal.status
+                                        return (
+                                          <li
+                                            key={optionStatus}
+                                            role="option"
+                                            aria-selected={isSelected}
+                                            onClick={(e) => {
+                                              e.stopPropagation()
+                                              void handleChangeStatus(
+                                                animal,
+                                                optionStatus,
+                                              )
+                                              setOpenStatusId(null)
+                                            }}
+                                            className={`flex w-full items-center gap-2 px-4 py-2.5 text-sm transition-colors duration-150 ${
+                                              isSelected
+                                                ? "bg-[#2E7D6B]/10 text-[#2E7D6B] font-semibold"
+                                                : "text-[#4b5563] hover:bg-[#F5EFE6] hover:text-[#2E7D6B]"
+                                            }`}
+                                          >
+                                            {optionStatus === "available"
+                                              ? "Disponível"
+                                              : "Adotado"}
+                                            {isSelected && (
+                                              <span className="ml-auto w-4 h-4 shrink-0">
+                                                <Check
+                                                  className="w-4 h-4 text-[#2E7D6B]"
+                                                />
+                                              </span>
+                                            )}
+                                          </li>
+                                        )
+                                      },
+                                    )}
+                                  </ul>
+                                </div>
+                              )}
+                            </div>
                           </td>
                           <td className="px-1 py-3 text-right sm:px-6 sm:py-4 sm:text-left">
                             <button
@@ -782,6 +1084,13 @@ export function Admin() {
                             >
                               <Edit size={18} />
                             </button>
+                            <button
+                              onClick={() => handleDeleteAnimal(animal)}
+                              className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-red-600 transition-colors hover:bg-red-50"
+                              aria-label={`Excluir ${animal.name}`}
+                            >
+                              <Trash2 size={18} />
+                            </button>
                           </td>
                         </tr>
                       ))}
@@ -789,6 +1098,10 @@ export function Admin() {
                 </table>
               </div>
             </div>
+              </>
+            )}
+            {activeTab === "interests" && (
+              <>
 
             {/* Interests Section */}
             <div
@@ -899,7 +1212,7 @@ export function Admin() {
                               </p>
                             </div>
 
-                            <div className="flex md:w-1/3 md:flex-col md:justify-center">
+                            <div className="flex-col gap-3 md:flex-row md:w-1/3 md:flex-none md:justify-center">
                               <button
                                 type="button"
                                 aria-expanded={openContactId === interest.id}
@@ -919,7 +1232,7 @@ export function Admin() {
                                 id={`contact-actions-${interest.id}`}
                                 className={
                                   openContactId === interest.id
-                                    ? "flex flex-wrap gap-2 md:flex-col"
+                                    ? "flex flex-col gap-2 sm:flex-row sm:flex-wrap"
                                     : "hidden"
                                 }
                               >
@@ -964,6 +1277,25 @@ export function Admin() {
                                   mensagem é enviada automaticamente.
                                 </p>
                               </div>
+
+                              {animal && animal.status === "available" && (
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setConfirmingAdoption({
+                                      interestId: interest.id,
+                                      animalId: animal.id,
+                                      animalName: interest.animalName,
+                                    })
+                                  }
+                                  disabled={
+                                    updatingStatus?.id === animal.id
+                                  }
+                                  className="mt-3 flex-1 rounded-lg border border-[#2E7D6B] px-4 py-2 font-semibold text-[#2E7D6B] transition-colors hover:bg-[#2E7D6B]/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#E4B04A] md:flex-none disabled:cursor-not-allowed disabled:opacity-60"
+                                >
+                                  Confirmar Adoção
+                                </button>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -973,6 +1305,8 @@ export function Admin() {
                 )}
               </div>
             </div>
+              </>
+            )}
           </>
         )}
       </div>
@@ -988,6 +1322,75 @@ export function Admin() {
             setEditingAnimal(null)
           }}
         />
+      )}
+
+      {/* Confirm Adoption Modal */}
+      {confirmingAdoption && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/50 p-3 sm:p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="confirm-adoption-title"
+        >
+          <div
+            className="my-auto flex max-w-md flex-col rounded-2xl bg-white sm:max-w-lg sm:max-h-[calc(100dvh-2rem)]"
+          >
+            <div className="flex shrink-0 items-center justify-between gap-2 border-b border-[#F5EFE6] p-4 sm:p-6">
+              <h2
+                id="confirm-adoption-title"
+                className="text-xl font-bold text-[#2E7D6B] sm:text-2xl"
+              >
+                Confirmar Adoção
+              </h2>
+              <button
+                type="button"
+                onClick={() => setConfirmingAdoption(null)}
+                aria-label="Fechar"
+                className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg transition-colors hover:bg-[#F5EFE6] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#E4B04A]"
+              >
+                <X className="text-[#6FAE9C]" />
+              </button>
+            </div>
+
+            <div className="p-4 sm:p-6">
+              <div className="flex items-center gap-3">
+                <div className="rounded-full bg-[#E4B04A]/10 p-3 text-[#E4B04A]">
+                  <AlertCircle size={24} />
+                </div>
+                <div>
+                  <p className="mb-1 font-semibold text-[#2E7D6B]">
+                    Confirmar adoção de "{confirmingAdoption.animalName}"?
+                  </p>
+                  <p className="text-sm text-[#6FAE9C]">
+                    O status do animal será alterado para Adotado em todo o
+                    painel. Esta ação pode ser desfeita editando o animal.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-col-reverse gap-3 pt-4 pb-6 px-4 sm:flex-row sm:justify-end sm:px-6">
+              <button
+                type="button"
+                onClick={() => setConfirmingAdoption(null)}
+                disabled={updatingStatus?.id === confirmingAdoption.animalId}
+                className="min-h-11 flex-1 rounded-full bg-gray-200 py-3 font-semibold text-gray-700 transition-colors hover:bg-gray-300 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmAdoption}
+                disabled={updatingStatus?.id === confirmingAdoption.animalId}
+                className="min-h-11 flex-1 rounded-full bg-[#E4B04A] py-3 font-semibold text-white transition-colors hover:bg-[#d4a03a] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {updatingStatus?.id === confirmingAdoption.animalId
+                  ? "Confirmando…"
+                  : "Sim, confirmar adoção"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

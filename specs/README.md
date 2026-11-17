@@ -36,12 +36,12 @@ Consulte-as antes de implementar e ao revisar alterações.
 
 | Área | Documento | Estado atual |
 |---|---|---|
-| Catálogo | `features/animal-catalog.md` | Implementado no worktree |
-| Detalhes | `features/animal-details.md` | Parcial no worktree |
-| Solicitação de adoção | `features/adoption-request.md` | Implementado no worktree; política de privacidade pendente |
-| Gestão de animais | `features/animal-management.md` | Implementado no worktree; exclusão desabilitada; política de imagem pendente |
-| Autenticação admin | `features/admin-authentication.md` | Implementado no worktree; integração no frontend publicada na `main` |
-| Gestão de adoções | `features/adoption-management.md` | Implementado no worktree, somente leitura |
+| Catálogo | `features/animal-catalog.md` | Protótipo local (sem API, ADR-008) |
+| Detalhes | `features/animal-details.md` | Protótipo local (parcial; sem API, ADR-008) |
+| Solicitação de adoção | `features/adoption-request.md` | Protótipo local: registro só no navegador, a ONG não recebe (ADR-008) |
+| Gestão de animais | `features/animal-management.md` | Protótipo local: CRUD + exclusão no navegador (ADR-008); API/ONG-03 pendentes |
+| Autenticação admin | `features/admin-authentication.md` | Protótipo local: login simples fixado no código (admin/saal2026), sessão na aba (ADR-008) |
+| Gestão de adoções | `features/adoption-management.md` | Protótipo local, somente leitura (ADR-008) |
 | Configurações do site | `features/site-settings.md` | Parcial; persistência local no navegador, sem API compartilhada |
 | Contato geral | — | Fora do primeiro incremento (ONG-07) |
 
@@ -55,6 +55,9 @@ Consulte-as antes de implementar e ao revisar alterações.
 
 ## Pendências transversais
 
+- **Modo local ativo (ADR-008):** o frontend roda sem API; catálogo, interessados e painel
+  administrativo usam `localStorage`. Religar a integração restaura autenticação e
+  persistência reais descritos nas features e no contrato.
 - Definir identidade nominal, rotação/recuperação e operação de credenciais do único
   administrador; sessão server-side, CSRF e topologia same-site estão aprovados em ADR-006.
   Não há papéis diferenciados (ONG-01).

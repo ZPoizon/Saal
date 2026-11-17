@@ -7,87 +7,116 @@ import {
   type ReactNode,
 } from "react"
 
+import { defaultSiteSettings, type SiteSettings } from "../data/siteSettings"
+
+import { supabase } from "../lib/supabase"
+
 import {
-  defaultSiteSettings,
-  loadSiteSettings,
-  saveSiteSettings as persistSiteSettings,
-  type SiteSettings,
-} from "../data/siteSettings"
+  loadSiteSettings as loadSupabaseSettings,
+  saveSiteSettings as saveSupabaseSettings,
+} from "../services/supabase-settings"
 
 const LOAD_ERROR =
-  "Não foi possível ler as configurações salvas neste navegador. Os textos padrão da demonstração estão sendo exibidos."
+  "Não foi possível ler as configurações do servidor. Os textos padrão estão sendo exibidos."
 
 const SAVE_ERROR =
-  "Não foi possível salvar neste navegador. Verifique o espaço disponível e as permissões do navegador."
+  "Não foi possível salvar as configurações no servidor. Verifique sua conexão e tente novamente."
 
 interface SiteSettingsContextValue {
   settings: SiteSettings
 
   storageError: string | null
 
-  saveSettings: (settings: SiteSettings) => boolean
+  saving: boolean
+
+  saveSettings: (settings: SiteSettings) => Promise<boolean>
 }
 
 const SiteSettingsContext = createContext<SiteSettingsContextValue | undefined>(
   undefined,
 )
 
-function getInitialState(): {
-  settings: SiteSettings
-
-  storageError: string | null
-} {
-  try {
-    return {
-      settings: loadSiteSettings(window.localStorage),
-
-      storageError: null,
-    }
-  } catch {
-    return {
-      settings: defaultSiteSettings,
-
-      storageError: LOAD_ERROR,
-    }
-  }
-}
-
 export function SiteSettingsProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState(getInitialState)
+  const [state, setState] = useState<{
+    settings: SiteSettings
+
+    storageError: string | null
+
+    saving: boolean
+  }>({
+    settings: defaultSiteSettings,
+
+    storageError: null,
+
+    saving: false,
+  })
 
   useEffect(() => {
-    const handleStorage = (event: StorageEvent) => {
-      if (event.key !== "saal.site-settings.v1" && event.key !== null) return
+    let mounted = true
 
+    const loadSettings = async () => {
       try {
-        setState({
-          settings: loadSiteSettings(window.localStorage),
+        const saved = await loadSupabaseSettings()
 
-          storageError: null,
-        })
+        if (mounted && saved) {
+          setState((current) => ({
+            ...current,
+
+            settings: saved,
+
+            storageError: null,
+          }))
+        }
       } catch {
-        setState((current) => ({ ...current, storageError: LOAD_ERROR }))
+        if (mounted) {
+          setState((current) => ({
+            ...current,
+
+            storageError: LOAD_ERROR,
+          }))
+        }
       }
     }
 
-    window.addEventListener("storage", handleStorage)
-
-    return () => window.removeEventListener("storage", handleStorage)
+    void loadSettings()
   }, [])
 
-  const saveSettings = useCallback((settings: SiteSettings): boolean => {
-    try {
-      persistSiteSettings(window.localStorage, settings)
+  const saveSettings = useCallback(
+    async (settings: SiteSettings): Promise<boolean> => {
+      try {
+        setState((current) => ({ ...current, saving: true }))
 
-      setState({ settings, storageError: null })
+        const {
+          data: { user },
+        } = await supabase.auth.getUser()
 
-      return true
-    } catch {
-      setState((current) => ({ ...current, storageError: SAVE_ERROR }))
+        await saveSupabaseSettings(settings, user?.id ?? null)
 
-      return false
-    }
-  }, [])
+        setState((current) => ({
+          ...current,
+
+          settings,
+
+          storageError: null,
+
+          saving: false,
+        }))
+
+        return true
+      } catch {
+        setState((current) => ({
+          ...current,
+
+          storageError: SAVE_ERROR,
+
+          saving: false,
+        }))
+
+        return false
+      }
+    },
+    [],
+  )
 
   return (
     <SiteSettingsContext.Provider value={{ ...state, saveSettings }}>

@@ -1,10 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import {
-  fitWithin,
-  getPhotoUploadUrl,
-  isPhotoStorageConfigured,
-} from "./photo-storage"
+import { fitWithin, isPhotoStorageConfigured } from "./photo-storage"
 
 describe("fitWithin", () => {
   it("não amplia imagens menores que o limite", () => {
@@ -24,12 +20,8 @@ describe("fitWithin", () => {
   })
 })
 
-describe("configuração do upload", () => {
-  it("usa o endpoint same-origin da API por padrão", () => {
-    expect(getPhotoUploadUrl()).toMatch(
-      /^\/api\/v1\/admin\/photos$|^https?:\/\//,
-    )
-
+describe("configuração do armazenamento local", () => {
+  it("está sempre configurado no modo protótipo local", () => {
     expect(isPhotoStorageConfigured()).toBe(true)
   })
 })

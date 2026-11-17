@@ -6,12 +6,12 @@ import { useRef, useState } from "react"
 
 import { useAsync } from "../hooks/useAsync"
 
-import { AnimalApiError, getPublicAnimal } from "../services/animals-api"
+import { AnimalApiError, getPublicAnimal } from "../services/supabase-animals"
 
 import {
   InterestApiError,
   submitAnimalInterest,
-} from "../services/interests-api"
+} from "../services/supabase-interests"
 
 import { validateInterestForm } from "../utils/interest-validation"
 
@@ -116,8 +116,7 @@ export function Interest() {
             Recebimento de interesses pausado
           </h1>
           <p className="mb-6 text-gray-600">
-            No momento, não estamos recebendo novas manifestações nesta
-            demonstração local. A pausa não é aplicada pelo servidor.
+            No momento, não estamos recebendo novas manifestações.
           </p>
           <Link
             to="/animais"
@@ -253,7 +252,7 @@ export function Interest() {
                   {animal.name}
                 </h3>
                 <p className="text-sm text-[#6FAE9C]">
-                  {animal.species === "dog" ? "Cachorro" : "Gato"} •{" "}
+                  {animal.species === "dog" ? "Canino" : "Felino"} •{" "}
                   {animal.age} • {animal.sex}
                 </p>
               </div>

@@ -4,9 +4,22 @@ import type {
   AnimalInterestReceipt,
 } from "../data/interests"
 
-const publicAnimalsPath = "/api/v1/animals"
+import {
+  browserStorage,
+  loadLocalAnimals,
+  loadLocalInterests,
+  nextLocalId,
+  saveLocalInterests,
+} from "../data/local-store"
 
-const adminInterestsPath = "/api/v1/admin/interests"
+/**
+ * Manifestações de interesse em modo protótipo local (sem API).
+ *
+ * O envio grava o registro somente no `localStorage` deste navegador; nada é
+ * transmitido à ONG. Os dados pessoais permanecem no dispositivo do visitante.
+ * Quando a API for religada, `submitAnimalInterest` volta a usar
+ * `POST /api/v1/animals/{id}/interests` (ADR-008).
+ */
 
 export class InterestApiError extends Error {
   constructor(readonly status: number) {
@@ -16,144 +29,66 @@ export class InterestApiError extends Error {
   }
 }
 
-async function requestJson(
-  path: string,
-
-  init: RequestInit,
-
-  credentials: RequestCredentials = "include",
-): Promise<unknown> {
-  const headers = new Headers(init.headers)
-
-  headers.set("Accept", "application/json")
-
-  if (init.body !== undefined) {
-    headers.set("Content-Type", "application/json")
-  }
-
-  const response = await fetch(path, {
-    ...init,
-
-    credentials,
-
-    headers,
-  })
-
-  if (!response.ok) {
-    throw new InterestApiError(response.status)
-  }
-
-  return response.json()
-}
-
-/** Envio publico: nao exige login e nao envia token CSRF (rota publica). */
+/** Envio público local: grava o registro apenas neste navegador. */
 
 export async function submitAnimalInterest(
   animalId: string,
 
   input: AnimalInterestInput,
+
+  storage: Storage = browserStorage(),
 ): Promise<AnimalInterestReceipt> {
-  const payload = await requestJson(
-    `${publicAnimalsPath}/${encodeURIComponent(animalId)}/interests`,
+  const animals = loadLocalAnimals(storage)
 
-    {
-      method: "POST",
+  const interests = loadLocalInterests(storage)
 
-      body: JSON.stringify({
-        fullName: input.fullName.trim(),
+  const animal = animals.find((candidate) => candidate.id === animalId)
 
-        whatsapp: input.whatsapp.trim(),
+  if (!animal) {
+    throw new InterestApiError(404)
+  }
 
-        city: input.city.trim(),
+  const createdAt = new Date().toISOString()
 
-        email: input.email.trim(),
-      }),
-    },
+  const record: AdminAnimalInterest = {
+    id: nextLocalId(interests.map((candidate) => candidate.id)),
 
-    "omit",
-  )
+    animalId,
 
-  return parseReceipt(payload)
+    animalName: animal.name,
+
+    fullName: input.fullName.trim(),
+
+    whatsapp: input.whatsapp.trim(),
+
+    city: input.city.trim(),
+
+    email: input.email.trim(),
+
+    createdAt,
+  }
+
+  saveLocalInterests(storage, [record, ...interests])
+
+  return { received: true, createdAt }
 }
 
-/** Consulta administrativa de todos os interessados (mais recentes primeiro). */
+/** Consulta administrativa local: todos os interessados, mais recentes primeiro. */
 
-export async function listAdminInterests(): Promise<AdminAnimalInterest[]> {
-  const payload = await requestJson(adminInterestsPath, { method: "GET" })
-
-  return parseInterestList(payload)
+export async function listAdminInterests(
+  storage: Storage = browserStorage(),
+): Promise<AdminAnimalInterest[]> {
+  return loadLocalInterests(storage)
 }
 
-/** Consulta administrativa dos interessados de um animal especifico. */
+/** Consulta administrativa local dos interessados de um animal específico. */
 
 export async function listAdminInterestsByAnimal(
   animalId: string,
+
+  storage: Storage = browserStorage(),
 ): Promise<AdminAnimalInterest[]> {
-  const payload = await requestJson(
-    `/api/v1/admin/animals/${encodeURIComponent(animalId)}/interests`,
+  const interests = loadLocalInterests(storage)
 
-    { method: "GET" },
-  )
-
-  return parseInterestList(payload)
-}
-
-function parseReceipt(value: unknown): AnimalInterestReceipt {
-  if (typeof value !== "object" || value === null) {
-    throw new Error("Resposta inválida da API de interesses.")
-  }
-
-  const record = value as Record<string, unknown>
-
-  if (typeof record.received !== "boolean") {
-    throw new Error("Resposta inválida da API de interesses.")
-  }
-
-  return {
-    received: record.received,
-
-    createdAt: typeof record.createdAt === "string" ? record.createdAt : null,
-  }
-}
-
-function parseInterestList(value: unknown): AdminAnimalInterest[] {
-  if (!Array.isArray(value)) {
-    throw new Error("Resposta inválida da API de interesses.")
-  }
-
-  return value.map(parseInterest)
-}
-
-function parseInterest(value: unknown): AdminAnimalInterest {
-  if (typeof value !== "object" || value === null) {
-    throw new Error("Resposta inválida da API de interesses.")
-  }
-
-  const record = value as Record<string, unknown>
-
-  return {
-    id: requireString(record.id),
-
-    animalId: requireString(record.animalId),
-
-    animalName: requireString(record.animalName),
-
-    fullName: requireString(record.fullName),
-
-    whatsapp: requireString(record.whatsapp),
-
-    city: requireString(record.city),
-
-    email: requireString(record.email),
-
-    createdAt: requireString(record.createdAt),
-  }
-}
-
-function requireString(value: unknown): string {
-  if (typeof value !== "string") {
-    throw new Error("Campo textual inválido na resposta da API de interesses.")
-  }
-
-  return value
+  return interests.filter((interest) => interest.animalId === animalId)
 }

@@ -1,22 +1,27 @@
-const authApiPath = "/api/v1/auth"
+/**
+ * Autenticação administrativa em modo protótipo local.
+ *
+ * O frontend está rodando sem API por decisão do responsável pelo projeto
+ * (registrada em `specs/decisions/ADR-008-frontend-modo-local.md`). O acesso ao
+ * painel usa uma credencial simples fixada no código, apenas para o protótipo:
+ *
+ * ATENÇÃO: isto NÃO é autenticação real. A credencial está visível no código
+ * fonte e a sessão vive no `sessionStorage` do navegador, sem servidor. Não
+ * reutilize esta senha em produção. Quando a integração com a API for religada,
+ * as funções abaixo voltam a validar a sessão via `/api/v1/auth` (ADR-006).
+ */
 
 export const csrfHeaderName = "X-CSRF-TOKEN"
 
+/** Credencial exclusiva do protótipo local (nunca usar em produção). */
+
+const localAdminUsername = "admin"
+
+const localAdminPassword = "saal2026"
+
+const LOCAL_SESSION_STORAGE_KEY = "saal.local.admin-session.v1"
+
 export type AdminAuthFailure = "network" | "unauthorized" | "forbidden" | "rate-limited" | "not-found" | "server" | "invalid-response" | "unknown"
-
-function failureFromStatus(status: number): AdminAuthFailure {
-  if (status === 401) return "unauthorized"
-
-  if (status === 403) return "forbidden"
-
-  if (status === 404) return "not-found"
-
-  if (status === 429) return "rate-limited"
-
-  if (status >= 500) return "server"
-
-  return "unknown"
-}
 
 export class AdminAuthError extends Error {
   readonly status: number
@@ -42,137 +47,73 @@ export class AdminAuthError extends Error {
   }
 }
 
-async function authFetch(
-  input: RequestInfo | URL,
+function failureFromStatus(status: number): AdminAuthFailure {
+  if (status === 401) return "unauthorized"
 
-  init?: RequestInit,
-): Promise<Response> {
-  try {
-    return await fetch(input, init)
-  } catch (error) {
-    if (error instanceof DOMException && error.name === "AbortError") {
-      throw error
-    }
+  if (status === 403) return "forbidden"
 
-    throw new AdminAuthError(0, "network")
-  }
+  if (status === 404) return "not-found"
+
+  if (status === 429) return "rate-limited"
+
+  if (status >= 500) return "server"
+
+  return "unknown"
 }
 
-async function readJson(response: Response): Promise<unknown> {
+/** Resolve o `sessionStorage` do navegador de forma preguiçosa (o ambiente de
+ * testes injeta um Storage próprio). */
+
+export function browserSessionStorage(): Storage {
+  const candidate = (globalThis as { sessionStorage?: Storage }).sessionStorage
+
+  if (!candidate) {
+    throw new Error("sessionStorage indisponível neste ambiente.")
+  }
+
+  return candidate
+}
+
+/** Sessão local: vale enquanto a aba do navegador estiver aberta. */
+
+export async function getAdminSession(
+  storage: Storage = browserSessionStorage(),
+): Promise<boolean> {
   try {
-    return await response.json()
+    return storage.getItem(LOCAL_SESSION_STORAGE_KEY) === "1"
   } catch {
-    throw new AdminAuthError(response.status, "invalid-response")
-  }
-}
-
-export async function getAdminSession(): Promise<boolean> {
-  const response = await authFetch(`${authApiPath}/session`, {
-    credentials: "include",
-
-    headers: { Accept: "application/json" },
-  })
-
-  // O endpoint de sessão é público. Um proxy/API que responda 401/403 para ele
-
-  // significa que não há sessão utilizável, não que a validação quebrou.
-
-  if (response.status === 401 || response.status === 403) {
     return false
   }
-
-  if (!response.ok) {
-    throw new AdminAuthError(response.status)
-  }
-
-  const payload = await readJson(response)
-
-  if (
-    typeof payload !== "object" ||
-    payload === null ||
-    !("authenticated" in payload) ||
-    typeof payload.authenticated !== "boolean"
-  ) {
-    throw new AdminAuthError(response.status, "invalid-response")
-  }
-
-  return payload.authenticated
 }
+
+/** Login local: valida a credencial do protótipo e marca a sessão na aba. */
 
 export async function loginAdmin(
   username: string,
 
   password: string,
+
+  storage: Storage = browserSessionStorage(),
 ): Promise<void> {
-  const csrfToken = await requestCsrfToken()
-
-  const response = await authFetch(`${authApiPath}/login`, {
-    method: "POST",
-
-    credentials: "include",
-
-    headers: {
-      Accept: "application/json",
-
-      "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
-
-      [csrfHeaderName]: csrfToken,
-    },
-
-    body: new URLSearchParams({ username, password }),
-  })
-
-  if (!response.ok) {
-    throw new AdminAuthError(response.status)
+  if (username !== localAdminUsername || password !== localAdminPassword) {
+    throw new AdminAuthError(401)
   }
+
+  storage.setItem(LOCAL_SESSION_STORAGE_KEY, "1")
 }
 
-export async function logoutAdmin(): Promise<void> {
-  const csrfToken = await requestCsrfToken()
+/** Logout local: apenas limpa a marca de sessão desta aba. */
 
-  const response = await authFetch(`${authApiPath}/logout`, {
-    method: "POST",
-
-    credentials: "include",
-
-    headers: {
-      Accept: "application/json",
-
-      [csrfHeaderName]: csrfToken,
-    },
-  })
-
-  if (!response.ok) {
-    throw new AdminAuthError(response.status)
-  }
+export async function logoutAdmin(
+  storage: Storage = browserSessionStorage(),
+): Promise<void> {
+  storage.removeItem(LOCAL_SESSION_STORAGE_KEY)
 }
+
+/** Modo local: token constante, pois nenhuma requisição de servidor é feita. */
 
 export async function requestCsrfToken(): Promise<string> {
-  const response = await authFetch(`${authApiPath}/csrf`, {
-    credentials: "include",
-
-    headers: { Accept: "application/json" },
-  })
-
-  if (!response.ok) {
-    throw new AdminAuthError(response.status)
-  }
-
-  const payload = await readJson(response)
-
-  if (
-    typeof payload !== "object" ||
-    payload === null ||
-    !("token" in payload) ||
-    typeof payload.token !== "string" ||
-    payload.token.length === 0 ||
-    !("headerName" in payload) ||
-    payload.headerName !== csrfHeaderName
-  ) {
-    throw new AdminAuthError(response.status, "invalid-response")
-  }
-
-  return payload.token
+  return "local-mode"
 }
 
 export type AdminAuthAction = "session" | "login" | "logout"

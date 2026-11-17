@@ -4,7 +4,7 @@ import { Search, Filter, PawPrint } from "lucide-react"
 
 import { useAsync } from "../hooks/useAsync"
 
-import { listPublicAnimals } from "../services/animals-api"
+import { listPublicAnimals } from "../services/supabase-animals"
 
 import { AnimalCard } from "../components/AnimalCard"
 
@@ -80,8 +80,8 @@ export function Animals() {
                 className="w-full pl-10 pr-4 py-3 bg-[#F5EFE6] rounded-lg border-none focus:outline-none focus:ring-2 focus:ring-[#E4B04A] appearance-none cursor-pointer"
               >
                 <option value="all">Todas as Espécies</option>
-                <option value="dog">Cachorros</option>
-                <option value="cat">Gatos</option>
+                <option value="dog">Caninos</option>
+                <option value="cat">Felinos</option>
               </select>
             </div>
           </div>

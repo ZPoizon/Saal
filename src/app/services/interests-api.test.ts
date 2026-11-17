@@ -1,4 +1,8 @@
-import { afterEach, describe, expect, it, vi } from "vitest"
+import { beforeEach, describe, expect, it } from "vitest"
+
+import type { AnimalInterestInput } from "../data/interests"
+
+import { LOCAL_INTERESTS_STORAGE_KEY } from "../data/local-store"
 
 import {
   InterestApiError,
@@ -7,120 +11,114 @@ import {
   submitAnimalInterest,
 } from "./interests-api"
 
-afterEach(() => {
-  vi.restoreAllMocks()
+class MemoryStorage implements Storage {
+  private values = new Map<string, string>()
+
+  get length(): number {
+    return this.values.size
+  }
+
+  clear(): void {
+    this.values.clear()
+  }
+
+  getItem(key: string): string | null {
+    return this.values.get(key) ?? null
+  }
+
+  key(index: number): string | null {
+    return Array.from(this.values.keys())[index] ?? null
+  }
+
+  removeItem(key: string): void {
+    this.values.delete(key)
+  }
+
+  setItem(key: string, value: string): void {
+    this.values.set(key, value)
+  }
+}
+
+const validInput: AnimalInterestInput = {
+  fullName: "Maria Silva",
+
+  whatsapp: "15 99663-1983",
+
+  city: "Capão Bonito",
+
+  email: "maria@example.org",
+}
+
+let storage: MemoryStorage
+
+beforeEach(() => {
+  storage = new MemoryStorage()
 })
 
-describe("interests-api service", () => {
-  it("sends a public interest without cookies or exposing submitted data in its receipt", async () => {
-    const fetch = vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(
-        JSON.stringify({ received: true, createdAt: "2026-11-16T12:00:00" }),
+describe("interests-api service (modo local)", () => {
+  it("registra a manifestação com nome do animal e devolve recibo", async () => {
+    const receipt = await submitAnimalInterest("1", validInput, storage)
 
-        {
-          status: 201,
-        },
-      ),
-    )
+    expect(receipt).toMatchObject({ received: true })
 
-    const receipt = await submitAnimalInterest("7/1", {
+    expect(typeof receipt.createdAt).toBe("string")
+
+    const persisted = JSON.parse(
+      storage.getItem(LOCAL_INTERESTS_STORAGE_KEY) as string,
+    ) as Array<Record<string, unknown>>
+
+    expect(persisted).toHaveLength(1)
+
+    expect(persisted[0]).toMatchObject({
+      animalId: "1",
+
+      animalName: "Thor",
+
       fullName: "Maria Silva",
 
-      whatsapp: "(11) 99999-9999",
-
-      city: "São Paulo",
-
-      email: "maria@example.com",
-    })
-
-    expect(receipt).toEqual({
-      received: true,
-
-      createdAt: "2026-11-16T12:00:00",
-    })
-
-    expect(fetch).toHaveBeenCalledWith(
-      "/api/v1/animals/7%2F1/interests",
-
-      expect.objectContaining({ method: "POST", credentials: "omit" }),
-    )
-
-    const [, options] = fetch.mock.calls[0]!
-
-    expect(JSON.parse(String(options?.body))).toEqual({
-      fullName: "Maria Silva",
-
-      whatsapp: "(11) 99999-9999",
-
-      city: "São Paulo",
-
-      email: "maria@example.com",
+      email: "maria@example.org",
     })
   })
 
-  it("fails explicitly when the API does not confirm registration", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(null, { status: 409 }),
+  it("lista os interessados mais recentes primeiro", async () => {
+    await submitAnimalInterest("1", validInput, storage)
+
+    await submitAnimalInterest(
+      "2",
+      { ...validInput, fullName: "João Souza" },
+      storage,
     )
 
+    const interests = await listAdminInterests(storage)
+
+    expect(interests.map((interest) => interest.animalName)).toEqual([
+      "Luna",
+
+      "Thor",
+    ])
+  })
+
+  it("filtra interessados por animal na consulta administrativa", async () => {
+    await submitAnimalInterest("1", validInput, storage)
+
+    await submitAnimalInterest("2", validInput, storage)
+
+    const byAnimal = await listAdminInterestsByAnimal("1", storage)
+
+    expect(byAnimal).toHaveLength(1)
+
+    expect(byAnimal[0]).toMatchObject({ animalId: "1" })
+  })
+
+  it("rejeita com 404 quando o animal não existe", async () => {
     await expect(
-      submitAnimalInterest("7", {
-        fullName: "Maria Silva",
-
-        whatsapp: "(11) 99999-9999",
-
-        city: "São Paulo",
-
-        email: "maria@example.com",
-      }),
+      submitAnimalInterest("999", validInput, storage),
     ).rejects.toEqual(
-      expect.objectContaining<Partial<InterestApiError>>({ status: 409 }),
+      expect.objectContaining<Partial<InterestApiError>>({ status: 404 }),
     )
   })
 
-  it("loads administrative personal data only from the admin API routes", async () => {
-    const payload = [
-      {
-        id: "1",
-
-        animalId: "7",
-
-        animalName: "Luna",
-
-        fullName: "Maria Silva",
-
-        whatsapp: "(11) 99999-9999",
-
-        city: "São Paulo",
-
-        email: "maria@example.com",
-
-        createdAt: "2026-11-16T12:00:00",
-      },
-    ]
-
-    const fetch = vi
-
-      .spyOn(globalThis, "fetch")
-
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify(payload), { status: 200 }),
-      )
-
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify(payload), { status: 200 }),
-      )
-
-    await expect(listAdminInterests()).resolves.toEqual(payload)
-
-    await expect(listAdminInterestsByAnimal("7")).resolves.toEqual(payload)
-
-    expect(fetch.mock.calls[0]?.[0]).toBe("/api/v1/admin/interests")
-
-    expect(fetch.mock.calls[1]?.[0]).toBe("/api/v1/admin/animals/7/interests")
-
-    expect(fetch.mock.calls[0]?.[1]).toEqual(
-      expect.objectContaining({ credentials: "include", method: "GET" }),
-    )
+  it("não vaza dados pessoais quando não há registros", async () => {
+    await expect(listAdminInterests(storage)).resolves.toEqual([])
   })
 })

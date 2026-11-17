@@ -28,8 +28,9 @@ No alvo, administrador autenticado e autorizado. No protótipo, login demonstrat
   1–3 imagens JPG/PNG/WebP de até 5 MB, aplica orientação EXIF, limita o maior lado a 1600 px,
   converte para JPEG e remove metadados; a API valida os magic bytes e grava o binário em
   `stored_photo`, servido por URL pública imutável. URL/Base64 avulsos não são persistência.
-- Exclusão/arquivamento de animais não adotados está fora do primeiro incremento
-  (`PENDENTE DE DECISÃO`, ONG-03). Animais adotados permanecem cadastrados.
+- Exclusão/arquivamento de animais não adotados continua `PENDENTE DE DECISÃO` (ONG-03) no
+  modo com API. No protótipo local (ADR-008), a exclusão com confirmação foi habilitada por
+  decisão do responsável. Animais adotados permanecem cadastrados.
 
 ## 6. Fluxo principal
 
@@ -42,8 +43,9 @@ No alvo, administrador autenticado e autorizado. No protótipo, login demonstrat
 ## 7. Fluxos alternativos
 
 - Cancelar formulário não altera dados.
-- Exclusão/arquivamento não está disponível no primeiro incremento; a interface não deve
-  simular remoção.
+- No protótipo local (ADR-008), excluir pede confirmação (`window.confirm`); cancelar ou
+  falhar não remove dados. No modo com API, exclusão/arquivamento permanece indisponível
+  até ONG-03; a interface não deve simular remoção.
 - Falha futura da API deve manter estado consistente e informar erro.
 - Conflito de edição concorrente: `PENDENTE DE DECISÃO`.
 
@@ -56,8 +58,10 @@ No alvo, administrador autenticado e autorizado. No protótipo, login demonstrat
 - **Dado** zero fotos ou mais de três, **quando** salvar, **então** a operação será rejeitada.
 - **Dado** animal `ADOPTED`, **quando** consultado, **então** permanecerá cadastrado e
   identificado como adotado.
-- **Dado** tentativa de exclusão/arquivamento, **quando** solicitada antes de ONG-03,
-  **então** nada será removido e nenhum sucesso será comunicado.
+- **Dado** exclusão no protótipo local, **quando** confirmada, **então** o animal sai do
+  catálogo e das listas; **quando** cancelada ou de id inexistente, **então** nada é
+  removido e a falha é informada. No modo com API, a exclusão permanece bloqueada até
+  ONG-03.
 - **Dado** falha da API, **quando** uma mutação ocorrer, **então** a interface não indicará
   sucesso nem perderá silenciosamente os dados.
 
@@ -69,8 +73,9 @@ campos de domínio e metadados de imagem continuam pendentes (ONG-06/ONG-10).
 ## 10. Contratos de API relacionados
 
 Implementados: `GET/POST /admin/animals`, `GET/PUT /admin/animals/{animalId}`,
-`POST /admin/photos` e `GET /photos/{photoId}`. Operação de exclusão/arquivamento fica fora do
-primeiro incremento até ONG-03.
+`POST /admin/photos` e `GET /photos/{photoId}`. No modo com API, exclusão/arquivamento fica
+fora do escopo até ONG-03 (a API local expõe `deleteAnimal` apenas no protótipo, sem
+equivalente HTTP).
 
 ## 11. Validações
 
@@ -92,7 +97,8 @@ Não há histórico administrativo detalhado; escopo/retenção dos logs pendent
 - estados `AVAILABLE`/`ADOPTED`;
 - zero, uma e três fotos; rejeição de mais de três;
 - animal adotado permanece cadastrado;
-- tentativa de exclusão/arquivamento não destrutiva;
+- exclusão local com confirmação, cancelamento e id inexistente (404) — modo protótipo;
+- tentativa de exclusão/arquivamento não destrutiva (modo com API, até ONG-03);
 - upload inválido quando a capability for aprovada;
 - API 401/403/404/409/500;
 - persistência após recarregar.
@@ -101,15 +107,19 @@ Não há histórico administrativo detalhado; escopo/retenção dos logs pendent
 
 Criação/edição persistem no backend, autorização e logs mínimos validados, testes de
 unidade/integração/UI, typecheck/build válidos, sem regressão visual e spec/OpenAPI
-sincronizados. Exclusão/arquivamento permanece fora do primeiro incremento.
+sincronizados. No modo com API, exclusão/arquivamento permanece fora do primeiro incremento.
 
 ## 15. Estado atual
 
-**Implementado no worktree para CRUD e fotos; exclusão desabilitada.** O CRUD de animais usa a
-API Spring e persiste via Flyway; os estados continuam somente `AVAILABLE` e `ADOPTED`. A
-exclusão definitiva não existe na API (DELETE retorna 405) nem na interface, enquanto ONG-03
-estiver pendente. A interface permite escolher de 1 a 3 imagens da galeria, validar
-tipo/tamanho provisórios, pré-visualizar, remover, substituir e reordenar. O envio usa
-`/api/v1/admin/photos` (com CSRF e sessão administrativa) e persiste o binário no MySQL; a
-leitura pública ocorre em `/api/v1/photos/{id}`. A política definitiva de imagem e retenção
-continua pendente (ONG-06); a decisão técnica provisória está no ADR-007.
+**Protótipo local (ADR-008): CRUD e exclusão com confirmação no navegador.** No modo local,
+os serviços de frontend leem/escrevem no `localStorage` (seed de dados de exemplo) e a
+exclusão de animais está habilitada por decisão do responsável, com confirmação na UI e
+erro 404 para id inexistente; manifestações de interesse anteriores mantêm o nome do animal
+removido. No modo com API, o CRUD persiste via API Spring/Flyway e a exclusão definitiva
+não existe na API (DELETE retorna 405) nem na interface, enquanto ONG-03 estiver pendente.
+A interface permite escolher de 1 a 3 imagens da galeria, validar tipo/tamanho
+provisórios, pré-visualizar, remover, substituir e reordenar. No modo local as fotos
+normalizadas são embutidas como `data:` URL; no modo com API o envio usa
+`/api/v1/admin/photos` (com CSRF e sessão administrativa) e persiste o binário no MySQL, e
+a leitura pública ocorre em `/api/v1/photos/{id}`. A política definitiva de imagem e
+retenção continua pendente (ONG-06); a decisão técnica provisória está no ADR-007.

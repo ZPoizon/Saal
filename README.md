@@ -1,94 +1,118 @@
 # SAAL — Santuário de Animais Anjos da Luz
 
-Aplicação web do SAAL em React 18, TypeScript, Vite e pnpm, com API Spring Boot e MySQL local
-para desenvolver o painel administrativo.
+Aplicação web do SAAL em React 18, TypeScript, Vite e pnpm, conectada ao Supabase para banco de dados PostgreSQL, autenticação de administrador e armazenamento de fotografias.
 
-## Abrir localmente
+## Apresentação
 
-Requisitos: Node.js 22 (`>=22.12 <23`), pnpm 10.34.3 e Docker Desktop aberto.
+O SAAL é o sistema de adoção do Santuário de Animais Anjos da Luz, ONG localizada em Capão Bonito - SP, dedicada ao resgate, cuidado e adoção responsável de animais em situação de abandono.
+
+O site público exibe o catálogo de animais disponíveis, informações sobre a ONG, campanhas, doações e formulário de manifestação de interesse em adoção. O painel administrativo permite cadastrar e editar animais, fotografias, interessados e configurações públicas da ONG.
+
+### Funcionalidades principais
+
+- Catálogo público de animais para adoção, com fotos e detalhes
+- Formulário público de manifestação de interesse em adoção (contato via WhatsApp)
+- Painel administrativo com três abas: Animais, Interessados e Configuração
+- Cadastro, edição e exclusão de animais (apenas administrador)
+- Alteração de status dos animais (disponível / adotado)
+- Upload de 1 a 3 fotografias por animal, armazenadas no Supabase Storage
+- Login de administrador com autenticação real via Supabase Auth
+- Configurações públicas do site (contato, estatísticas, adoção, sobre, campanhas)
+- Confirmação de adoção pelo administrador
+- Responsividade para celulares, tablets e desktop
+
+## Tecnologias
+
+- **React 18** — interface do usuário
+- **TypeScript** — tipagem estática
+- **Vite** — ferramenta de build e servidor de desenvolvimento
+- **pnpm** — gerenciador de dependências
+- **Supabase Auth** — autenticação de administrador com sessão persistente
+- **Supabase PostgreSQL** — banco de dados (animais, interesses, configurações)
+- **Supabase Storage** — armazenamento de fotografias de animais
+- **Tailwind CSS** — estilização
+
+## Requisitos
+
+- Node.js 22 (`>=22.12 <23`)
+- pnpm 10 (`>=10 <11`)
+- Conta e projeto no [Supabase](https://supabase.com)
+
+Não é necessário instalar Docker, Java ou MySQL para iniciar o frontend.
+
+## Instalação
 
 ```powershell
 pnpm install --frozen-lockfile
+```
+
+## Configuração do Supabase
+
+1. Crie um projeto no [Supabase](https://app.supabase.com).
+2. Copie `.env.example` para `.env` na raiz do projeto.
+3. Preencha `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` com os valores do seu projeto Supabase (Settings > API).
+4. No painel do Supabase, vá ao **SQL Editor** > **New query** e aplique o arquivo `supabase/migrations/001_initial_schema.sql`.
+5. No **Storage**, crie um bucket público chamado `animal-photos`.
+6. Em **Authentication** > **Users**, crie um usuário administrador com e-mail e senha.
+7. No **Table Editor**, insira esse usuário na tabela `admin_users` com o mesmo `id` do Authentication, `role = 'admin'` e o `display_name` desejado.
+8. Em **Settings** > **API**, adicione `http://localhost:8443` às URLs de CORS/redirect (para desenvolvimento local).
+9. Em **Authentication** > **URL Configuration**, adicione `http://localhost:8443` e `http://localhost:8443/auth/callback` às Redirect URLs.
+
+### Formatos de foto aceitos
+
+O formulário aceita arquivos de imagem (JPG, PNG, WebP) de até 5 MB cada, com limite de 3 fotos por animal. As fotos são normalizadas pelo navegador (orientação EXIF, conversão para JPEG, máximo 1600 px no maior lado) antes do envio ao Supabase Storage.
+
+### Observação sobre dados
+
+Dados reais, contas de usuário e fotografias armazenadas no Supabase **não** são incluídos ao clonar o repositório GitHub. Cada instalação deve criar seu próprio projeto Supabase e cadastrar seus próprios administradores.
+
+## Executar localmente
+
+```powershell
 pnpm dev
 ```
 
-Abra <http://localhost:8443/> e acesse `/admin`. Na primeira execução, `pnpm dev` cria
-credenciais administrativas aleatórias para esta máquina e as mostra uma única vez no
-terminal. Guarde a senha; ela também fica no arquivo local ignorado pelo Git
-`backend/.env.dev`. O comando inicia MySQL e API em containers e encaminha `/api` para a API
-local. Não há conta padrão, backend simulado nem dependência da API publicada.
+O frontend inicia em `http://localhost:8443/` (configurado em `vite.figma.config.ts`). Acesse `/admin` para o painel administrativo.
 
-Mantenha `backend/.env.dev`: ele contém as credenciais locais do banco e do administrador. Ao
-pressionar `Ctrl+C`, a aplicação e os containers são encerrados sem apagar os dados do banco.
-Se precisar parar os containers separadamente, use `pnpm dev:stop`.
+O comando `pnpm dev` inicia apenas o servidor de desenvolvimento do Vite. Não são necessários Docker, Java ou MySQL.
 
-O primeiro início pode demorar enquanto Docker baixa imagens e constrói a API. Se o Docker
-Desktop não estiver aberto, inicie-o e rode `pnpm dev` novamente.
+## Testes
 
-## Fotos de animais
-
-O formulário administrativo aceita de 1 a 3 imagens escolhidas da galeria do dispositivo
-(`accept="image/*"`, sem abrir a câmera automaticamente), com prévia, remoção, substituição e
-reordenação. O limite técnico provisório é 5 MB por foto; a política definitiva de formatos,
-tamanho, armazenamento e retenção continua pendente de decisão da ONG (ONG-06).
-
-As fotos são persistidas pela própria API em `/api/v1/admin/photos` (esta é a URL padrão; não é
-preciso configurar `VITE_PHOTO_UPLOAD_URL`). O endpoint recebe um campo `photos` por arquivo,
-exige sessão administrativa e CSRF, e responde `{"urls":["/api/v1/photos/123"]}`. Antes do
-envio, o navegador aplica a orientação EXIF, limita o maior lado a 1600 px, converte para JPEG e
-remove metadados; o binário fica no MySQL e é servido por uma URL pública imutável. Se o upload
-falhar, nenhuma prévia local é gravada como se fosse permanente.
-
-## Publicar na Vercel
-
-O frontend é publicado em um **único projeto Vercel** conectado a este repositório, com deploy
-automático da branch `main`. Não há projeto adicional nem passo de build manual.
-
-1. Envie a alteração aprovada para `main` (commit em `main` ou merge de Pull Request).
-2. A Vercel executa `pnpm build` e publica `dist/`.
-3. Acompanhe pelo painel da Vercel ou pelo comentário do bot no Pull Request.
-
-`vercel.json` na raiz encaminha `/api/*` para a API remota (mesma origem, o que mantém o
-cookie de sessão) e serve `index.html` para rotas como `/admin` e `/animais/1`. O destino
-configurado é `https://saal-api.onrender.com`; o serviço do Render é criado pelo Blueprint
-[`render.yaml`](render.yaml) e depende do MySQL no Aiven. O passo a passo de Aiven, Render e
-Vercel está em [`backend/README.md`](backend/README.md#deploy-render-api--aiven-mysql--vercel-frontend).
-Enquanto o serviço não estiver publicado, `/api` falha e o painel permanece bloqueado, com aviso
-explícito, enquanto o restante do site continua funcionando. Os assets oficiais em `src/imports/`
-são mantidos como blobs normais (fora do Git LFS) para que a Vercel receba as imagens reais.
-
-## Verificações
-
-```bash
-pnpm typecheck
-pnpm test
-pnpm lint
-pnpm format:check
-pnpm audit --audit-level=moderate
-pnpm secrets:check
-pnpm build
+```powershell
+pnpm typecheck   # Verificação de tipos TypeScript
+pnpm lint        # Análise estática com oxlint
+pnpm test        # Testes automatizados com vitest
+pnpm build       # Build de produção com Vite
+pnpm format:check # Verificação de formatação sem alterar arquivos
 ```
 
-`pnpm format:check` valida sem alterar arquivos; `pnpm format` aplica a formatação.
-`pnpm preview` serve o `dist/` local após `pnpm build` (sem proxy `/api`). O workflow
-[`quality.yml`](.github/workflows/quality.yml) configura esses checks no GitHub Actions; isso
-não comprova que já tenham rodado nem que sejam obrigatórios para merge.
-
-## Mapa do repositório
+## Estrutura do repositório
 
 | Caminho | Finalidade |
 |---|---|
-| `src/` | Aplicação React/TypeScript, estilos e assets do frontend. |
-| `backend/` | API Spring Boot, migrations Flyway, MySQL e configuração Docker local. |
-| `docs/` | Arquitetura, desenvolvimento, segurança, qualidade, diagnóstico e histórico; ver [`docs/README.md`](docs/README.md). |
-| `specs/` | Especificações SDD, contratos e ADRs vigentes. |
-| `openspec/` | Changes, tarefas e validação OpenSpec. |
-| `scripts/` | Inicialização do ambiente local e utilitários de verificação. |
-| `.figma/` | Metadados e configuração do fluxo Figma Make. |
-| `guidelines/` | Orientações adicionais do projeto. |
+| `src/app/pages/` | Páginas da aplicação (início, catálogo, detalhe, interesse, contato, admin) |
+| `src/app/components/` | Componentes React reutilizáveis (cards, formulários, modais) |
+| `src/app/components/admin/` | Componentes específicos do painel administrativo |
+| `src/app/contexts/` | Contextos React (autenticação, configurações do site, interessados) |
+| `src/app/services/` | Serviços de integração com Supabase (animais, interesses, configurações, fotos, auth) |
+| `src/app/data/` | Modelos de dados, validações e utilitários |
+| `src/app/lib/` | Cliente Supabase e configurações de biblioteca |
+| `src/app/types/` | Tipos TypeScript do schema do Supabase |
+| `supabase/migrations/` | Migrations SQL do banco de dados |
+| `backend/` | API Spring Boot legacy (não é mais necessária para o frontend) |
+| `docs/` | Arquitetura, desenvolvimento, segurança e qualidade |
+| `specs/` | Especificações SDD, contratos e ADRs |
+| `.figma/` | Metadados e configuração do fluxo Figma Make |
 
-`vite.figma.config.ts` compõe `vite.config.ts` e processa metadados, aliases e assets do Figma
-Make. Não o substitua por `vite.config.ts` sem revisar essas integrações.
+`vite.figma.config.ts` compõe `vite.config.ts` e processa metadados, aliases e assets do Figma Make.
+
+## Publicação
+
+O frontend pode ser publicado na [Vercel](https://vercel.com), conectado a este repositório, com deploy automático da branch `main`.
+
+É necessário configurar as variáveis de ambiente `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` no painel da Vercel para que a integração com o Supabase funcione em produção.
+
+Não afirme que a produção está funcionando sem verificar o deploy na Vercel.
 
 ## Especificações e arquitetura
 
@@ -97,6 +121,7 @@ Make. Não o substitua por `vite.config.ts` sem revisar essas integrações.
 - [Arquitetura e estado atual](docs/architecture/ARCHITECTURE.md)
 - [Plano de qualidade e matriz de testes](docs/quality/QUALITY_PLAN.md)
 - [Política e checklist de segurança](docs/security/SECURITY_POLICY.md)
-- [Change OpenSpec `saal-functional-readiness`](openspec/changes/saal-functional-readiness/)
 - [Instruções permanentes para agentes](AGENTS.md)
 - [Atribuições e licenças de assets](ATTRIBUTIONS.md)
+
+**Importante:** não coloque senhas, chaves de API secretas, tokens ou dados pessoais no repositório. O arquivo `.env` é ignorado pelo Git (`*.env` no `.gitignore`) e deve conter somente valores locais de cada instalação.

@@ -8,7 +8,7 @@ import { useEffect, useState } from "react"
 
 import { useAsync } from "../hooks/useAsync"
 
-import { AnimalApiError, getPublicAnimal } from "../services/animals-api"
+import { AnimalApiError, getPublicAnimal } from "../services/supabase-animals"
 
 import { SafeImage } from "../components/SafeImage"
 
@@ -227,7 +227,7 @@ export function AnimalDetail() {
                   <span className="text-sm">Espécie</span>
                 </div>
                 <p className="font-semibold text-[#2E7D6B]">
-                  {animal.species === "dog" ? "Cachorro" : "Gato"}
+                  {animal.species === "dog" ? "Canino" : "Felino"}
                 </p>
               </div>
             </div>

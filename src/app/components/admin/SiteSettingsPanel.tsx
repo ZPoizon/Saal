@@ -19,6 +19,7 @@ import {
 } from "lucide-react"
 
 import { useSiteSettings } from "../../contexts/SiteSettingsContext"
+
 import type { Animal } from "../../data/animals"
 
 import {
@@ -35,52 +36,79 @@ type SettingsTab = "statistics" | "home" | "contact" | "donations" | "adoption" 
 
 interface SettingsTabConfig {
   id: SettingsTab
+
   label: string
+
   icon: typeof House
 }
 
 interface FieldProps {
   label: string
+
   id: string
+
   value: string | number
+
   onChange: (value: string) => void
+
   type?: string
+
   required?: boolean
+
   maxLength?: number
+
   placeholder?: string
+
   help?: string
+
   min?: number | string
+
   max?: number | string
 }
 
 interface TextAreaProps {
   label: string
+
   id: string
+
   value: string
+
   onChange: (value: string) => void
+
   required?: boolean
+
   maxLength?: number
+
   rows?: number
+
   help?: string
+
   placeholder?: string
 }
 
 interface ToggleProps {
   id: string
+
   label: string
+
   checked: boolean
+
   onChange: (checked: boolean) => void
+
   description?: string
 }
 
 interface SectionHeadingProps {
   title: string
+
   description: string
 }
 
 interface SiteSettingsPanelProps {
   onLogout: () => void
+
   onDirtyChange: (dirty: boolean) => void
+
   animals: Animal[]
 }
 
@@ -182,6 +210,7 @@ function TextArea({
   rows = 4,
 
   help,
+
   placeholder,
 }: TextAreaProps) {
   return (
@@ -218,6 +247,7 @@ function Toggle({
   checked,
 
   onChange,
+
   description,
 }: ToggleProps) {
   return (
@@ -261,7 +291,9 @@ function SectionHeading({
 
 export function SiteSettingsPanel({
   onLogout,
+
   onDirtyChange,
+
   animals,
 }: SiteSettingsPanelProps) {
   const { settings, saveSettings, storageError } = useSiteSettings()
@@ -286,6 +318,7 @@ export function SiteSettingsPanel({
 
     [activeTab, draft, settings],
   )
+
   const hasUnsavedChanges = useMemo(
     () =>
       tabs.some(
@@ -293,10 +326,12 @@ export function SiteSettingsPanel({
           id !== "account" &&
           JSON.stringify(draft[id]) !== JSON.stringify(settings[id]),
       ),
+
     [draft, settings],
   )
 
   const animalCounts = getCurrentAnimalCounts(animals)
+
   const blocker = useBlocker(
     ({ currentLocation, nextLocation }) =>
       hasUnsavedChanges && currentLocation.pathname !== nextLocation.pathname,
@@ -404,7 +439,9 @@ export function SiteSettingsPanel({
     setValidationError("")
   }
 
-  const saveCurrentTab = (event: React.FormEvent<HTMLFormElement>) => {
+  const saveCurrentTab = async (
+    event: React.FormEvent<HTMLFormElement>,
+  ) => {
     event.preventDefault()
 
     setMessage("")
@@ -490,7 +527,7 @@ export function SiteSettingsPanel({
       if (
         settings.adoption.acceptingInterests &&
         !window.confirm(
-          "Pausar o recebimento de novos interesses? O bloqueio vale apenas para esta demonstração neste navegador.",
+          "Pausar o recebimento de novos interesses? O bloqueio vale apenas para este navegador.",
         )
       ) {
         return
@@ -530,14 +567,14 @@ export function SiteSettingsPanel({
       return
     }
 
-    const saved = saveSettings(nextSettings)
+    const saved = await saveSettings(nextSettings)
 
     setSaving(false)
 
     if (saved) {
       setDraft((current) => ({ ...current, [activeTab]: updatedSection }))
 
-      setMessage("Alterações salvas neste navegador.")
+      setMessage("Alterações salvas no servidor.")
     }
   }
 
@@ -555,6 +592,7 @@ export function SiteSettingsPanel({
   const changeHome = (key: keyof SiteSettings["home"], value: string) =>
     updateSection("home", {
       ...draft.home,
+
       [key]: value,
     } as SiteSettings["home"])
 
@@ -665,13 +703,8 @@ export function SiteSettingsPanel({
               id="site-settings-heading"
               className="text-2xl font-bold text-[#2E7D6B]"
             >
-              Configurações do Site
+              Configuração
             </h2>
-            <p className="mt-1 text-sm leading-relaxed text-[#527f74]">
-              Demonstração funcional: as alterações ficam apenas neste
-              navegador. O login atual não é autenticação real e não há
-              sincronização ou bloqueio no servidor.
-            </p>
           </div>
         </div>
       </div>
@@ -682,7 +715,7 @@ export function SiteSettingsPanel({
       >
         <div
           role="tablist"
-          aria-label="Configurações do Site"
+          aria-label="Configuração"
           className="flex min-w-max gap-1 px-3 py-2 sm:px-5"
         >
           {tabs.map(({ id, label, icon: Icon }) => (
@@ -795,9 +828,9 @@ export function SiteSettingsPanel({
           <div className="space-y-8">
             <div className="rounded-xl border border-[#E4B04A]/40 bg-[#E4B04A]/10 p-4 text-sm leading-relaxed text-[#6b5425]">
               Os números históricos começam vazios e ocultos porque ainda não
-              foram confirmados. Os contadores automáticos refletem os registros
-              de animais guardados neste navegador; o catálogo inicial desta
-              demonstração contém exemplos.
+              foram confirmados.               Os contadores automáticos refletem os registros
+              de animais guardados neste navegador; o catálogo inicial
+              contém exemplos.
             </div>
             <div>
               <SectionHeading
@@ -1162,7 +1195,7 @@ export function SiteSettingsPanel({
               onChange={(checked) =>
                 changeAdoption("acceptingInterests", checked)
               }
-              description="Desativar bloqueia o formulário nesta demonstração. Sem API, não existe bloqueio no servidor."
+              description="Desativar bloqueia o formulário. Sem API, não existe bloqueio no servidor."
             />
             <TextArea
               id="adoption-explanation"
@@ -1581,18 +1614,14 @@ export function SiteSettingsPanel({
 
         {activeTab === "account" && (
           <div className="space-y-6">
-            <div className="rounded-xl border border-[#E4B04A]/40 bg-[#E4B04A]/10 p-4 text-sm leading-relaxed text-[#6b5425]">
-              A sessão administrativa é validada pelo servidor. As configurações
-              públicas desta demonstração, porém, são guardadas somente neste
-              navegador e não são sincronizadas com outros visitantes.
-            </div>
             <div className="rounded-xl border border-[#d8e5df] p-4">
               <h4 className="font-semibold text-[#2E7D6B]">
                 Identificação e segurança
               </h4>
               <p className="mt-2 text-sm leading-relaxed text-gray-600">
-                Você está em uma sessão administrativa autenticada. A API não
-                disponibiliza a identificação do usuário nesta tela. A alteração
+                O acesso usa uma credencial simples definida no protótipo; não
+                há servidor validando a sessão e a credencial está visível no
+                código fonte. Não reutilize essa senha em produção. A alteração
                 de senha não está implementada; nenhuma senha ou hash é
                 armazenado nas configurações do site.
               </p>

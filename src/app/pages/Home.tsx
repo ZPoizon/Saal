@@ -8,7 +8,7 @@ import { AnimalCard } from "../components/AnimalCard"
 
 import { useAsync } from "../hooks/useAsync"
 
-import { listPublicAnimals } from "../services/animals-api"
+import { listPublicAnimals } from "../services/supabase-animals"
 
 import { ScrollReveal } from "../components/ScrollReveal"
 
@@ -90,14 +90,14 @@ export function Home() {
             : undefined
         }
       >
-        <div className="absolute inset-0 opacity-10">
+        <div className="absolute inset-0 opacity-10 pointer-events-none">
           <div className="absolute left-10 top-10 h-32 w-32 rounded-full bg-white blur-3xl"></div>
           <div className="absolute bottom-20 right-20 h-40 w-40 rounded-full bg-[#E4B04A] blur-3xl"></div>
         </div>
-        <div className="container relative mx-auto px-4">
+        <div className="container relative z-10 mx-auto px-4">
           <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
             transition={{ duration: 0.8 }}
             className="max-w-3xl mx-auto text-center"
           >
@@ -117,7 +117,7 @@ export function Home() {
             </motion.div>
             <motion.h1
               initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
+              animate={{ opacity: 1 }}
               transition={{ delay: 0.3, duration: 0.8 }}
               className="mb-6 text-3xl font-bold leading-tight sm:text-4xl md:text-6xl"
             >
@@ -148,10 +148,10 @@ export function Home() {
               </p>
             )}
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
               transition={{ delay: 0.7, duration: 0.5 }}
-              className="flex w-full flex-col items-center justify-center gap-3 sm:w-auto sm:flex-row sm:gap-4"
+              className="relative z-10 pointer-events-auto flex w-full flex-col items-center justify-center gap-3 sm:w-auto sm:flex-row sm:gap-4"
             >
               <Link
                 to={home.primaryButtonDestination}
@@ -428,8 +428,7 @@ export function Home() {
           )}
           {!adoption.acceptingInterests && (
             <p className="mx-auto mt-6 max-w-3xl rounded-xl border border-[#E4B04A]/50 bg-[#E4B04A]/10 p-4 text-center text-sm text-[#6b5425]">
-              No momento, não estamos recebendo novas manifestações de interesse
-              nesta demonstração local.
+              No momento, não estamos recebendo novas manifestações de interesse.
             </p>
           )}
         </div>
