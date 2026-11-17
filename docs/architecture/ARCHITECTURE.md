@@ -19,7 +19,8 @@ Estrutura observada:
 - `src/app/pages/` e `src/app/components/`: páginas e interface reutilizável.
 - `src/app/data/`: modelos e DTOs da interface.
 - `src/app/services/`: adaptadores HTTP e tratamento de respostas da API.
-- `src/app/contexts/`: contexto legado ainda sem persistência.
+- `src/app/contexts/`: estado compartilhado da interface; configurações do site persistem
+  somente no `localStorage` do navegador e ainda não têm API ou sincronização entre visitantes.
 - `backend/`: API, migrations e testes do servidor.
 - `src/styles/`: tema e estilos.
 

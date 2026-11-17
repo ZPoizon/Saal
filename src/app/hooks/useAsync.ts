@@ -19,6 +19,7 @@ export interface AsyncResult<T> {
  *
  * O carregamento é reiniciado quando `key` muda ou quando `reload` é chamado.
  */
+
 export function useAsync<T>(
   key: string,
 

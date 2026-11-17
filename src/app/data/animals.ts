@@ -34,6 +34,7 @@ export interface Animal {
  * Dados aceitos para cadastro/edição. As fotos continuam sendo referências (URLs),
  * sem upload de arquivos: a API persiste os endereços informados.
  */
+
 export interface AnimalInput {
   name: string
 

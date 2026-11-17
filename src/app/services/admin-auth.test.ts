@@ -101,6 +101,7 @@ describe("admin-auth service", () => {
     ).rejects.toEqual(
       expect.objectContaining<Partial<AdminAuthError>>({
         status: 429,
+
         failure: "rate-limited",
       }),
     )
@@ -160,12 +161,14 @@ describe("admin-auth service", () => {
     await expect(getAdminSession()).rejects.toEqual(
       expect.objectContaining<Partial<AdminAuthError>>({
         status: 0,
+
         failure: "network",
       }),
     )
 
     const loginError = await loginAdmin(
       "synthetic-admin",
+
       "synthetic-password",
     ).catch((error: unknown) => error)
 
@@ -204,6 +207,7 @@ describe("admin-auth service", () => {
     expect(
       getAdminAuthErrorMessage(
         new AdminAuthError(200, "invalid-response"),
+
         "session",
       ),
     ).toContain("formato inesperado")

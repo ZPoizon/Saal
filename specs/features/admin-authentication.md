@@ -103,8 +103,8 @@ integração, segredos externos ao código e documentação operacional aprovada
 
 ## 15. Estado atual
 
-**Parcial nesta revisão:** backend de autenticação e autorização implementado em
-`feat/admin-authentication`; a integração React existe separadamente em
-`feat/admin-ui-contact-upload`. As worktrees ainda não foram consolidadas, nenhuma alteração
-foi integrada ou publicada e não há API administrativa de domínio. O comportamento não deve
-ser descrito como login disponível em `main` ou em produção.
+**Implementado nesta branch de integração:** backend de autenticação/autorização por sessão e
+integração React do login, validação de sessão e logout. A disponibilidade do serviço,
+provisionamento de credenciais, banco e deploy de produção não foram confirmados. Esta
+autenticação protege as operações administrativas existentes; não implica que configurações
+do site tenham API ou persistência compartilhada.

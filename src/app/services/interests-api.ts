@@ -18,7 +18,9 @@ export class InterestApiError extends Error {
 
 async function requestJson(
   path: string,
+
   init: RequestInit,
+
   credentials: RequestCredentials = "include",
 ): Promise<unknown> {
   const headers = new Headers(init.headers)
@@ -45,6 +47,7 @@ async function requestJson(
 }
 
 /** Envio publico: nao exige login e nao envia token CSRF (rota publica). */
+
 export async function submitAnimalInterest(
   animalId: string,
 
@@ -66,6 +69,7 @@ export async function submitAnimalInterest(
         email: input.email.trim(),
       }),
     },
+
     "omit",
   )
 
@@ -73,6 +77,7 @@ export async function submitAnimalInterest(
 }
 
 /** Consulta administrativa de todos os interessados (mais recentes primeiro). */
+
 export async function listAdminInterests(): Promise<AdminAnimalInterest[]> {
   const payload = await requestJson(adminInterestsPath, { method: "GET" })
 
@@ -80,6 +85,7 @@ export async function listAdminInterests(): Promise<AdminAnimalInterest[]> {
 }
 
 /** Consulta administrativa dos interessados de um animal especifico. */
+
 export async function listAdminInterestsByAnimal(
   animalId: string,
 ): Promise<AdminAnimalInterest[]> {

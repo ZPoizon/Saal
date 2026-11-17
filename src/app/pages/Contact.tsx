@@ -1,6 +1,28 @@
-import { Mail, Phone, Instagram, MapPin } from "lucide-react"
+import { Facebook, Mail, MapPin, Phone, Instagram } from "lucide-react"
+
+import { useSiteSettings } from "../contexts/SiteSettingsContext"
+
+import {
+  getMailHref,
+  getPhoneHref,
+  getPublicLocation,
+  getWhatsAppHref,
+  isAllowedPublicUrl,
+} from "../data/siteLinks"
 
 export function Contact() {
+  const { settings } = useSiteSettings()
+
+  const { contact } = settings
+
+  const phoneHref = getPhoneHref(contact.phone)
+
+  const whatsappHref = getWhatsAppHref(contact.whatsapp)
+
+  const emailHref = getMailHref(contact.email)
+
+  const location = getPublicLocation(contact)
+
   return (
     <div className="min-h-screen bg-[#F5EFE6] py-8 sm:py-12">
       <div className="container mx-auto px-4">
@@ -17,94 +39,136 @@ export function Contact() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-6xl mx-auto">
           {/* Contact Info */}
           <div className="space-y-6">
-            <div className="rounded-2xl bg-white p-4 shadow-md transition-shadow hover:shadow-lg sm:p-6">
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 bg-[#E4B04A] rounded-full flex items-center justify-center flex-shrink-0">
-                  <Phone className="w-6 h-6 text-white" />
-                </div>
-                <div className="min-w-0">
-                  <h3 className="font-semibold text-[#2E7D6B] mb-2">
-                    Telefone / WhatsApp
-                  </h3>
-                  <a
-                    href="https://wa.me/5515996927636"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-[#6FAE9C] hover:text-[#E4B04A] transition-colors"
-                  >
-                    (15) 99692-7636
-                  </a>
-                  <p className="text-sm text-gray-500 mt-1">
-                    Segunda a Sexta, 9h às 18h
-                  </p>
+            {(phoneHref || whatsappHref) && (
+              <div className="rounded-2xl bg-white p-4 shadow-md transition-shadow hover:shadow-lg sm:p-6">
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 bg-[#E4B04A] rounded-full flex items-center justify-center flex-shrink-0">
+                    <Phone className="w-6 h-6 text-white" />
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="font-semibold text-[#2E7D6B] mb-2">
+                      Telefone / WhatsApp
+                    </h3>
+                    {phoneHref && (
+                      <a
+                        href={phoneHref}
+                        className="block text-[#6FAE9C] transition-colors hover:text-[#E4B04A]"
+                      >
+                        {contact.phone}
+                      </a>
+                    )}
+                    {whatsappHref && (
+                      <a
+                        href={whatsappHref}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-1 block text-sm font-medium text-[#2E7D6B] hover:text-[#E4B04A]"
+                      >
+                        Conversar pelo WhatsApp
+                      </a>
+                    )}
+                    {contact.hours && (
+                      <p className="mt-1 text-sm text-gray-500">
+                        {contact.hours}
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
 
-            <div className="rounded-2xl bg-white p-4 shadow-md transition-shadow hover:shadow-lg sm:p-6">
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 bg-[#E4B04A] rounded-full flex items-center justify-center flex-shrink-0">
-                  <Mail className="w-6 h-6 text-white" />
-                </div>
-                <div className="min-w-0">
-                  <h3 className="font-semibold text-[#2E7D6B] mb-2">E-mail</h3>
-                  <a
-                    href="mailto:contato@saal.com.br"
-                    className="text-[#6FAE9C] hover:text-[#E4B04A] transition-colors"
-                  >
-                    contato@saal.com.br
-                  </a>
-                  <p className="text-sm text-gray-500 mt-1">
-                    Respondemos em até 24 horas
-                  </p>
+            {emailHref && (
+              <div className="rounded-2xl bg-white p-4 shadow-md transition-shadow hover:shadow-lg sm:p-6">
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 bg-[#E4B04A] rounded-full flex items-center justify-center flex-shrink-0">
+                    <Mail className="w-6 h-6 text-white" />
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="font-semibold text-[#2E7D6B] mb-2">
+                      E-mail
+                    </h3>
+                    <a
+                      href={emailHref}
+                      className="text-[#6FAE9C] hover:text-[#E4B04A] transition-colors"
+                    >
+                      {contact.email}
+                    </a>
+                    <p className="text-sm text-gray-500 mt-1">
+                      Respondemos em até 24 horas
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
 
-            <div className="rounded-2xl bg-white p-4 shadow-md transition-shadow hover:shadow-lg sm:p-6">
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 bg-[#E4B04A] rounded-full flex items-center justify-center flex-shrink-0">
-                  <Instagram className="w-6 h-6 text-white" />
-                </div>
-                <div className="min-w-0">
-                  <h3 className="font-semibold text-[#2E7D6B] mb-2">
-                    Instagram
-                  </h3>
-                  <a
-                    href="https://www.instagram.com/ongsaal"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-[#6FAE9C] hover:text-[#E4B04A] transition-colors"
-                  >
-                    @ongsaal
-                  </a>
-                  <p className="text-sm text-gray-500 mt-1">
-                    Acompanhe nosso dia a dia
-                  </p>
+            {isAllowedPublicUrl(contact.instagram) && (
+              <div className="rounded-2xl bg-white p-4 shadow-md transition-shadow hover:shadow-lg sm:p-6">
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 bg-[#E4B04A] rounded-full flex items-center justify-center flex-shrink-0">
+                    <Instagram className="w-6 h-6 text-white" />
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="font-semibold text-[#2E7D6B] mb-2">
+                      Instagram
+                    </h3>
+                    <a
+                      href={contact.instagram}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[#6FAE9C] hover:text-[#E4B04A] transition-colors"
+                    >
+                      {contact.instagram
+                        .replace(/^https:\/\/(www\.)?instagram\.com\/?/, "@")
+                        .replace(/\/$/, "")}
+                    </a>
+                    <p className="text-sm text-gray-500 mt-1">
+                      Acompanhe nosso dia a dia
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
 
-            <div className="rounded-2xl bg-white p-4 shadow-md transition-shadow hover:shadow-lg sm:p-6">
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 bg-[#E4B04A] rounded-full flex items-center justify-center flex-shrink-0">
-                  <MapPin className="w-6 h-6 text-white" />
-                </div>
-                <div className="min-w-0">
-                  <h3 className="font-semibold text-[#2E7D6B] mb-2">
-                    Localização
-                  </h3>
-                  <p className="text-[#6FAE9C]">
-                    Capão Bonito, SP
-                    <br />
-                    Brasil
-                  </p>
-                  <p className="text-sm text-gray-500 mt-1">
-                    Visitas somente com agendamento
-                  </p>
+            {isAllowedPublicUrl(contact.facebook) && (
+              <div className="rounded-2xl bg-white p-4 shadow-md transition-shadow hover:shadow-lg sm:p-6">
+                <div className="flex items-start gap-4">
+                  <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-[#E4B04A]">
+                    <Facebook className="h-6 w-6 text-white" />
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="mb-2 font-semibold text-[#2E7D6B]">
+                      Facebook
+                    </h3>
+                    <a
+                      href={contact.facebook}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[#6FAE9C] transition-colors hover:text-[#E4B04A]"
+                    >
+                      Acompanhe nossa página
+                    </a>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
+
+            {location && (
+              <div className="rounded-2xl bg-white p-4 shadow-md transition-shadow hover:shadow-lg sm:p-6">
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 bg-[#E4B04A] rounded-full flex items-center justify-center flex-shrink-0">
+                    <MapPin className="w-6 h-6 text-white" />
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="font-semibold text-[#2E7D6B] mb-2">
+                      Localização
+                    </h3>
+                    <p className="whitespace-pre-line text-[#6FAE9C]">
+                      {location}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Contact Form */}

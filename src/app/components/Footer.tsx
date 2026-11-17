@@ -1,10 +1,32 @@
-import { Instagram, Mail, MapPin, Phone } from "lucide-react"
+import { Facebook, Instagram, Mail, MapPin, Phone } from "lucide-react"
 
 import { Link } from "react-router"
 
 import logoSaal from "../../imports/logo_fundo_0.png"
 
+import { useSiteSettings } from "../contexts/SiteSettingsContext"
+
+import {
+  getMailHref,
+  getPhoneHref,
+  getPublicLocation,
+  getWhatsAppHref,
+  isAllowedPublicUrl,
+} from "../data/siteLinks"
+
 export function Footer() {
+  const { settings } = useSiteSettings()
+
+  const { contact, about } = settings
+
+  const phoneHref = getPhoneHref(contact.phone)
+
+  const whatsappHref = getWhatsAppHref(contact.whatsapp)
+
+  const emailHref = getMailHref(contact.email)
+
+  const location = getPublicLocation(contact)
+
   return (
     <footer className="bg-[#2E7D6B] text-white">
       <div className="container mx-auto px-4 py-8 sm:py-12">
@@ -24,9 +46,8 @@ export function Footer() {
                 </p>
               </div>
             </div>
-            <p className="text-sm text-[#F5EFE6]">
-              Resgatando, cuidando e encontrando lares amorosos para animais que
-              precisam de uma segunda chance.
+            <p className="whitespace-pre-line text-sm text-[#F5EFE6]">
+              {about.institutionalText}
             </p>
           </div>
 
@@ -65,44 +86,83 @@ export function Footer() {
           <div>
             <h4 className="font-semibold mb-4">Contato</h4>
             <div className="flex flex-col gap-3">
-              <a
-                href="tel:+5515996927636"
-                className="flex min-h-11 items-center gap-2 text-sm text-[#F5EFE6] transition-colors hover:text-[#E4B04A]"
-              >
-                <Phone size={16} />
-                (15) 99692-7636
-              </a>
-              <a
-                href="mailto:contato@saal.com.br"
-                className="flex min-h-11 items-center gap-2 break-all text-sm text-[#F5EFE6] transition-colors hover:text-[#E4B04A]"
-              >
-                <Mail size={16} />
-                contato@saal.com.br
-              </a>
-              <a
-                href="https://www.instagram.com/ongsaal"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex min-h-11 items-center gap-2 text-sm text-[#F5EFE6] transition-colors hover:text-[#E4B04A]"
-              >
-                <Instagram size={16} />
-                @ongsaal
-              </a>
-              <div className="flex items-start gap-2 text-sm text-[#F5EFE6]">
-                <MapPin size={16} className="mt-0.5 flex-shrink-0" />
-                <span>Capão Bonito, SP</span>
-              </div>
+              {phoneHref && (
+                <a
+                  href={phoneHref}
+                  className="flex min-h-11 items-center gap-2 text-sm text-[#F5EFE6] transition-colors hover:text-[#E4B04A]"
+                >
+                  <Phone size={16} />
+                  {contact.phone}
+                </a>
+              )}
+              {whatsappHref && (
+                <a
+                  href={whatsappHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex min-h-11 items-center gap-2 text-sm text-[#F5EFE6] transition-colors hover:text-[#E4B04A]"
+                >
+                  WhatsApp
+                </a>
+              )}
+              {emailHref && (
+                <a
+                  href={emailHref}
+                  className="flex min-h-11 items-center gap-2 break-all text-sm text-[#F5EFE6] transition-colors hover:text-[#E4B04A]"
+                >
+                  <Mail size={16} />
+                  {contact.email}
+                </a>
+              )}
+              {isAllowedPublicUrl(contact.instagram) && (
+                <a
+                  href={contact.instagram}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex min-h-11 items-center gap-2 text-sm text-[#F5EFE6] transition-colors hover:text-[#E4B04A]"
+                >
+                  <Instagram size={16} />
+                  {contact.instagram
+                    .replace(/^https:\/\/(www\.)?instagram\.com\/?/, "@")
+                    .replace(/\/$/, "")}
+                </a>
+              )}
+              {isAllowedPublicUrl(contact.facebook) && (
+                <a
+                  href={contact.facebook}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex min-h-11 items-center gap-2 text-sm text-[#F5EFE6] transition-colors hover:text-[#E4B04A]"
+                >
+                  <Facebook size={16} />
+                  Facebook
+                </a>
+              )}
+              {location && (
+                <div className="flex items-start gap-2 text-sm text-[#F5EFE6]">
+                  <MapPin size={16} className="mt-0.5 flex-shrink-0" />
+                  <span>{location}</span>
+                </div>
+              )}
+              {contact.hours && (
+                <p className="text-xs text-[#F5EFE6]">{contact.hours}</p>
+              )}
             </div>
           </div>
         </div>
 
         <div className="border-t border-[#6FAE9C] mt-8 pt-6 text-center text-sm text-[#F5EFE6]">
           <p>
-            © 2026 SAAL - Santuário de Animais Anjos da Luz. Todos os direitos
-            reservados.
+            © {new Date().getFullYear()} SAAL - Santuário de Animais Anjos da
+            Luz. Todos os direitos reservados.
           </p>
           <p className="text-xs mt-1 text-[#6FAE9C]">
-            ONG sem fins lucrativos • Capão Bonito - SP
+            ONG sem fins lucrativos
+            {contact.city
+              ? ` • ${contact.city}${
+                  contact.state ? ` - ${contact.state}` : ""
+                }`
+              : ""}
           </p>
         </div>
       </div>

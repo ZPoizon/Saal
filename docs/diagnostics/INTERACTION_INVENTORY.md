@@ -26,12 +26,12 @@ aceite, não um teste executado nesta auditoria.
 
 | Rota | Origem | Estado e observação |
 |---|---|---|
-| `/` | `src/app/routes.tsx` → `Home.tsx` | Renderiza landing estática; estatísticas são literais e não vêm de fonte verificável. |
+| `/` | `src/app/routes.tsx` → `Home.tsx` | Renderiza landing com animais e configurações públicas guardados no armazenamento local; valores históricos começam vazios/ocultos e os animais iniciais são exemplos. |
 | `/animais` | `routes.tsx` → `Animals.tsx` | Busca e espécie filtram somente `getAvailableAnimals()` estático. |
 | `/animais/:id` | `routes.tsx` → `AnimalDetail.tsx` | Lê `mockAnimals`; detalhe inexistente tem retorno ao catálogo. |
 | `/interesse/:id` | `routes.tsx` → `Interest.tsx` | Lê mock por ID e permite enviar formulário local, sem validar que animal ainda está disponível. |
 | `/contato` | `routes.tsx` → `Contact.tsx` | Links externos abrem destinos; formulário apenas mostra simulação de sucesso. |
-| `/admin` | `routes.tsx` → `Admin.tsx` | Rota aberta sem guard de rota/API; login somente estado do componente. |
+| `/admin` | `routes.tsx` → `Admin.tsx` | Entrada de demonstração aberta, sem autenticação nem guard de rota/API; configurações ficam no armazenamento local. |
 | `*` | `routes.tsx` → `NotFound.tsx` | Página 404 com link à home. |
 
 ## Interações por área
@@ -45,9 +45,9 @@ aceite, não um teste executado nesta auditoria.
 | NAV-05 — `Footer.tsx`, `Contact.tsx` | Telefone, e-mail, WhatsApp, Instagram, localização | Abrir contato externo correto | `tel:`, `mailto:` e destinos HTTPS são links; localização é texto, não mapa | Aplicativo/dispositivo externo | Funcional para links locais, P3 localização | Links têm destino válido; localização só se torna ação caso requisito aprovado. |
 | NAV-06 — `WhatsAppButton.tsx` | Botão flutuante em layout público | Abrir conversa de WhatsApp com mensagem | Link `wa.me` em nova aba, `rel=noopener noreferrer` e nome acessível | WhatsApp/rede externa | Funcional externo não validado, P2 | Teclado, touch e link abrem número correto; comportamento externo testado manualmente. |
 | HOME-01 — `Home.tsx` | “Quero Adotar Agora”, CTAs e links de catálogo/contato | Levar à página alvo | Links SPA para catálogo/contato | Router | Funcional (local), P2 | Cada CTA abre a rota declarada e não causa reload indevido. |
-| HOME-02 — `Home.tsx` | “Área Administrativa” | Entrada administrativa protegida | Abre `/admin` público; proteção apenas alegada em docs antigas | Autenticação e autorização backend | Inseguro, P0 | Acesso sem sessão não lê dados nem executa endpoint; login real libera somente permissões concedidas. |
+| HOME-02 — `Home.tsx` | “Área Administrativa” | Abrir painel de demonstração | Abre `/admin`; o painel informa que não há autenticação real | Backend de autenticação e autorização futuro | Demonstração sem autenticação, P0 | Produção exige backend que negue leitura e operações administrativas sem sessão autorizada. |
 | HOME-03 — `Home.tsx` | Três cards de animais disponíveis | Acessar detalhe | Cards vêm do primeiro conjunto de mocks disponíveis | Catálogo/API futura | Parcial, P1 | Cards exibem dados publicados e abrem o detalhe persistido correto. |
-| HOME-04 — `Home.tsx` | Estatísticas 350+, 280+, 15, 1.2k+ | Apresentar indicadores corretos | Valores hardcoded sem fonte ou atualização | Fonte de dados comprovada ou decisão para publicar estatísticas | Simulado, P1 | Cada valor publicado possui fonte autorizada, definição e atualização verificável; caso contrário, é retirado/rotulado. |
+| HOME-04 — `Home.tsx` | Estatísticas públicas | Apresentar indicadores autorizados | Histórico começa vazio e oculto; contagens cadastradas derivam dos animais do navegador local | Confirmação da ONG para dados históricos; API futura | Protótipo, P1 | Cada valor publicado possui fonte autorizada e atualização verificável; caso contrário, é retirado/ocultado. |
 | HOME-05 — `HelpBanner.tsx` | Cards “Faça uma Doação”, “Seja Voluntário”, “Divulgue” | Levar a instrução/canal correspondente | Divs com hover/animação, sem link, botão ou ação | Decisão de canal e requisitos da ONG | Ausente, P3 | Só apresentar affordance acionável quando destino for aprovado; cada ação abre destino real. |
 | CAT-01 — `Animals.tsx` | Campo “Buscar por nome” | Filtrar texto ignorando maiúsculas | Estado local aplica busca na lista de mocks e atualiza contador | Dados remotos e serviço de catálogo | Parcial, P1 | Com API, mesma busca atualiza resultados/contador, preserva entrada e reporta erro recuperável. |
 | CAT-02 — `Animals.tsx` | Seletor de espécie | Filtrar cachorro/gato/todos | Estado local funciona; evento converte valor via `as any` | Dados remotos; eliminar cast incompatível em implementação | Parcial, P1 | Enum é validado sem `any`; combina AND com busca e mostra somente resultados elegíveis. |
@@ -62,12 +62,12 @@ aceite, não um teste executado nesta auditoria.
 | INT-02 — `Interest.tsx` | Nome, e-mail, telefone, mensagem | Coletar dados com validação acessível | `required`/`type=email`; telefone sem formato/limite explícito; sem regra de privacidade exibida; mensagem opcional | Política LGPD, validação server-side e limites aprovados | Parcial, P1 | Erros associados aos campos; validação cliente/servidor; aviso/finalidade aprovados; não coletar excedentes. |
 | INT-03 — `Interest.tsx`, `InterestContext.tsx` | Enviar interesse | Registrar uma única solicitação e confirmar | Espera artificial de 1,5 s, insere Context React e mostra sucesso; nenhum POST; recarregar limpa; sucesso sempre local; id `Date.now()` | Backend, MySQL, regras de duplicidade/idempotência e UX de erro | Simulado, P0 | Uma solicitação válida fica persistida após novo login/reload; só confirma retorno do servidor; falha mantém campos sem duplicata. |
 | INT-04 — `Interest.tsx` | “Voltar”, “Ver Outros Animais”, “Voltar ao Início” | Continuar jornada após formulário | Links de sucesso funcionam; botão inicial depende de `navigate(-1)` | Router/histórico | Parcial, P2 | Rotas seguintes são corretas; entrada direta nunca causa retorno inesperado ao browser/site externo. |
-| CONTACT-01 — `Contact.tsx` | Links de telefone, e-mail, Instagram e contato | Iniciar contato pelo canal existente | Tel/WhatsApp/e-mail/Instagram são links; dados exibidos não passaram por auditoria operacional | Aplicativos e destinos externos | Funcional parcial, P2 | Todos os destinos corretos e testados; expectativas e prazos exibidos são confirmados pela ONG. |
+| CONTACT-01 — `Contact.tsx` | Links de telefone, WhatsApp, e-mail, redes e localização | Iniciar contato pelos canais configurados | Dados vêm das configurações locais; links `tel:`, `wa.me`, `mailto:` e HTTPS são gerados no frontend | Aplicativos e destinos externos | Protótipo local, P2 | Dados de contato são confirmados pela ONG e destinos corretos são testados em dispositivos. |
 | CONTACT-02 — `Contact.tsx` | Campos nome, e-mail, assunto, mensagem | Validar e enviar mensagem | Inputs HTML `required` e `type=email`; envio é local | Decisão entre e-mail, fila ou persistência; proteção de abuso; política PII | Simulado, P0 | Serviço recebe/encaminha mensagem e apenas então confirma; validação, limites, privacidade e antiabuso testados. |
 | CONTACT-03 — `Contact.tsx` | Sucesso por 3 s e limpeza do formulário | Manter resultado até próximo passo seguro | `setSubmitted(true)`, timer limpa após 3 s; não há envio nem estado de erro/loading | Serviço real e retorno de aceitação | Enganoso, P0 | Sem falso sucesso; sucesso permanece perceptível até ação/navegação; erro mantém campos e informa recuperação. |
-| ADMIN-01 — `Admin.tsx` | Usuário/senha e botão “Entrar” | Autenticar e estabelecer sessão segura | Compara literal `admin`/`saal2026` no browser; sucesso é `useState`; falha com `alert`; inputs não obrigatórios | Backend auth, política de senha/sessão, rate limit, CSRF quando aplicável | Inseguro, P0 | Nenhum segredo client-side; servidor autentica, limita abuso e retorna erro genérico; sessão está protegida e logout verificável. |
+| ADMIN-01 — `Admin.tsx` | Aviso e botão de entrada de demonstração | Acessar a demonstração | Entrada aberta e local, sem formulário ou validação de credenciais | Backend auth, política de senha/sessão, rate limit, CSRF quando aplicável | Sem autenticação, P0 | Nenhum segredo client-side; servidor autentica, limita abuso e retorna erro genérico; sessão está protegida e logout verificável. |
 | ADMIN-02 — `Admin.tsx` / `routes.tsx` | Rota privada e link admin | Proteger dashboard e APIs | `/admin` acessível sem loader/guard; qualquer autorização visual seria contornável | Backend, role/recurso, guard de UX sem autoridade | Inseguro, P0 | Anônimo não obtém dados nem operação; cada endpoint lê/escreve com autorização própria. |
-| ADMIN-03 — `Admin.tsx` | “Sair” | Encerrar a sessão de forma efetiva | Define `isLoggedIn=false` somente no componente | Revogação/invalidação backend e limpeza de cliente | Parcial inseguro, P0 | Sessão/token anterior deixa de funcionar no servidor; pós-logout não há retorno ao painel por histórico/cache. |
+| ADMIN-03 — `Admin.tsx` | “Sair” | Encerrar o acesso à demonstração | Retorna à tela de aviso local; não há sessão real para invalidar | Revogação/invalidação backend e limpeza de cliente | Demonstração sem autenticação, P0 | Sessão/token anterior deixa de funcionar no servidor; pós-logout não há retorno ao painel por histórico/cache. |
 | ADMIN-04 — `Admin.tsx` | Cards de contagem e tabela de animais | Refletir estado de origem única | Contagem em estado local inicializado em mocks; não sincroniza catálogo público, requests de API ou reload | API persistida e DTOs | Simulado, P1 | Contagens e linhas correspondem a dados persistidos e filtros/estados vazios/erros são distintos. |
 | ADMIN-05 — `Admin.tsx` | “Cadastrar Novo Animal” abre `AnimalForm` | Abrir formulário com cancelamento e validação | Abre/fecha via estado React; adicionar cria objeto local com `Date.now()` e `!` non-null assertions | API CRUD, validação server-side, ID servidor | Parcial, P1 | Salvar cria um único registro persistido; cancelar não grava; falhas não limpam dados e são anunciadas. |
 | ADMIN-06 — `AnimalForm.tsx` | Campos do animal, seletores/status, personalidade e info médica | Validar domínios e manter dados editáveis | `required` em alguns campos; status/species/size/sex usam casts; `Partial<Animal>` e parsing de tags; limites de idade/texto não definidos | Domínio/modelo e validações server-side | Parcial, P1 | Enums e limites aprovados; erros acessíveis; novo estado aparece no catálogo após confirmação. |
@@ -79,13 +79,14 @@ aceite, não um teste executado nesta auditoria.
 | ADMIN-12 — `Admin.tsx`, `InterestContext.tsx` | Lista vazia/preenchida, contagem pendente | Receber solicitações reais com acesso mínimo | Context global volátil na mesma sessão; interface lista PII e status; zero em novo carregamento | API autorizada, modelo, política LGPD e testes de acesso | Parcial/simulado, P0 | Anônimo recebe 401/403; admin autorizado vê somente dados necessários; vazio, falha e carregamento são distintos. |
 | ADMIN-13 — `Admin.tsx` | “Aceitar” e “Recusar” | Atualizar fluxo da adoção e histórico | Troca status local `pending`→accepted/rejected sem confirmação, transição aprovada ou persistência | Decisão sobre semântica/transições, API auth, auditoria, concorrência | Simulado, P1 | Transições aprovadas persistem; duplicidade/conflito/erro não geram falso sucesso; histórico/auditoria conforme política. |
 | ADMIN-14 — `Admin.tsx` | Busca/filtro de solicitações, marcar contato, exportação, resposta | Apoiar tarefas explícitas da equipe | Não há controles/handlers; apenas lista, status e resumo; funcionalidade permanece parcial nos requisitos | Decisão de escopo, PII/export, serviço/e-mail | Ausente/pendente, P3 | Implementar apenas após aprovar cada requisito e política de dados; dados/export são limitados e auditáveis. |
+| ADMIN-15 — `SiteSettingsPanel.tsx` | Configurações do Site | Atualizar conteúdo e dados públicos | Oito abas salvam localmente; conteúdo aparece nas páginas públicas do mesmo navegador; não há autenticação nem backend | API persistida, autenticação/autorização real, confirmação dos dados pela ONG | Protótipo local, P0 | Configurações autorizadas persistem no servidor, são lidas publicamente com controles de acesso e refletem após reload/dispositivos. |
 | NF-01 — `NotFound.tsx` | “Voltar para o Início” | Recuperar rota inválida | `Link` para `/` | Router | Funcional (local), P2 | Rota desconhecida tem status/estado navegável, foco no conteúdo e destino funcional. |
 
 ## Jornada pública observada e alvo de aceite
 
 1. **Descobrir:** home → CTA ou card → catálogo. Hoje o catálogo usa oito objetos mockados,
-   pesquisa apenas nome e espécie e oculta todos os não disponíveis. Os contadores da home
-   não são calculados nem vinculados a dados.
+   pesquisa apenas nome e espécie e oculta todos os não disponíveis. Os indicadores da home
+   leem valores do estado local, mas não têm fonte de dados verificada.
 2. **Conhecer:** card → detalhes → galeria, status e eventual interesse. Dados vêm do mock
    estático; o botão de card é um controle aninhado; compartilhar não trata browsers sem
    `navigator.share` nem rejeição.
@@ -101,9 +102,8 @@ aceite, não um teste executado nesta auditoria.
 
 ## Jornada administrativa observada e alvo de aceite
 
-1. Abrir `/admin` ou CTA público mostra login em qualquer sessão; credencial demo é texto
-   fonte e comparação ocorre no navegador. Não há mecanismo de recuperação ou sessão
-   persistente; logout é reset de estado.
+1. Abrir `/admin` ou o CTA público apresenta uma demonstração aberta. Não há credencial nem
+   sessão; a persistência de configurações é local ao navegador e não protege operações.
 2. Dashboard inicializa animais com mocks separados do catálogo. Create/edit/delete e
    contagens alteram somente esse array React.
 3. Formulário permite URL livre ou FileReader/Base64; não envia/valida em storage.

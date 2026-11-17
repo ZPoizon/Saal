@@ -47,14 +47,23 @@ const animalPayload = {
 
 const publicAnimalPayload = {
   id: "7",
+
   name: "Luna",
+
   species: "cat",
+
   age: "2 anos",
+
   size: "médio",
+
   sex: "fêmea",
+
   status: "AVAILABLE",
+
   description: "Gata dócil resgatada.",
+
   personality: ["Dócil", "Carinhosa"],
+
   photos: ["https://exemplo.com/luna-1.jpg", "https://exemplo.com/luna-2.jpg"],
 }
 
@@ -139,6 +148,7 @@ describe("animals-api service", () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(
         JSON.stringify({ ...publicAnimalPayload, status: "ADOPTED" }),
+
         {
           status: 200,
         },

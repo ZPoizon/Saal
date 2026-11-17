@@ -12,6 +12,7 @@ interface SafeImageProps {
   className?: string
 
   /** Parâmetros opcionais de redimensionamento para serviços que os suportam. */
+
   params?: Record<string, string | number>
 
   fallbackLabel?: string
@@ -26,11 +27,16 @@ function classes(...values: Array<string | undefined | false>): string {
  * quebrada. Evita depender de placeholders externos e nunca troca a imagem
  * oficial por outra quando ela carrega normalmente.
  */
+
 export function SafeImage({
   src,
+
   alt,
+
   className,
+
   params,
+
   fallbackLabel = "Foto indisponível",
 }: SafeImageProps) {
   const [failedSrc, setFailedSrc] = useState<string | null>(null)
@@ -44,6 +50,7 @@ export function SafeImage({
         aria-label={fallbackLabel}
         className={classes(
           className,
+
           "flex items-center justify-center bg-[#F5EFE6] text-[#6FAE9C]",
         )}
       >

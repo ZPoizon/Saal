@@ -14,6 +14,7 @@ import { AdminAuthError, csrfHeaderName, requestCsrfToken } from "./admin-auth"
  * envio é sequencial (uma foto por requisição) para reduzir o tamanho do corpo
  * e evitar limites de proxy.
  */
+
 const defaultUploadUrl = "/api/v1/admin/photos"
 
 const uploadFieldName = "photos"
@@ -115,8 +116,10 @@ interface PhotoDimensions {
 }
 
 /** Ajusta as dimensões sem ampliar imagens pequenas. Exportada para teste. */
+
 export function fitWithin(
   width: number,
+
   height: number,
 
   max: number,
@@ -126,6 +129,7 @@ export function fitWithin(
   if (largest <= max) {
     return {
       width: Math.max(1, Math.round(width)),
+
       height: Math.max(1, Math.round(height)),
     }
   }
@@ -183,7 +187,9 @@ function canvasToJpeg(canvas: HTMLCanvasElement): Promise<Blob> {
           reject(new Error("Não foi possível converter a imagem."))
         }
       },
+
       "image/jpeg",
+
       normalizedJpegQuality,
     )
   })
@@ -200,6 +206,7 @@ function normalizedFileName(name: string): string {
  * metadados (inclusive EXIF) e garante que a orientação exibida seja a
  * persistida. A prévia local continua sendo o arquivo original.
  */
+
 export async function normalizePhotoFile(file: File): Promise<File> {
   const decoded = await decodePhoto(file)
 
@@ -210,7 +217,9 @@ export async function normalizePhotoFile(file: File): Promise<File> {
 
     const target = fitWithin(
       decoded.width,
+
       decoded.height,
+
       maxNormalizedDimension,
     )
 
@@ -227,6 +236,7 @@ export async function normalizePhotoFile(file: File): Promise<File> {
     }
 
     // Fundo branco evita transparência virar preto ao converter PNG para JPEG.
+
     context.fillStyle = "#FFFFFF"
 
     context.fillRect(0, 0, target.width, target.height)
@@ -249,9 +259,13 @@ export async function normalizePhotoFile(file: File): Promise<File> {
 
 function uploadSingle(
   endpoint: string,
+
   csrfToken: string,
+
   file: File,
+
   signal: AbortSignal | undefined,
+
   onProgress: (fraction: number) => void,
 ): Promise<string> {
   return new Promise<string>((resolve, reject) => {
@@ -300,6 +314,7 @@ function uploadSingle(
           reject(
             new PhotoUploadError(
               failureFromStatus(request.status),
+
               request.status,
             ),
           ),
@@ -367,6 +382,7 @@ export async function uploadAnimalPhotos(
 
     throw new PhotoUploadError(
       "csrf",
+
       error instanceof AdminAuthError ? error.status : 0,
     )
   }
@@ -396,8 +412,11 @@ export async function uploadAnimalPhotos(
 
     const url = await uploadSingle(
       endpoint,
+
       csrfToken,
+
       normalized[index] as File,
+
       options.signal,
 
       (fraction) => {
