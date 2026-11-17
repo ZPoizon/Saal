@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react"
+import type { AuthChangeEvent, Session } from "@supabase/supabase-js"
 
 import {
   type AdminSession,
@@ -42,7 +43,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, sess) => {
+    } = supabase.auth.onAuthStateChange((event: AuthChangeEvent, sess: Session | null) => {
       if (event === "SIGNED_OUT") {
         setSession(null)
         return
