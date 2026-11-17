@@ -55,8 +55,8 @@ pnpm install --frozen-lockfile
 5. No **Storage**, crie um bucket público chamado `animal-photos`.
 6. Em **Authentication** > **Users**, crie um usuário administrador com e-mail e senha.
 7. No **Table Editor**, insira esse usuário na tabela `admin_users` com o mesmo `id` do Authentication, `role = 'admin'` e o `display_name` desejado.
-8. Em **Settings** > **API**, adicione `http://localhost:8443` às URLs de CORS/redirect (para desenvolvimento local).
-9. Em **Authentication** > **URL Configuration**, adicione `http://localhost:8443` e `http://localhost:8443/auth/callback` às Redirect URLs.
+8. Para fluxos de autenticação que usam redirecionamento (convites e recuperação de senha), configure **Authentication > URL Configuration**. Defina a Site URL e inclua `http://localhost:8443` e `http://localhost:8443/auth/callback` nas Redirect URLs conforme o fluxo.
+9. A API padrão do Supabase não exige configuração manual de CORS para localhost. Se o login falhar, verifique o domínio `.supabase.co`, a chave pública, a configuração de Auth e as políticas RLS.
 
 ### Formatos de foto aceitos
 
@@ -110,7 +110,7 @@ pnpm format:check # Verificação de formatação sem alterar arquivos
 
 O frontend pode ser publicado na [Vercel](https://vercel.com), conectado a este repositório, com deploy automático da branch `main`.
 
-É necessário configurar as variáveis de ambiente `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` no painel da Vercel para que a integração com o Supabase funcione em produção.
+Configure `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` em **Vercel > SAAL > Settings > Environment Variables**, selecionando **Production** e **Preview** se utilizar prévias. Use apenas a chave pública (publishable/anon), nunca `service_role` ou secret key. Faça um novo deploy após salvar, pois o Vite embute essas variáveis no build. Em **Supabase > Authentication > URL Configuration**, inclua também o domínio publicado nos redirecionamentos quando o fluxo precisar. Banco, RLS, Storage e `admin_users` precisam estar configurados no projeto Supabase de produção.
 
 Não afirme que a produção está funcionando sem verificar o deploy na Vercel.
 
