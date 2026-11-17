@@ -118,3 +118,15 @@ decisão de topologia e revisão AppSec. Se limites gratuitos forem incompatíve
 disponibilidade, segurança, persistência ou volume, preservar Java/Spring Boot/MySQL e
 selecionar planos pagos ou outros provedores compatíveis; não trocar o backend sem nova
 autorização.
+
+## Nota de implementação (2026-11-16)
+
+O responsável técnico informou que o frontend é publicado na **Vercel**, conectada ao
+repositório GitHub com deploy automático por push/PR. A preferência original deste ADR era
+Cloudflare Pages; a Vercel passa a ser o host de frontend de fato, sem alterar nenhuma das
+pendências acima: backend e banco continuam sem deploy autorizado, a topologia de cookie/CSRF
+via proxy externo e a revisão de segurança seguem pendentes.
+
+A configuração preparada em `vercel.json` (proxy `/api` para o backend em Render) e o roteiro
+`docs/deployment/VERCEL_RENDER_AIVEN.md` são artefatos de protótipo. Eles não comprovam deploy
+ativo, não substituem a decisão de topologia e não autorizam uso com dados reais.
