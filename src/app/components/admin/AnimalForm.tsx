@@ -110,7 +110,9 @@ export function AnimalForm({ animal, onSave, onCancel }: AnimalFormProps) {
 
   const [gallery, setGallery] = useState<GalleryPhoto[]>(() =>
     (animal?.images ?? [])
+
       .filter((url) => url.trim().length > 0)
+
       .map((url, index) => ({
         kind: "existing" as const,
 
@@ -139,6 +141,7 @@ export function AnimalForm({ animal, onSave, onCancel }: AnimalFormProps) {
   }, [gallery])
 
   // Pré-visualizações são recursos do navegador e precisam ser liberadas.
+
   useEffect(() => {
     return () => {
       galleryRef.current.forEach((photo) => {
@@ -199,6 +202,7 @@ export function AnimalForm({ animal, onSave, onCancel }: AnimalFormProps) {
     replaceTargetRef.current = null
 
     // Substituição usa somente o primeiro arquivo e preserva a posição.
+
     if (replaceTarget) {
       const result = selectPhotoFiles(chosen.slice(0, 1), 0)
 

@@ -103,10 +103,8 @@ integração, segredos externos ao código e documentação operacional aprovada
 
 ## 15. Estado atual
 
-**Implementado neste worktree:** backend Spring Boot fornece endpoints de sessão, CSRF, login
-e logout, com credenciais provisionadas por ambiente; o frontend React os utiliza e protege a
-interface administrativa. O comando `pnpm dev` sobe MySQL/API locais via Docker Compose e
-inicia o Vite com proxy local, grava credenciais administrativas aleatórias no arquivo
-ignorado `backend/.env.dev` e exibe a senha uma vez. Isso comprova suporte de desenvolvimento
-no código, não disponibilidade ou configuração da API em produção. Recuperação/rotação de
-credenciais e operação de produção continuam pendentes.
+**Parcial nesta revisão:** backend de autenticação e autorização implementado em
+`feat/admin-authentication`; a integração React existe separadamente em
+`feat/admin-ui-contact-upload`. As worktrees ainda não foram consolidadas, nenhuma alteração
+foi integrada ou publicada e não há API administrativa de domínio. O comportamento não deve
+ser descrito como login disponível em `main` ou em produção.

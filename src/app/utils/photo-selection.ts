@@ -1,6 +1,7 @@
 /** Limites técnicos provisórios. A política definitiva de upload da ONG
  * (ONG-06) continua pendente; estes valores apenas evitam arquivos inválidos
  * no navegador e são aplicados de novo pelo endpoint de upload. */
+
 export const MIN_ANIMAL_PHOTOS = 1
 
 export const MAX_ANIMAL_PHOTOS = 3
@@ -33,6 +34,7 @@ function fileSignature(file: File): string {
  * Valida os arquivos escolhidos antes de qualquer envio. Nunca descarta um
  * arquivo silenciosamente: cada recusa vira uma mensagem compreensível.
  */
+
 export function selectPhotoFiles(
   files: Iterable<File>,
 
@@ -98,6 +100,7 @@ export function selectPhotoFiles(
 }
 
 /** Move um item preservando a ordem dos demais; usado na reordenação acessível. */
+
 export function moveListItem<T>(
   items: readonly T[],
 

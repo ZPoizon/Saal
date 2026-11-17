@@ -17,10 +17,14 @@ import { validateInterestForm } from "../utils/interest-validation"
 
 import { SafeImage } from "../components/SafeImage"
 
+import { useSiteSettings } from "../contexts/SiteSettingsContext"
+
 export function Interest() {
   const { id } = useParams<{ id: string }>()
 
   const navigate = useNavigate()
+
+  const { settings } = useSiteSettings()
 
   const {
     data: animal,
@@ -103,6 +107,29 @@ export function Interest() {
     )
   }
 
+  if (!settings.adoption.acceptingInterests) {
+    return (
+      <div className="flex min-h-[60dvh] items-center justify-center bg-[#F5EFE6] px-4 py-12">
+        <div className="max-w-xl rounded-2xl bg-white p-8 text-center shadow-lg">
+          <Heart className="mx-auto mb-4 h-12 w-12 text-[#E4B04A]" />
+          <h1 className="mb-3 text-2xl font-bold text-[#2E7D6B]">
+            Recebimento de interesses pausado
+          </h1>
+          <p className="mb-6 text-gray-600">
+            No momento, não estamos recebendo novas manifestações nesta
+            demonstração local. A pausa não é aplicada pelo servidor.
+          </p>
+          <Link
+            to="/animais"
+            className="inline-flex min-h-12 items-center justify-center rounded-full bg-[#2E7D6B] px-6 font-semibold text-white hover:bg-[#6FAE9C]"
+          >
+            Voltar aos animais
+          </Link>
+        </div>
+      </div>
+    )
+  }
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
 
@@ -163,9 +190,7 @@ export function Interest() {
 
       setSubmissionSucceeded(true)
 
-      setSubmissionMessage(
-        "Recebemos sua manifestação de interesse. A equipe fará a avaliação manual; este envio não confirma a adoção.",
-      )
+      setSubmissionMessage(settings.adoption.submissionMessage)
     } catch (error) {
       const status = error instanceof InterestApiError ? error.status : null
 

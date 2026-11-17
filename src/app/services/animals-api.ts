@@ -23,6 +23,7 @@ export class AnimalApiError extends Error {
 
 interface RequestOptions {
   /** Requisições de mutação precisam do token CSRF da sessão administrativa. */
+
   csrf?: boolean
 }
 
@@ -73,6 +74,7 @@ async function requestJson(
 }
 
 /** Catalogo publico: somente animais disponiveis. */
+
 export async function listPublicAnimals(): Promise<Animal[]> {
   const payload = await requestJson(publicAnimalsPath, { method: "GET" })
 
@@ -80,6 +82,7 @@ export async function listPublicAnimals(): Promise<Animal[]> {
 }
 
 /** Detalhe publico: aceita qualquer estado aprovado (inclusive adotados). */
+
 export async function getPublicAnimal(id: string): Promise<Animal> {
   const payload = await requestJson(
     `${publicAnimalsPath}/${encodeURIComponent(id)}`,
@@ -91,6 +94,7 @@ export async function getPublicAnimal(id: string): Promise<Animal> {
 }
 
 /** Listagem administrativa: inclui animais disponiveis e adotados. */
+
 export async function listAdminAnimals(): Promise<Animal[]> {
   const payload = await requestJson(adminAnimalsPath, { method: "GET" })
 

@@ -74,7 +74,9 @@ export async function getAdminSession(): Promise<boolean> {
   })
 
   // O endpoint de sessão é público. Um proxy/API que responda 401/403 para ele
+
   // significa que não há sessão utilizável, não que a validação quebrou.
+
   if (response.status === 401 || response.status === 403) {
     return false
   }
@@ -180,6 +182,7 @@ export type AdminAuthAction = "session" | "login" | "logout"
  * API ausente, erro do servidor e credencial inválida. Nunca revela detalhes
  * internos nem transforma erro de rede em "senha incorreta".
  */
+
 export function getAdminAuthErrorMessage(
   error: unknown,
 

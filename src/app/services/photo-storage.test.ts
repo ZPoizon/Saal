@@ -29,6 +29,7 @@ describe("configuração do upload", () => {
     expect(getPhotoUploadUrl()).toMatch(
       /^\/api\/v1\/admin\/photos$|^https?:\/\//,
     )
+
     expect(isPhotoStorageConfigured()).toBe(true)
   })
 })

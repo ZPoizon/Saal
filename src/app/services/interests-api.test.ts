@@ -16,6 +16,7 @@ describe("interests-api service", () => {
     const fetch = vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(
         JSON.stringify({ received: true, createdAt: "2026-11-16T12:00:00" }),
+
         {
           status: 201,
         },

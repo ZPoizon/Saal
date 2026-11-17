@@ -139,9 +139,11 @@ async function resolveUserConfig(env: ConfigEnv): Promise<UserConfig> {
 }
 
 /**
- * Desenvolvimento local usa somente a API local; pnpm dev inicia sua stack Docker.
+ * `pnpm dev` funciona sem Java/Docker: por padrao /api e encaminhado para a API
+ * publicada no Render. Para testar um backend local, defina
+ * SAAL_API_PROXY_TARGET=http://localhost:8080 no .env ou no shell.
  */
-const defaultApiProxyTarget = "http://127.0.0.1:8080"
+const defaultApiProxyTarget = "https://saal-api.onrender.com"
 
 function apiProxy(mode: string): Record<string, ProxyOptions> {
   const configured = loadEnv(mode, __dirname, "SAAL_").SAAL_API_PROXY_TARGET
@@ -161,7 +163,6 @@ function apiProxy(mode: string): Record<string, ProxyOptions> {
          * o atributo Secure no trafego do proxy. Em producao (Vercel HTTPS) o
          * cookie continua Secure porque o proxy nao participa da requisicao.
          */
-
         proxy.on("proxyRes", (proxyRes: IncomingMessage) => {
           const cookies = proxyRes.headers["set-cookie"]
 

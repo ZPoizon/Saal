@@ -16,6 +16,7 @@ describe("selectPhotoFiles", () => {
   it("aceita imagens dentro do limite", () => {
     const result = selectPhotoFiles(
       [file("a.png", "image/png", 10), file("b.jpg", "image/jpeg", 20)],
+
       0,
     )
 
@@ -35,6 +36,7 @@ describe("selectPhotoFiles", () => {
   it("recusa imagem acima do limite técnico provisório", () => {
     const result = selectPhotoFiles(
       [file("grande.png", "image/png", MAX_PHOTO_BYTES + 1)],
+
       0,
     )
 
@@ -46,6 +48,7 @@ describe("selectPhotoFiles", () => {
   it("respeita o máximo de fotos já existentes", () => {
     const result = selectPhotoFiles(
       [file("a.png", "image/png", 10)],
+
       MAX_ANIMAL_PHOTOS,
     )
 
@@ -58,9 +61,12 @@ describe("selectPhotoFiles", () => {
     const result = selectPhotoFiles(
       [
         file("a.png", "image/png", 10),
+
         file("b.png", "image/png", 10),
+
         file("c.png", "image/png", 10),
       ],
+
       1,
     )
 

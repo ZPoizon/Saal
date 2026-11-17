@@ -42,6 +42,7 @@ Consulte-as antes de implementar e ao revisar alterações.
 | Gestão de animais | `features/animal-management.md` | Implementado no worktree; exclusão desabilitada; política de imagem pendente |
 | Autenticação admin | `features/admin-authentication.md` | Implementado no worktree; integração no frontend publicada na `main` |
 | Gestão de adoções | `features/adoption-management.md` | Implementado no worktree, somente leitura |
+| Configurações do site | `features/site-settings.md` | Parcial; persistência local no navegador, sem API compartilhada |
 | Contato geral | — | Fora do primeiro incremento (ONG-07) |
 
 ## Rastreabilidade
