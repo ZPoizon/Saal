@@ -36,30 +36,40 @@ Consulte-as antes de implementar e ao revisar alterações.
 
 | Área | Documento | Estado atual |
 |---|---|---|
-| Catálogo | `features/animal-catalog.md` | Protótipo |
-| Detalhes | `features/animal-details.md` | Protótipo |
-| Solicitação de adoção | `features/adoption-request.md` | Protótipo |
-| Gestão de animais | `features/animal-management.md` | Protótipo |
-| Indicadores públicos da ONG | `features/organization-impact-stats.md` | Protótipo |
-| Configurações públicas do site | `features/site-settings.md` | Protótipo local |
-| Autenticação admin | `features/admin-authentication.md` | Não implementada; demonstração aberta |
-| Gestão de adoções | `features/adoption-management.md` | Protótipo |
+| Catálogo | `features/animal-catalog.md` | Implementado no worktree |
+| Detalhes | `features/animal-details.md` | Parcial no worktree |
+| Solicitação de adoção | `features/adoption-request.md` | Implementado no worktree; política de privacidade pendente |
+| Gestão de animais | `features/animal-management.md` | Implementado no worktree; exclusão desabilitada; política de imagem pendente |
+| Autenticação admin | `features/admin-authentication.md` | Implementado no worktree; integração no frontend publicada na `main` |
+| Gestão de adoções | `features/adoption-management.md` | Implementado no worktree, somente leitura |
+| Configurações do site | `features/site-settings.md` | Parcial; persistência local no navegador, sem API compartilhada |
+| Contato geral | — | Fora do primeiro incremento (ONG-07) |
 
 ## Rastreabilidade
 
 - [Requisitos legados](../docs/legacy/REQUISITOS_FUNCIONAIS.md).
 - [Documentação legada](../docs/legacy/DOCUMENTACAO_PROJETO.md).
-- Contrato futuro: `contracts/openapi.yaml`; ele descreve o alvo e **não endpoints ativos**.
+- Contrato: `contracts/openapi.yaml`; descreve as rotas implementadas neste worktree, não um deploy ativo.
 - Modelo conceitual: `contracts/data-model.md`.
 - Mudanças arquiteturais: novo ADR em `decisions/`.
 
 ## Pendências transversais
 
-- Definir política de autenticação, sessão, perfis e recuperação de acesso.
-- Definir ciclo de vida completo de uma solicitação de adoção.
-- Definir retenção, consentimento e exclusão de dados pessoais conforme LGPD.
-- Definir armazenamento, limites e moderação de imagens.
+- Definir identidade nominal, rotação/recuperação e operação de credenciais do único
+  administrador; sessão server-side, CSRF e topologia same-site estão aprovados em ADR-006.
+  Não há papéis diferenciados (ONG-01).
+- Não há workflow de status de manifestação; a avaliação é manual e a gestão é somente leitura
+  (ONG-04). Definir duplicidade e revisar limites operacionais antiabuso (ONG-09).
+- Definir finalidade, consentimento/base legal, aviso, acesso, retenção e exclusão dos dados
+  pessoais conforme LGPD (ONG-05).
+- Definir publicação/visibilidade de adotados e exclusão/arquivamento de animais (ONG-02/ONG-03).
+- Definir formatos adicionais, limites definitivos, storage externo, EXIF e moderação das 1–3
+  imagens (ONG-06). Até a decisão, o ADR-007 registra a solução técnica provisória: normalização
+  no navegador e binário no MySQL.
+- Definir demais campos do animal e vocabulário de espécie/sexo/porte (ONG-10).
+- Definir o terceiro canal de contato, métricas e conteúdo institucional (ONG-11). O formulário
+  de contato geral está fora do primeiro incremento (ONG-07).
+- Escopo e retenção de logs mínimos de segurança (ONG-08).
 - Ampliar testes além da base Vitest/Oxlint de I0, incluindo integrações backend e browser.
-- Flyway está escolhido para uso futuro; schema/migrations continuam não implementados e
-  dependem do modelo de domínio aprovado.
-- Implementar backend Spring Boot e banco MySQL 8 em projeto próprio quando aprovado.
+- Flyway V1/V2 e backend Spring Boot existem no worktree. A integração MySQL real e a
+  implantação não são presumidas; decisões de finalidade e retenção de PII continuam pendentes.

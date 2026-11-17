@@ -1,95 +1,100 @@
 import { Link } from "react-router"
 
-import {
-  Heart,
-  Home as HomeIcon,
-  Stethoscope,
-  MapPin,
-  Lock,
-  CalendarDays,
-  PawPrint,
-} from "lucide-react"
+import { CalendarDays, Heart, Lock, MapPin, PawPrint } from "lucide-react"
 
 import { motion } from "motion/react"
 
 import { AnimalCard } from "../components/AnimalCard"
 
+import { useAsync } from "../hooks/useAsync"
+
+import { listPublicAnimals } from "../services/animals-api"
+
 import { ScrollReveal } from "../components/ScrollReveal"
 
 import { HelpBanner } from "../components/HelpBanner"
 
-import { useAnimals } from "../contexts/AnimalContext"
 import { useSiteSettings } from "../contexts/SiteSettingsContext"
-import {
-  getActiveCampaigns,
-  getCurrentAnimalCounts,
-  getHistoricalImpactTotals,
-} from "../data/siteSettings"
+
+import { getActiveCampaigns } from "../data/siteSettings"
 
 export function Home() {
-  const { animals } = useAnimals()
   const { settings } = useSiteSettings()
-  const { statistics, home, about, adoption } = settings
-  const availableAnimals = animals
-    .filter((animal) => animal.status === "available")
-    .slice(0, 3)
-  const counts = getCurrentAnimalCounts(animals)
-  const impactTotals = getHistoricalImpactTotals(statistics, animals)
-  const campaigns = getActiveCampaigns(settings.campaigns)
-  const publicStats: {
-    icon: typeof Heart
-    label: string
-    value: number
-  }[] = []
-  if (statistics.showRescued) {
-    publicStats.push({
-      icon: Heart,
-      label: "Animais Resgatados",
-      value: impactTotals.rescued,
-    })
-  }
-  if (statistics.showAdoptions) {
-    publicStats.push({
-      icon: HomeIcon,
-      label: "Adoções Realizadas",
-      value: impactTotals.adoptions,
-    })
-  }
-  if (statistics.showTreatment) {
-    publicStats.push({
-      icon: Stethoscope,
-      label: "Em Tratamento",
-      value: counts.treatment,
-    })
-  }
-  if (statistics.showStartYear && statistics.startYear !== null) {
-    publicStats.push({
-      icon: CalendarDays,
-      label: "Desde",
-      value: statistics.startYear,
-    })
-  }
+
+  const { home, contact, statistics, about, adoption } = settings
+
+  const { data, status, reload } = useAsync("home-animals", () =>
+    listPublicAnimals(),
+  )
+
+  const availableAnimals = (data ?? []).slice(0, 3)
+
+  const activeCampaigns = getActiveCampaigns(settings.campaigns)
+
+  const publicStats = [
+    statistics.showRescued && statistics.historicalRescues !== null
+      ? {
+          icon: Heart,
+
+          label: "Resgates antes do sistema",
+
+          value: statistics.historicalRescues,
+        }
+      : null,
+
+    statistics.showAdoptions && statistics.historicalAdoptions !== null
+      ? {
+          icon: Heart,
+
+          label: "Adoções antes do sistema",
+
+          value: statistics.historicalAdoptions,
+        }
+      : null,
+
+    statistics.showStartYear && statistics.startYear !== null
+      ? {
+          icon: CalendarDays,
+
+          label: "Desde",
+
+          value: statistics.startYear,
+        }
+      : null,
+
+    statistics.showSystemCounts && status === "success"
+      ? {
+          icon: PawPrint,
+
+          label: "Animais disponíveis",
+
+          value: data?.length ?? 0,
+        }
+      : null,
+  ].filter((stat): stat is NonNullable<typeof stat> => stat !== null)
 
   return (
     <div>
       {/* Hero Section */}
       <section
-        className="relative overflow-hidden bg-gradient-to-br from-[#2E7D6B] to-[#6FAE9C] py-20 text-white md:py-32"
+        className="relative overflow-hidden bg-gradient-to-br from-[#2E7D6B] to-[#6FAE9C] py-16 text-white sm:py-20 md:py-32"
         style={
           home.heroImageUrl
             ? {
                 backgroundImage: `linear-gradient(120deg, rgba(46,125,107,.9), rgba(111,174,156,.82)), url("${home.heroImageUrl}")`,
+
                 backgroundPosition: "center",
+
                 backgroundSize: "cover",
               }
             : undefined
         }
       >
         <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-10 left-10 w-32 h-32 bg-white rounded-full blur-3xl"></div>
-          <div className="absolute bottom-20 right-20 w-40 h-40 bg-[#E4B04A] rounded-full blur-3xl"></div>
+          <div className="absolute left-10 top-10 h-32 w-32 rounded-full bg-white blur-3xl"></div>
+          <div className="absolute bottom-20 right-20 h-40 w-40 rounded-full bg-[#E4B04A] blur-3xl"></div>
         </div>
-        <div className="container mx-auto px-4 relative">
+        <div className="container relative mx-auto px-4">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
@@ -100,16 +105,21 @@ export function Home() {
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ delay: 0.2, duration: 0.5 }}
-              className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full mb-6 shadow-lg"
+              className="mb-6 inline-flex max-w-full items-center gap-2 rounded-full bg-white/10 px-3 py-2 shadow-lg backdrop-blur-sm sm:px-4"
             >
-              <Heart className="w-5 h-5 text-[#E4B04A]" fill="#E4B04A" />
-              <span className="text-sm">Santuário de Animais Anjos da Luz</span>
+              <Heart
+                className="h-5 w-5 shrink-0 text-[#E4B04A]"
+                fill="#E4B04A"
+              />
+              <span className="text-xs sm:text-sm">
+                Santuário de Animais Anjos da Luz
+              </span>
             </motion.div>
             <motion.h1
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3, duration: 0.8 }}
-              className="text-4xl md:text-6xl font-bold mb-6 leading-tight"
+              className="mb-6 text-3xl font-bold leading-tight sm:text-4xl md:text-6xl"
             >
               {home.title}
             </motion.h1>
@@ -117,7 +127,7 @@ export function Home() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.5, duration: 0.8 }}
-              className="text-lg md:text-xl mb-4 text-[#F5EFE6]"
+              className="mb-4 text-base text-[#F5EFE6] sm:text-lg md:text-xl"
             >
               {home.subtitle}
             </motion.p>
@@ -129,9 +139,7 @@ export function Home() {
             >
               <MapPin size={16} />
               <span>
-                {[settings.contact.city, settings.contact.state]
-                  .filter(Boolean)
-                  .join(" - ")}
+                {[contact.city, contact.state].filter(Boolean).join(" - ")}
               </span>
             </motion.div>
             {home.highlightMessage && (
@@ -143,17 +151,17 @@ export function Home() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.7, duration: 0.5 }}
-              className="relative z-10 flex flex-col sm:flex-row gap-4 items-center justify-center"
+              className="flex w-full flex-col items-center justify-center gap-3 sm:w-auto sm:flex-row sm:gap-4"
             >
               <Link
                 to={home.primaryButtonDestination}
-                className="inline-block bg-[#E4B04A] text-white px-8 py-4 rounded-full font-semibold hover:bg-[#d4a03a] transition-all shadow-lg hover:shadow-xl hover:scale-105"
+                className="inline-flex min-h-11 w-full items-center justify-center rounded-full bg-[#E4B04A] px-8 py-4 font-semibold text-white shadow-lg transition-all hover:scale-105 hover:bg-[#d4a03a] hover:shadow-xl sm:w-auto"
               >
                 {home.primaryButtonText}
               </Link>
               <Link
                 to="/admin"
-                className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm text-white px-6 py-3 rounded-full font-semibold hover:bg-white/20 transition-all border border-white/30"
+                className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full border border-white/30 bg-white/10 px-6 py-3 font-semibold text-white backdrop-blur-sm transition-all hover:bg-white/20 sm:w-auto"
               >
                 <Lock size={18} />
                 Área Administrativa
@@ -163,7 +171,7 @@ export function Home() {
         </div>
 
         {/* Decorative wave */}
-        <div className="pointer-events-none absolute bottom-0 left-0 right-0">
+        <div className="absolute bottom-0 left-0 right-0">
           <svg
             viewBox="0 0 1440 120"
             fill="none"
@@ -177,11 +185,10 @@ export function Home() {
         </div>
       </section>
 
-      {/* Stats Section */}
-      {campaigns.length > 0 && (
+      {activeCampaigns.length > 0 && (
         <section aria-label="Campanhas e avisos" className="bg-white py-8">
           <div className="container mx-auto grid gap-4 px-4 md:grid-cols-2">
-            {campaigns.map((campaign) => (
+            {activeCampaigns.map((campaign) => (
               <article
                 key={campaign.id}
                 className="overflow-hidden rounded-2xl border border-[#2E7D6B]/10 bg-[#F5EFE6] shadow-sm"
@@ -222,92 +229,61 @@ export function Home() {
         </section>
       )}
 
-      {publicStats.length > 0 || statistics.showSystemCounts ? (
-        <section className="py-16 bg-[#F5EFE6]">
+      {publicStats.length > 0 && (
+        <section className="bg-[#F5EFE6] py-12 sm:py-16">
           <div className="container mx-auto px-4">
             <ScrollReveal>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+              <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
                 {publicStats.map(({ icon: Icon, label, value }) => (
                   <div
                     key={label}
-                    className="rounded-2xl bg-white p-6 text-center shadow-md transition-shadow hover:shadow-lg"
+                    className="rounded-2xl bg-white p-4 text-center shadow-md transition-shadow hover:shadow-lg sm:p-6"
                   >
                     <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[#E4B04A]">
                       <Icon className="h-6 w-6 text-white" />
                     </div>
                     <p className="mb-1 text-3xl font-bold text-[#2E7D6B]">
                       {value.toLocaleString("pt-BR")}
-                      {label.includes("Realizadas") ||
-                      label.includes("Resgatados")
-                        ? "+"
-                        : ""}
                     </p>
                     <p className="text-sm text-[#6FAE9C]">{label}</p>
                   </div>
                 ))}
-                {statistics.showSystemCounts &&
-                  [
-                    ["Cadastrados", counts.registered],
-                    ["Disponíveis", counts.available],
-                    ["Adotados", counts.adopted],
-                  ].map(([label, value]) => (
-                    <div
-                      key={label}
-                      className="rounded-2xl bg-white p-6 text-center shadow-md"
-                    >
-                      <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[#E4B04A]">
-                        <PawPrint className="h-6 w-6 text-white" />
-                      </div>
-                      <p className="mb-1 text-3xl font-bold text-[#2E7D6B]">
-                        {value}
-                      </p>
-                      <p className="text-sm text-[#6FAE9C]">{label}</p>
-                    </div>
-                  ))}
               </div>
-              {statistics.historicalUpdatedAt && (
-                <p className="mt-4 text-center text-xs text-gray-500">
-                  Números históricos atualizados em{" "}
-                  {new Date(
-                    `${statistics.historicalUpdatedAt}T00:00:00`,
-                  ).toLocaleDateString("pt-BR")}
-                </p>
-              )}
             </ScrollReveal>
           </div>
         </section>
-      ) : null}
+      )}
 
       {/* About Section */}
-      <section className="py-16 bg-white">
+      <section className="bg-white py-12 sm:py-16">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
               <div>
-                <h2 className="text-3xl md:text-4xl font-bold text-[#2E7D6B] mb-4">
+                <h2 className="text-2xl font-bold text-[#2E7D6B] sm:text-3xl md:text-4xl mb-4">
                   Sobre o SAAL
                 </h2>
-                <p className="whitespace-pre-line text-gray-700 mb-4 leading-relaxed">
+                <p className="text-gray-700 mb-4 leading-relaxed">
                   {about.history}
                 </p>
-                <p className="whitespace-pre-line text-gray-700 mb-6 leading-relaxed">
+                <p className="text-gray-700 mb-6 leading-relaxed">
                   {about.institutionalText}
                 </p>
                 {about.additionalInfo && (
-                  <p className="whitespace-pre-line text-gray-700 mb-6 leading-relaxed">
+                  <p className="mb-6 whitespace-pre-line leading-relaxed text-gray-700">
                     {about.additionalInfo}
                   </p>
                 )}
                 <div className="flex flex-col sm:flex-row gap-4">
                   <Link
                     to="/animais"
-                    className="bg-[#E4B04A] text-white px-6 py-3 rounded-full font-semibold hover:bg-[#d4a03a] transition-all shadow-md hover:shadow-lg text-center"
+                    className="inline-flex min-h-11 items-center justify-center rounded-full bg-[#E4B04A] px-6 py-3 text-center font-semibold text-white shadow-md transition-all hover:bg-[#d4a03a] hover:shadow-lg"
                   >
                     Adotar um Animal
                   </Link>
                   <Link
                     to="/contato"
-                    className="bg-[#2E7D6B] text-white px-6 py-3 rounded-full font-semibold hover:bg-[#6FAE9C] transition-all shadow-md hover:shadow-lg text-center"
+                    className="inline-flex min-h-11 items-center justify-center rounded-full bg-[#2E7D6B] px-6 py-3 text-center font-semibold text-white shadow-md transition-all hover:bg-[#6FAE9C] hover:shadow-lg"
                   >
                     Fale Conosco
                   </Link>
@@ -320,33 +296,36 @@ export function Home() {
                     fill="#E4B04A"
                   />
                   <h3 className="text-2xl font-bold mb-3">Nossa Missão</h3>
-                  <p className="whitespace-pre-line text-[#F5EFE6] leading-relaxed">
+                  <p className="text-[#F5EFE6] leading-relaxed">
                     {about.mission}
                   </p>
                 </div>
-                {about.photoUrls.length > 0 && (
-                  <div className="mt-4 grid grid-cols-2 gap-3">
-                    {about.photoUrls.slice(0, 4).map((photoUrl) => (
+              </div>
+              {about.photoUrls.some(Boolean) && (
+                <div className="grid grid-cols-2 gap-3 md:col-span-2">
+                  {about.photoUrls
+                    .filter(Boolean)
+                    .slice(0, 4)
+                    .map((photoUrl) => (
                       <img
                         key={photoUrl}
                         src={photoUrl}
-                        alt="Fotografia institucional do SAAL"
-                        className="h-28 w-full rounded-xl object-cover"
+                        alt="Fotografia institucional da ONG"
+                        className="h-40 w-full rounded-xl object-cover"
                       />
                     ))}
-                  </div>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
       </section>
 
       {/* Available Animals Section */}
-      <section className="py-16 bg-[#F5EFE6]">
+      <section className="bg-[#F5EFE6] py-12 sm:py-16">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-[#2E7D6B] mb-4">
+          <div className="mb-8 text-center sm:mb-12">
+            <h2 className="text-2xl font-bold text-[#2E7D6B] sm:text-3xl md:text-4xl mb-4">
               Animais Disponíveis para Adoção
             </h2>
             <p className="text-[#6FAE9C] max-w-2xl mx-auto">
@@ -360,10 +339,35 @@ export function Home() {
             ))}
           </div>
 
+          {status === "loading" && (
+            <p role="status" className="text-center text-[#6FAE9C]">
+              Carregando animais…
+            </p>
+          )}
+          {status === "error" && (
+            <div className="text-center">
+              <p role="alert" className="text-[#6FAE9C]">
+                Não foi possível carregar os animais agora.
+              </p>
+              <button
+                type="button"
+                onClick={reload}
+                className="mt-3 text-sm font-semibold text-[#527f74] underline underline-offset-4 hover:text-[#E4B04A]"
+              >
+                Tentar novamente
+              </button>
+            </div>
+          )}
+          {status === "success" && availableAnimals.length === 0 && (
+            <p className="text-center text-[#6FAE9C]">
+              Nenhum animal disponível no momento.
+            </p>
+          )}
+
           <div className="text-center">
             <Link
               to="/animais"
-              className="inline-block bg-[#2E7D6B] text-white px-8 py-3 rounded-full font-semibold hover:bg-[#6FAE9C] transition-all shadow-md hover:shadow-lg"
+              className="inline-flex min-h-11 items-center justify-center rounded-full bg-[#2E7D6B] px-8 py-3 font-semibold text-white shadow-md transition-all hover:bg-[#6FAE9C] hover:shadow-lg"
             >
               Ver Todos os Animais
             </Link>
@@ -372,10 +376,10 @@ export function Home() {
       </section>
 
       {/* How It Works Section */}
-      <section className="py-16 bg-white">
+      <section className="bg-white py-12 sm:py-16">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-[#2E7D6B] mb-4">
+          <div className="mb-8 text-center sm:mb-12">
+            <h2 className="text-2xl font-bold text-[#2E7D6B] sm:text-3xl md:text-4xl mb-4">
               Como Funciona a Adoção
             </h2>
             <p className="text-[#6FAE9C] max-w-2xl mx-auto">
@@ -383,15 +387,15 @@ export function Home() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-4">
             {adoption.steps.map((step, index) => (
               <div key={`${step.title}-${index}`} className="text-center">
-                <div className="w-16 h-16 bg-[#E4B04A] rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[#E4B04A] shadow-lg">
                   <span className="text-2xl font-bold text-white">
                     {index + 1}
                   </span>
                 </div>
-                <h3 className="font-semibold text-[#2E7D6B] mb-2">
+                <h3 className="mb-2 font-semibold text-[#2E7D6B]">
                   {step.title}
                 </h3>
                 <p className="whitespace-pre-line text-sm text-gray-600">
@@ -401,40 +405,31 @@ export function Home() {
             ))}
           </div>
           {adoption.requirements && (
-            <div className="mx-auto mt-8 max-w-3xl rounded-xl bg-[#F5EFE6] p-5">
-              <h3 className="mb-3 font-semibold text-[#2E7D6B]">
-                Requisitos e orientações
-              </h3>
-              <ul className="list-inside list-disc space-y-2 text-sm text-gray-700">
-                {adoption.requirements
-                  .split(/\r?\n/)
-                  .filter(Boolean)
-                  .map((requirement, index) => (
-                    <li key={`${requirement}-${index}`}>{requirement}</li>
-                  ))}
-              </ul>
-            </div>
+            <p className="mx-auto mt-8 max-w-3xl whitespace-pre-line rounded-xl bg-[#F5EFE6] p-4 text-sm text-gray-700">
+              {adoption.requirements}
+            </p>
           )}
           {adoption.faqs.length > 0 && (
-            <div className="mx-auto mt-8 max-w-3xl space-y-3">
-              {adoption.faqs.map((faq) => (
-                <details
-                  key={faq.question}
+            <div className="mx-auto mt-8 grid max-w-4xl gap-4 sm:grid-cols-2">
+              {adoption.faqs.map((faq, index) => (
+                <article
+                  key={`${faq.question}-${index}`}
                   className="rounded-xl bg-[#F5EFE6] p-4"
                 >
-                  <summary className="cursor-pointer font-semibold text-[#2E7D6B]">
+                  <h3 className="font-semibold text-[#2E7D6B]">
                     {faq.question}
-                  </summary>
-                  <p className="mt-3 whitespace-pre-line text-sm text-gray-700">
+                  </h3>
+                  <p className="mt-2 whitespace-pre-line text-sm text-gray-600">
                     {faq.answer}
                   </p>
-                </details>
+                </article>
               ))}
             </div>
           )}
           {!adoption.acceptingInterests && (
-            <p className="mx-auto mt-8 max-w-3xl rounded-xl border border-[#E4B04A] bg-[#E4B04A]/10 p-4 text-center text-[#6b5425]">
-              No momento, o recebimento de novos interesses está pausado.
+            <p className="mx-auto mt-6 max-w-3xl rounded-xl border border-[#E4B04A]/50 bg-[#E4B04A]/10 p-4 text-center text-sm text-[#6b5425]">
+              No momento, não estamos recebendo novas manifestações de interesse
+              nesta demonstração local.
             </p>
           )}
         </div>
@@ -444,7 +439,7 @@ export function Home() {
       <HelpBanner />
 
       {/* CTA Section */}
-      <section className="py-16 bg-gradient-to-r from-[#2E7D6B] to-[#6FAE9C] text-white">
+      <section className="bg-gradient-to-r from-[#2E7D6B] to-[#6FAE9C] py-12 text-white sm:py-16">
         <div className="container mx-auto px-4 text-center">
           <ScrollReveal>
             <Heart
@@ -460,7 +455,7 @@ export function Home() {
             </p>
             <Link
               to="/animais"
-              className="inline-block bg-[#E4B04A] text-white px-8 py-4 rounded-full font-semibold hover:bg-[#d4a03a] transition-all shadow-lg hover:shadow-xl hover:scale-105"
+              className="inline-flex min-h-11 items-center justify-center rounded-full bg-[#E4B04A] px-8 py-4 font-semibold text-white shadow-lg transition-all hover:scale-105 hover:bg-[#d4a03a] hover:shadow-xl"
             >
               Encontre Seu Novo Amigo
             </Link>

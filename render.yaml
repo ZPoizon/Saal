@@ -1,0 +1,45 @@
+# Blueprint do Render para a API SAAL (monorepo: frontend na Vercel, backend aqui).
+# Os valores secretos nao ficam no repositorio: preencha-os no painel do Render
+# quando o Blueprint for sincronizado. O MySQL e o Aiven (externo ao Render).
+services:
+  - type: web
+    name: saal-api
+    runtime: docker
+    rootDir: backend
+    branch: main
+    dockerfilePath: ./Dockerfile
+    dockerContext: ./
+    plan: free
+    region: oregon
+    autoDeployTrigger: commit
+    healthCheckPath: /actuator/health
+    envVars:
+      # Limita o heap ao RAM disponivel no plano; a JVM respeita o limite do container.
+      - key: JAVA_TOOL_OPTIONS
+        value: -XX:MaxRAMPercentage=75
+      # URLs JDBC do Aiven devem terminar com sslMode=REQUIRED (exemplos no README).
+      - key: SAAL_DB_RUNTIME_URL
+        sync: false
+      - key: SAAL_DB_USER
+        sync: false
+      - key: SAAL_DB_PASSWORD
+        sync: false
+      - key: SAAL_DB_MIGRATION_URL
+        sync: false
+      - key: SAAL_DB_MIGRATION_USER
+        sync: false
+      - key: SAAL_DB_MIGRATION_PASSWORD
+        sync: false
+      # Provisione a credencial administrativa com UM destes segredos.
+      # SAAL_ADMIN_PASSWORD_HASH tem precedencia quando ambos existirem.
+      - key: SAAL_ADMIN_USERNAME
+        sync: false
+      - key: SAAL_ADMIN_PASSWORD
+        sync: false
+      - key: SAAL_ADMIN_PASSWORD_HASH
+        sync: false
+      # O Render encerra TLS; mantenha o cookie Secure em producao.
+      - key: SAAL_SESSION_COOKIE_SECURE
+        value: "true"
+      - key: SAAL_ADMIN_SESSION_TIMEOUT
+        value: 15m

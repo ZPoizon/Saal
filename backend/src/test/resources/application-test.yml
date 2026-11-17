@@ -1,0 +1,14 @@
+# Banco efemero SOMENTE para testes Java basicos. MySQL real e testado pelo *IT.java.
+spring:
+  datasource:
+    url: jdbc:h2:mem:saal_unit;MODE=MySQL;DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ''
+  flyway:
+    url: jdbc:h2:mem:saal_unit;MODE=MySQL;DB_CLOSE_DELAY=-1
+    user: sa
+    password: ''
+saal:
+  database:
+    enforce-credential-separation: false

@@ -1,6 +1,7 @@
 # ADR-004: Destinos de hospedagem e topologia de acesso browser/API
 
-- **Status:** Proposta de hospedagem e topologia; nenhum deploy autorizado ou realizado.
+- **Status:** Proposta de hospedagem; autenticação inicial aprovada separadamente em ADR-006;
+  nenhum deploy autorizado ou realizado.
 - **Data:** 2026-10-28.
 - **Evidência:** decisão expressa do responsável técnico para manter Java/Spring Boot/MySQL
   e preferir Cloudflare Pages, Render Free e Aiven MySQL Free inicialmente. A preferência de
@@ -35,11 +36,10 @@ conta, região, domínio, preço final, disponibilidade, SLA ou operação real 
    autenticação do canal proxy (segredo de serviço fora do bundle), allowlist de caminhos e
    métodos, remoção de headers fornecidos pelo cliente, tratamento correto de cookies e
    headers, limites de corpo/tempo, logs redigidos e custo/quotas.
-5. **Autenticação:** sessão server-side revogável é a preferência técnica. A rota same-origin
-   pode reduzir o problema de cookies de terceiros, mas exige desenho e teste de ponta a
-   ponta. Se a topologia cross-site direta for mantida, não presumir que `SameSite=None`
-   resolva a compatibilidade ou privacidade dos navegadores. Definir fallback/topologia
-   alternativa antes de autenticação real.
+5. **Autenticação:** a decisão aprovada para a implementação inicial é sessão server-side
+   same-site via proxy, CSRF e cookie restrito (ADR-006). A decisão não aprova hosting ou
+   domínio; a topologia cross-site direta e cookies de terceiros não são suportados nesta
+   etapa. Não presumir que `SameSite=None` resolva compatibilidade ou privacidade dos browsers.
 6. **Compartilhamento de sessão:** Spring Session JDBC com MySQL pode preservar sessões entre
    reinícios do processo, desde que schema, compatibilidade, expiração, invalidação, conexões
    e disponibilidade do banco sejam planejados. Isso não evita logout por expiração,
@@ -90,7 +90,7 @@ conta, região, domínio, preço final, disponibilidade, SLA ou operação real 
 - Free tiers podem alterar limites e disponibilidade. Ausência de cobrança não representa
   suporte, SLA, alta disponibilidade, backups adequados ao risco ou conformidade.
 
-## Pendências antes do deploy ou da implementação de autenticação
+## Pendências operacionais antes do deploy/produção
 
 - Confirmar disponibilidade de Spring Boot 4.1.2 e compatibilidade de build/runtime no
   momento de iniciar I2; a matriz oficial de Java/Maven não comprova recursos/adequação do
@@ -99,14 +99,15 @@ conta, região, domínio, preço final, disponibilidade, SLA ou operação real 
   health/readiness probes ao plano escolhido.
 - Confirmar TLS de saída, cadeia de certificados, regiões, IPs de egress, allowlists e limites
   de conexão Aiven; não abrir o MySQL ao mundo como contorno para ausência de IP estável.
-- Escolher domínio/origin, rota proxy ou arquitetura alternativa e provar fluxo de cookies,
-  CSRF, CORS estrito, logout, reinício e indisponibilidade da sessão MySQL nos browsers
-  suportados.
+- Escolher domínio/origin e proxy de produção e provar fluxo de cookies, CSRF, CORS estrito,
+  logout, reinício e comportamento operacional nos browsers suportados. A implementação atual
+  usa sessão em memória de instância única; Spring Session JDBC não está habilitado.
 - Aprovar secret manager/canal de provisionamento, rotação e acessos administrativos.
 - Definir política e operação de migrations, backup/restore, monitoramento e resposta a
   incidentes; validar custos e limites atuais com as contas reais.
-- Obter decisões ONG sobre contas/papéis, coleta e retenção de dados, publicação,
-  elegibilidade, imagens e conteúdo antes de transformar requisitos de negócio em contrato.
+- Obter decisões ONG sobre identidade nominal/lifecycle do administrador (sem papéis), coleta
+  e retenção de dados, publicação, elegibilidade, imagens e conteúdo antes de transformar
+  requisitos de negócio em contrato.
 
 ## Consequências
 
@@ -117,3 +118,15 @@ decisão de topologia e revisão AppSec. Se limites gratuitos forem incompatíve
 disponibilidade, segurança, persistência ou volume, preservar Java/Spring Boot/MySQL e
 selecionar planos pagos ou outros provedores compatíveis; não trocar o backend sem nova
 autorização.
+
+## Nota de implementação (2026-11-16)
+
+O responsável técnico informou que o frontend é publicado na **Vercel**, conectada ao
+repositório GitHub com deploy automático por push/PR. A preferência original deste ADR era
+Cloudflare Pages; a Vercel passa a ser o host de frontend de fato, sem alterar nenhuma das
+pendências acima: backend e banco continuam sem deploy autorizado, a topologia de cookie/CSRF
+via proxy externo e a revisão de segurança seguem pendentes.
+
+A configuração preparada em `vercel.json` (proxy `/api` para o backend em Render) e o roteiro
+`docs/deployment/VERCEL_RENDER_AIVEN.md` são artefatos de protótipo. Eles não comprovam deploy
+ativo, não substituem a decisão de topologia e não autorizam uso com dados reais.

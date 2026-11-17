@@ -3,9 +3,10 @@
 ## Objetivo e estado
 
 Permitir editar as informações públicas do site em um único painel administrativo. A
-implementação atual é uma **demonstração local**, não um sistema de administração seguro:
-React/Vite persiste os dados no `localStorage` do navegador atual. Não há backend, Supabase,
-sincronização entre visitantes/dispositivos, autenticação real nem bloqueio no servidor.
+implementação atual é **parcial**: a rota administrativa e as operações do catálogo usam a
+API autenticada por sessão, mas as configurações do site continuam no `localStorage` do
+navegador atual. Não há endpoint de configurações, sincronização entre visitantes/dispositivos
+nem aplicação server-side da pausa de manifestações de interesse.
 
 ## Escopo implementado
 
@@ -21,13 +22,14 @@ públicas e persistem após recarregar o mesmo navegador.
 - Doações: seção desligada por padrão, instruções e PIX configuráveis, QR Code por URL HTTPS
   e cópia da chave. Não há processamento de pagamentos.
 - Adoção: explicações, requisitos, etapas, perguntas frequentes e confirmação configuráveis.
-  Pausar interesses bloqueia o formulário na interface; não existe servidor para aplicar
-  bloqueio autoritativo.
+  Pausar interesses bloqueia o formulário na interface; a API atual não consulta essa
+  configuração e continua aceitando manifestações para animais disponíveis.
 - Sobre a ONG: textos simples e URLs HTTPS para fotografias.
 - Campanhas e avisos: limite de 20 registros, datas e visibilidade; campanhas futuras,
   ocultas ou expiradas não aparecem na página inicial.
-- Minha Conta: identificação local e saída da demonstração. Não existe provedor de
-  autenticação nem alteração de senha.
+- Minha Conta: informa o estado de autenticação e permite encerrar a sessão da API. O endpoint
+  de sessão não expõe a identidade nominal do administrador; alteração de senha não está
+  implementada.
 
 Todas as abas validam os dados antes de salvar, permitem descartar mudanças e alertam sobre
 edições não salvas. Texto é renderizado como texto, sem HTML livre. Imagens são URLs HTTPS;
@@ -43,9 +45,10 @@ não há upload nem armazenamento de arquivos.
   não é exibida.
 - **Dado** que o recebimento de interesses foi pausado, **quando** acessar formulário ou
   detalhe de animal, **então** a interface não permite enviar manifestação.
-- **Não atendido nesta demonstração:** autorização/autenticação administrativas, persistência
-  compartilhada, validação autoritativa ou bloqueio de interesses no backend. Não publicar
-  como sistema seguro ou fonte pública sincronizada.
+- **Atendido parcialmente:** a rota e operações administrativas existentes são autenticadas e
+  autorizadas pelo backend de animais/interesses. As configurações do site não têm persistência
+  compartilhada nem autorização de domínio no servidor. A pausa de interesses é somente
+  interface e não deve ser apresentada como bloqueio efetivo da API.
 
 ## Validações disponíveis
 

@@ -6,7 +6,7 @@ import { motion } from "motion/react"
 
 import { Animal } from "../data/animals"
 
-import { getAnimalImageUrl } from "../data/animalImages"
+import { SafeImage } from "./SafeImage"
 
 interface AnimalCardProps {
   animal: Animal
@@ -16,15 +16,11 @@ export function AnimalCard({ animal }: AnimalCardProps) {
   const statusColors = {
     available: "bg-[#2E7D6B] text-white",
 
-    treatment: "bg-[#E4B04A] text-white",
-
     adopted: "bg-gray-400 text-white",
   }
 
   const statusLabels = {
     available: "Disponível",
-
-    treatment: "Em Tratamento",
 
     adopted: "Adotado",
   }
@@ -33,18 +29,15 @@ export function AnimalCard({ animal }: AnimalCardProps) {
     <motion.div
       whileHover={{ y: -8, scale: 1.02 }}
       transition={{ duration: 0.3 }}
-      className="bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-xl"
+      className="overflow-hidden rounded-2xl bg-white shadow-md transition-shadow hover:shadow-xl"
     >
       <Link to={`/animais/${animal.id}`} className="block">
-        <div className="relative h-64 overflow-hidden bg-[#F5EFE6]">
-          <img
-            src={getAnimalImageUrl(
-              animal.images[0] ?? "",
-
-              "w=500&h=500&fit=crop",
-            )}
+        <div className="relative h-56 overflow-hidden bg-[#F5EFE6] sm:h-64">
+          <SafeImage
+            src={animal.images[0]}
             alt={animal.name}
-            className="w-full h-full object-cover hover:scale-110 transition-transform duration-300"
+            params={{ w: 500, h: 500, fit: "crop" }}
+            className="h-full w-full object-cover transition-transform duration-300 hover:scale-110"
           />
           <div className="absolute top-3 right-3">
             <span
@@ -62,24 +55,24 @@ export function AnimalCard({ animal }: AnimalCardProps) {
             </div>
           )}
         </div>
-        <div className="p-5">
-          <h3 className="text-xl font-bold text-[#2E7D6B] mb-2">
+        <div className="p-4 sm:p-5">
+          <h3 className="mb-2 break-words text-xl font-bold text-[#2E7D6B]">
             {animal.name}
           </h3>
-          <div className="flex items-center gap-2 text-sm text-[#6FAE9C] mb-3">
-            <MapPin size={14} />
+          <div className="mb-3 flex items-center gap-2 text-sm text-[#6FAE9C]">
+            <MapPin size={14} className="shrink-0" />
             <span>
               {animal.age} • {animal.sex === "macho" ? "Macho" : "Fêmea"} •{" "}
               {animal.size}
             </span>
           </div>
-          <p className="text-sm text-gray-600 line-clamp-2 mb-4">
+          <p className="mb-4 line-clamp-2 text-sm text-gray-600">
             {animal.description}
           </p>
           {animal.status === "available" && (
-            <button className="w-full bg-[#E4B04A] text-white py-2 rounded-full font-semibold hover:bg-[#d4a03a] transition-colors">
+            <span className="flex min-h-11 w-full items-center justify-center rounded-full bg-[#E4B04A] py-2 font-semibold text-white transition-colors hover:bg-[#d4a03a]">
               Quero Conhecer
-            </button>
+            </span>
           )}
         </div>
       </Link>

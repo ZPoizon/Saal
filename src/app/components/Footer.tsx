@@ -29,7 +29,7 @@ export function Footer() {
 
   return (
     <footer className="bg-[#2E7D6B] text-white">
-      <div className="container mx-auto px-4 py-12">
+      <div className="container mx-auto px-4 py-8 sm:py-12">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* Logo & Missão */}
           <div>
@@ -57,25 +57,25 @@ export function Footer() {
             <div className="flex flex-col gap-2">
               <Link
                 to="/"
-                className="text-sm text-[#F5EFE6] hover:text-[#E4B04A] transition-colors"
+                className="flex min-h-11 items-center text-sm text-[#F5EFE6] transition-colors hover:text-[#E4B04A]"
               >
                 Início
               </Link>
               <Link
                 to="/animais"
-                className="text-sm text-[#F5EFE6] hover:text-[#E4B04A] transition-colors"
+                className="flex min-h-11 items-center text-sm text-[#F5EFE6] transition-colors hover:text-[#E4B04A]"
               >
                 Animais para Adoção
               </Link>
               <Link
                 to="/contato"
-                className="text-sm text-[#F5EFE6] hover:text-[#E4B04A] transition-colors"
+                className="flex min-h-11 items-center text-sm text-[#F5EFE6] transition-colors hover:text-[#E4B04A]"
               >
                 Contato
               </Link>
               <Link
                 to="/admin"
-                className="text-sm text-[#E4B04A] hover:text-white transition-colors font-semibold mt-2"
+                className="mt-1 flex min-h-11 items-center text-sm font-semibold text-[#E4B04A] transition-colors hover:text-white"
               >
                 Área Administrativa
               </Link>
@@ -89,7 +89,7 @@ export function Footer() {
               {phoneHref && (
                 <a
                   href={phoneHref}
-                  className="flex items-center gap-2 text-sm text-[#F5EFE6] hover:text-[#E4B04A] transition-colors"
+                  className="flex min-h-11 items-center gap-2 text-sm text-[#F5EFE6] transition-colors hover:text-[#E4B04A]"
                 >
                   <Phone size={16} />
                   {contact.phone}
@@ -100,7 +100,7 @@ export function Footer() {
                   href={whatsappHref}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2 text-sm text-[#F5EFE6] hover:text-[#E4B04A] transition-colors"
+                  className="flex min-h-11 items-center gap-2 text-sm text-[#F5EFE6] transition-colors hover:text-[#E4B04A]"
                 >
                   WhatsApp
                 </a>
@@ -108,7 +108,7 @@ export function Footer() {
               {emailHref && (
                 <a
                   href={emailHref}
-                  className="flex items-center gap-2 text-sm text-[#F5EFE6] hover:text-[#E4B04A] transition-colors"
+                  className="flex min-h-11 items-center gap-2 break-all text-sm text-[#F5EFE6] transition-colors hover:text-[#E4B04A]"
                 >
                   <Mail size={16} />
                   {contact.email}
@@ -119,7 +119,7 @@ export function Footer() {
                   href={contact.instagram}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2 text-sm text-[#F5EFE6] hover:text-[#E4B04A] transition-colors"
+                  className="flex min-h-11 items-center gap-2 text-sm text-[#F5EFE6] transition-colors hover:text-[#E4B04A]"
                 >
                   <Instagram size={16} />
                   {contact.instagram
@@ -132,7 +132,7 @@ export function Footer() {
                   href={contact.facebook}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2 text-sm text-[#F5EFE6] hover:text-[#E4B04A] transition-colors"
+                  className="flex min-h-11 items-center gap-2 text-sm text-[#F5EFE6] transition-colors hover:text-[#E4B04A]"
                 >
                   <Facebook size={16} />
                   Facebook

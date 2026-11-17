@@ -46,8 +46,6 @@ export interface SiteSettings {
 
     showAdoptions: boolean
 
-    showTreatment: boolean
-
     showStartYear: boolean
 
     showSystemCounts: boolean
@@ -152,8 +150,6 @@ export const defaultSiteSettings: SiteSettings = {
 
     showAdoptions: false,
 
-    showTreatment: false,
-
     showStartYear: false,
 
     showSystemCounts: false,
@@ -250,7 +246,7 @@ export const defaultSiteSettings: SiteSettings = {
     faqs: [],
 
     submissionMessage:
-      "Seu interesse foi anotado nesta demonstração. Para dar continuidade, entre em contato com a equipe da ONG.",
+      "Recebemos sua manifestação de interesse. A equipe fará a avaliação manual; este envio não confirma a adoção.",
 
     acceptingInterests: true,
   },
@@ -455,7 +451,6 @@ export function isSiteSettings(value: unknown): value is SiteSettings {
     isOptionalYear(statistics.startYear) &&
     isBoolean(statistics.showRescued) &&
     isBoolean(statistics.showAdoptions) &&
-    isBoolean(statistics.showTreatment) &&
     isBoolean(statistics.showStartYear) &&
     isBoolean(statistics.showSystemCounts) &&
     isOptionalDate(statistics.historicalUpdatedAt) &&
@@ -556,8 +551,6 @@ export function getCurrentAnimalCounts(animals: Animal[]) {
     available: animals.filter((animal) => animal.status === "available").length,
 
     adopted: animals.filter((animal) => animal.status === "adopted").length,
-
-    treatment: animals.filter((animal) => animal.status === "treatment").length,
   }
 }
 

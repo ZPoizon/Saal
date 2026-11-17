@@ -7,7 +7,10 @@ mock data, browser-only form state and no server or database. I0 added frontend 
 typecheck, formatting, dependency/secret scanning and build checks; no backend integration
 test or product API exists. The approved target remains a separate Java/Spring Boot REST
 service and MySQL 8. Feature specs, ADRs, the data model and OpenAPI under `specs/` identify
-business/security decisions still pending; this design does not silently resolve them.
+business/security decisions still pending; this design does not silently resolve them. On
+2026-10-29 the NGO answered that the product is a catalogue + expression of interest, with
+manual evaluation, two animal states, 1–3 photos, one administrator, no roles and no detailed
+administrative history. See `specs/decisions/ADR-005-escopo-catalogo-e-interesse.md`.
 
 ## Goals / Non-Goals
 
@@ -43,12 +46,14 @@ measured scale.
 
 Derive entities from `specs/contracts/data-model.md`: Animal, AnimalImage, AdoptionRequest
 and Administrator. ContactMessage exists only if approved delivery/retention requires a
-stored record. Approve fields, visibility, transitions, access, retention and audit before
-schema creation; separate animal lifecycle from public publication when the approved domain
-requires it. Use foreign keys and versioned migrations; publish DTOs, not JPA entities.
-Keep MySQL access in repositories behind application/domain rules. Agree on ID format,
-age representation, status transitions, animal archive/delete, image storage/limits, PII
-retention, and Contact delivery before making those decisions durable.
+stored record. Approved so far: Animal has exactly `AVAILABLE`/`ADOPTED`; each animal has 1–3
+photos; AdoptionRequest collects name, WhatsApp, city and e-mail and has no status workflow;
+there is one Administrator without roles; no detailed administrative history. Still approve
+remaining fields, visibility, access, retention and logging before schema creation. Use
+foreign keys and versioned migrations; publish DTOs, not JPA entities. Keep MySQL access in
+repositories behind application/domain rules. Agree on ID format, age representation,
+animal archive/delete, image storage/limits, PII retention, and Contact delivery before
+making those decisions durable.
 
 **Migration tool selected:** Flyway with versioned SQL is authorized for the future
 Spring Boot/MySQL service. This does not approve any business schema or create migrations.
@@ -57,20 +62,23 @@ reversible. Validate clean install and supported upgrades in CI, use a dedicated
 identity, prefer expand/contract and forward-fix, and test backup/restore. Destructive
 schema/data changes require explicit approval and a recovery plan.
 
-### Treat authentication mechanism as an approval gate
+### Implement the approved initial authentication boundary
 
-Do not implement any bearer/JWT placeholder from the former OpenAPI draft. A session is the
-team's preferred approach, not the approved final protocol/topology. Before protected
-endpoints, write/approve an ADR covering credential bootstrap, roles, expiration, revocation,
-CSRF, CORS and deployment origins. The current OpenAPI draft has candidate login/logout
-operations explicitly blocked and no security scheme.
+The responsible technical owner approved the initial design on 2026-10-29; see
+`specs/decisions/ADR-006-admin-authentication.md`. Use one externally provisioned administrator
+with username and BCrypt hash in environment/secret configuration, a revocable server-side
+`HttpSession`, same-site frontend/API through a proxy, CSRF token header, exact CORS allowlist,
+and 15-minute idle expiry. Session cookies are `HttpOnly`, `SameSite=Lax`, and `Secure` by
+default; login rotates the session identifier. Ten failed logins per client IP in ten minutes
+trigger a 15-minute cooldown.
 
-**Recommendation for review, not a decision already made:** use revocable server-side
-sessions with `HttpOnly`, `Secure`, appropriately restrictive `SameSite` cookies and
-explicit CSRF defenses where deployment is same-site. If deployment requires cross-site
-cookies or an alternative token model, assess that topology and threat model in the ADR
-before choosing. In every option, authorization is enforced per operation and resource by
-the server; frontend route guards are only UX.
+The session and rate limiter live in process memory. This increment supports one application
+instance only; restarts invalidate sessions and multiple replicas are unsupported. No default
+credential, auto-registration, database administrator record, password recovery, or password
+change flow is introduced. Production domain, HTTPS, proxy configuration, secret manager and
+trusted client-IP handling remain operational gates. Do not implement the previous bearer/JWT
+placeholder. There are no differentiated roles, and every administrative operation remains
+authorized server-side; frontend guards are UX only.
 
 ### Specify all interactive surfaces and truthful behavior
 
@@ -84,11 +92,13 @@ metrics, filters, status values, and workflow stages remain out of implementatio
 
 ### Make public submissions truthful and retry-safe
 
-Create adoption/contact success states only from a real accepted server response. Keep
-form data on failure. Decide duplicate/retry semantics and anti-abuse limits before public
-POST endpoints; use database transactions to bind an adoption request to an animal that is
-still eligible at the moment of persistence. Public APIs expose only approved fields;
-administrative reads of PII require an explicit permission.
+Create adoption success states only from a real accepted server response. The contact form is
+outside the first increment. Keep form data on failure. Decide duplicate/retry semantics and
+anti-abuse limits before public POST endpoints; use database transactions to bind an adoption
+request to an animal that is still `AVAILABLE` at the moment of persistence. The intake
+collects name, WhatsApp, city and e-mail and MUST NOT persist the prototype message field.
+Public APIs expose only approved fields; administrative reads of PII require an explicit
+server-side authorization even with a single administrator.
 
 ### Isolate frontend transport
 
@@ -123,12 +133,14 @@ candidate to evaluate; rules and operational thresholds remain subject to releva
 ## Approval gates before implementation
 
 These are decisions that can change the requirements or task breakdown, not implementation
-defaults: (1) identity/session protocol and administrator lifecycle, (2) roles/permissions;
-(3) animal publication and delete/archive behavior; (4) adoption statuses/transitions,
-duplicate requests and staff response; (5) privacy notice, legal basis, retention and
-deletion of PII; (6) image formats/limits/storage; (7) contact delivery and retention;
-(8) final authentication/topology, origins, runtime/hosting, secret-store and backup/restore
-operation; (9) OpenAPI validator approval for CI and operational quality thresholds.
+defaults: (1) identity/session protocol and single-administrator lifecycle; (2) animal
+publication, visibility of adopted animals and delete/archive behavior; (3) duplicate
+requests, anti-abuse limits and staff response; (4) privacy notice, legal basis, retention and
+deletion of PII; (5) image formats/limits/storage; (6) contact delivery and retention (form
+deferred); (7) final authentication/topology, origins, runtime/hosting, secret-store and
+backup/restore operation; (8) OpenAPI validator approval for CI and operational quality
+thresholds. Roles are not a gate because the NGO confirmed there is one administrator without
+differentiated roles.
 Java/Spring (conditional), Maven Wrapper, Flyway, backend test stack, Docker, GitHub Actions
 and RFC 9457 are selected as recorded in the I1 approval register; Spring Boot 4.1.2 must be
 revalidated before I2.
@@ -165,8 +177,9 @@ are accepted.
 4. Implement approved identity/session and authorization before any admin reads/writes (I4).
 5. Deliver protected animal administration, then image storage, then public catalogue and
    shared experience (I5–I7).
-6. Deliver public adoption intake, staff request management, and contact only after their
-   PII/business/anti-abuse policies are approved (I8–I10).
+6. Deliver public adoption intake and read-only staff request management after their
+   PII/anti-abuse policies are approved (I8–I9). The contact form remains deferred until
+   ONG-07 is approved (I10).
 7. Exercise integrated flows, WCAG/responsive criteria, security review, deployment,
    backup/restore and operational evidence (I11).
 

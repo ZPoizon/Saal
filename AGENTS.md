@@ -6,11 +6,12 @@ Instruções permanentes para assistentes de IA que trabalhem neste repositório
 
 - Aplicação oficial: React 18 + TypeScript + Vite, gerenciada com pnpm.
 - Identidade visual existente: deve ser preservada integralmente.
-- Estado atual: frontend de protótipo com dados de demonstração; alterações do catálogo e dos
-  indicadores da ONG ficam no armazenamento local do navegador e solicitações permanecem em
-  memória.
-- Arquitetura futura aprovada: API REST em Java + Spring Boot e MySQL 8.
-- O backend futuro não está implementado. Nunca descreva protótipos locais como persistência real.
+- Estado atual: frontend React + TypeScript conectado parcialmente à API Spring Boot; imagens
+  ainda são referências e algumas áreas permanecem protótipos.
+- Backend: API REST em Java + Spring Boot, JPA e migrations Flyway para MySQL 8 presentes no
+  repositório. A disponibilidade/configuração do MySQL e qualquer deploy devem ser verificados
+  antes de afirmar operação real.
+- Não descreva mocks ou estado em memória como persistência real.
 
 ## Fluxo Spec-Driven Development
 
@@ -32,7 +33,7 @@ Instruções permanentes para assistentes de IA que trabalhem neste repositório
 - Usar TypeScript estrito e tipagem adequada; evitar `any`.
 - Criar componentes reutilizáveis quando houver reutilização real.
 - Separar interface, regras de negócio e futuro acesso à API.
-- Implementar tratamento de erros e validar entradas no cliente e, futuramente, no servidor.
+- Implementar tratamento de erros e validar entradas no cliente e no servidor.
 - Criar ou atualizar testes para comportamentos alterados quando a infraestrutura de testes existir.
 - Executar build, verificação de tipos e testes aplicáveis.
 - Documentar decisões arquiteturais importantes em `specs/decisions/`.
@@ -56,9 +57,9 @@ verificações disponíveis para a mudança. Informe exatamente o que foi execut
 permanece sem cobertura; não declare testes, lint, CI ou proteções do GitHub como existentes
 ou aprovados sem evidência.
 
-As políticas descrevem controles esperados, não garantem que estejam implementados. O
-frontend atual é um protótipo e autenticação, autorização, persistência e proteção de dados
-precisam ser aplicadas no backend quando ele for aprovado e construído.
+As políticas descrevem controles esperados, não garantem que estejam implantados em produção.
+Autenticação, autorização, persistência e validação existem no backend deste worktree; a
+configuração de produção e a política LGPD para dados pessoais ainda precisam ser verificadas.
 
 ## Comandos oficiais
 

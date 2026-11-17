@@ -18,9 +18,8 @@ import {
   X,
 } from "lucide-react"
 
-import { useAnimals } from "../../contexts/AnimalContext"
-
 import { useSiteSettings } from "../../contexts/SiteSettingsContext"
+import type { Animal } from "../../data/animals"
 
 import {
   getCurrentAnimalCounts,
@@ -82,6 +81,7 @@ interface SectionHeadingProps {
 interface SiteSettingsPanelProps {
   onLogout: () => void
   onDirtyChange: (dirty: boolean) => void
+  animals: Animal[]
 }
 
 const tabs: SettingsTabConfig[] = [
@@ -261,12 +261,10 @@ function SectionHeading({
 
 export function SiteSettingsPanel({
   onLogout,
-
   onDirtyChange,
+  animals,
 }: SiteSettingsPanelProps) {
   const { settings, saveSettings, storageError } = useSiteSettings()
-
-  const { animals } = useAnimals()
 
   const [draft, setDraft] = useState<SiteSettings>(settings)
 
@@ -288,12 +286,20 @@ export function SiteSettingsPanel({
 
     [activeTab, draft, settings],
   )
+  const hasUnsavedChanges = useMemo(
+    () =>
+      tabs.some(
+        ({ id }) =>
+          id !== "account" &&
+          JSON.stringify(draft[id]) !== JSON.stringify(settings[id]),
+      ),
+    [draft, settings],
+  )
 
   const animalCounts = getCurrentAnimalCounts(animals)
-
   const blocker = useBlocker(
     ({ currentLocation, nextLocation }) =>
-      currentIsDirty && currentLocation.pathname !== nextLocation.pathname,
+      hasUnsavedChanges && currentLocation.pathname !== nextLocation.pathname,
   )
 
   useEffect(() => {
@@ -319,12 +325,12 @@ export function SiteSettingsPanel({
   }, [settings])
 
   useEffect(() => {
-    onDirtyChange(currentIsDirty)
-  }, [currentIsDirty, onDirtyChange])
+    onDirtyChange(hasUnsavedChanges)
+  }, [hasUnsavedChanges, onDirtyChange])
 
   useEffect(() => {
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
-      if (!currentIsDirty) return
+      if (!hasUnsavedChanges) return
 
       event.preventDefault()
 
@@ -334,7 +340,7 @@ export function SiteSettingsPanel({
     window.addEventListener("beforeunload", handleBeforeUnload)
 
     return () => window.removeEventListener("beforeunload", handleBeforeUnload)
-  }, [currentIsDirty])
+  }, [hasUnsavedChanges])
 
   useEffect(() => {
     if (blocker.state !== "blocked") return
@@ -869,15 +875,6 @@ export function SiteSettingsPanel({
                     changeStatistics("showAdoptions", checked)
                   }
                   description={`Histórico + ${animalCounts.adopted} registros marcados como adotados`}
-                />
-                <Toggle
-                  id="show-treatment"
-                  label="Exibir animais em tratamento"
-                  checked={draft.statistics.showTreatment}
-                  onChange={(checked) =>
-                    changeStatistics("showTreatment", checked)
-                  }
-                  description={`${animalCounts.treatment} registro(s) com status em tratamento`}
                 />
                 <Toggle
                   id="show-start-year"
@@ -1585,28 +1582,19 @@ export function SiteSettingsPanel({
         {activeTab === "account" && (
           <div className="space-y-6">
             <div className="rounded-xl border border-[#E4B04A]/40 bg-[#E4B04A]/10 p-4 text-sm leading-relaxed text-[#6b5425]">
-              Esta aplicação não possui provedor de autenticação. A sessão e as
-              configurações são controladas pelo navegador e não restringem
-              acesso real. Não use esta demonstração para dados confidenciais.
+              A sessão administrativa é validada pelo servidor. As configurações
+              públicas desta demonstração, porém, são guardadas somente neste
+              navegador e não são sincronizadas com outros visitantes.
             </div>
-            <Field
-              id="account-display-name"
-              label="Nome exibido nesta demonstração"
-              value={draft.account.displayName}
-              onChange={(value) =>
-                updateSection("account", { displayName: value })
-              }
-              required
-              maxLength={160}
-            />
             <div className="rounded-xl border border-[#d8e5df] p-4">
               <h4 className="font-semibold text-[#2E7D6B]">
-                Segurança da conta
+                Identificação e segurança
               </h4>
               <p className="mt-2 text-sm leading-relaxed text-gray-600">
-                Alteração de senha indisponível: não há serviço de autenticação
-                conectado. Nenhuma senha ou hash é armazenado nas configurações
-                do site.
+                Você está em uma sessão administrativa autenticada. A API não
+                disponibiliza a identificação do usuário nesta tela. A alteração
+                de senha não está implementada; nenhuma senha ou hash é
+                armazenado nas configurações do site.
               </p>
             </div>
             <button
@@ -1614,7 +1602,7 @@ export function SiteSettingsPanel({
               onClick={onLogout}
               className="inline-flex min-h-12 items-center gap-2 rounded-lg border border-red-300 px-5 font-semibold text-red-700 hover:bg-red-50"
             >
-              <EyeOff size={18} /> Encerrar sessão de demonstração
+              <EyeOff size={18} /> Encerrar sessão
             </button>
           </div>
         )}

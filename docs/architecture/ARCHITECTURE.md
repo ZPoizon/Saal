@@ -2,27 +2,32 @@
 
 ## Estado atual
 
-O SAAL é uma SPA de protótipo construída com React 18, TypeScript, Vite 6 e React Router 7,
-gerenciada com pnpm. O frontend apresenta animais e fluxos administrativos/demonstrações. O catálogo e as
-configurações públicas do site iniciam com os dados definidos pelo protótipo; alterações
-administrativas são salvas no `localStorage` do navegador atual. Solicitações de adoção
-continuam em memória. Não há backend nem persistência compartilhada no servidor neste
-repositório. A entrada administrativa é aberta e somente demonstração, conforme
-`specs/features/admin-authentication.md`; não publicar como autenticação real.
+O SAAL contém uma SPA React 18, TypeScript, Vite 6 e React Router 7, gerenciada com pnpm, e
+uma API Java 21/Spring Boot com JPA, Spring Security e Flyway. Catálogo, CRUD administrativo,
+manifestações de interesse e fotos têm integração de API no worktree. MySQL é a persistência
+configurada para o backend; não se presume banco disponível nem deploy ativo. As fotos enviadas
+pelo painel são normalizadas no navegador (orientação EXIF, maior lado de 1600 px, JPEG) e
+gravadas em `stored_photo` na própria API, que as serve por `/api/v1/photos/{id}`. A topologia
+de produção prevista é Vercel (frontend e proxy `/api`) → Render (API, uma instância) → MySQL
+no Aiven; consulte o Blueprint `render.yaml`, o ADR-007 e as instruções do backend. Consulte as
+especificações para capacidades ainda parciais.
 
 Estrutura observada:
 
 - `src/main.tsx`: entrada do navegador.
 - `src/app/routes.tsx`: roteamento.
 - `src/app/pages/` e `src/app/components/`: páginas e interface reutilizável.
-- `src/app/data/`: dados estáticos/de demonstração e leitura/escrita do catálogo local.
-- `src/app/contexts/`: estado compartilhado da aplicação.
+- `src/app/data/`: modelos e DTOs da interface.
+- `src/app/services/`: adaptadores HTTP e tratamento de respostas da API.
+- `src/app/contexts/`: estado compartilhado da interface; configurações do site persistem
+  somente no `localStorage` do navegador e ainda não têm API ou sincronização entre visitantes.
+- `backend/`: API, migrations e testes do servidor.
 - `src/styles/`: tema e estilos.
 
 Não reestruture essa organização por preferência. Preserve a identidade visual, navegação,
 responsividade e comportamento existente, salvo mudança justificada pela especificação.
 
-## Direção aprovada, ainda não implementada
+## Arquitetura implementada no worktree (não significa deploy ativo)
 
 Os ADRs `specs/decisions/ADR-001-react-typescript-vite.md`,
 `ADR-002-spring-boot.md` e `ADR-003-mysql.md` estabelecem:
@@ -31,25 +36,25 @@ Os ADRs `specs/decisions/ADR-001-react-typescript-vite.md`,
 Navegador (React + TypeScript + Vite)
           | HTTPS / REST / JSON
           v
-API Java + Spring Boot (futura)
+API Java + Spring Boot
           | JDBC/JPA
           v
-MySQL 8 (futuro)
+MySQL 8
 ```
 
-O navegador nunca acessará o banco diretamente. O contrato em
-`specs/contracts/openapi.yaml` é planejado, não representa endpoints ativos. Nenhum backend
-fictício deve ser criado para simular persistência.
+O navegador nunca acessa o banco diretamente. O contrato em
+`specs/contracts/openapi.yaml` descreve as rotas do backend deste worktree, mas não representa
+um serviço implantado ou disponível em produção.
 
-O backend será responsável por autenticação, autorização por papel e recurso, validação
-autoritativa, regras de negócio, persistência, auditoria e proteção de dados. O frontend
-validará entradas para usabilidade, mas essa validação nunca substitui a validação do
-servidor.
+O backend é responsável por autenticação, autorização por papel e recurso, validação
+autoritativa, regras de negócio e persistência. O frontend valida entradas para usabilidade,
+mas essa validação nunca substitui a validação do servidor. Retenção e finalidade de PII
+continuam pendentes.
 
 ## Limites e evolução incremental
 
-- Componentes visuais recebem dados por props; páginas orquestram telas; quando a API for
-  implementada, serviços/adaptadores isolam HTTP, DTOs e erros do frontend.
+- Componentes visuais recebem dados por props; páginas orquestram telas; serviços/adaptadores
+  isolam HTTP, DTOs e erros do frontend.
 - Componentes não devem incorporar acesso direto à API nem regras de autorização.
 - Não retornar entidades JPA diretamente como DTOs públicos.
 - Mudanças de contrato devem atualizar OpenAPI e especificações relacionadas.
@@ -62,17 +67,15 @@ servidor.
 
 ## Decisões e pendências
 
-Java 21, Spring Boot 4.1.2 (condicionado à revalidação antes de I2), Maven Wrapper, Spring
-Security, Spring Data JPA, Bean Validation, MySQL 8, Flyway, JUnit 5, Spring Boot Test,
-Testcontainers/MySQL 8, Docker, GitHub Actions e RFC 9457 foram escolhas técnicas registradas
-pela equipe; não estão implementadas. Consultar
+Java 21, Spring Boot 4.1.2, Maven Wrapper, Spring Security, Spring Data JPA, Bean Validation,
+MySQL 8, Flyway, JUnit 5, Spring Boot Test, Testcontainers/MySQL 8, Docker e RFC 9457 estão
+implementados no backend deste worktree. Disponibilidade do banco, deploy e execução do CI
+devem ser verificados separadamente. Consultar
 [`specs/decisions/I1-approval-register.md`](../../specs/decisions/I1-approval-register.md)
 para limites e evidência.
 
-Continuam pendentes o protocolo/topologia de sessão, perfis, origem/proxy/CSRF, hosting de
-produção, storage de imagens, retenção de dados e provedor de contato. Flyway está escolhido,
-mas não há schema nem migrations aprovados ou criados. Não escolher silenciosamente uma
-opção que altere segurança, domínio ou operação.
+Continuam pendentes storage de imagens, retenção/finalidade de dados pessoais e hosting de
+produção. Não escolher silenciosamente uma opção que altere segurança, domínio ou operação.
 
 ## Mudanças arquiteturais
 

@@ -19,12 +19,13 @@ O identificador existe no conjunto de dados acessível.
 
 ## 5. Regras de negócio
 
-- Exibir nome, galeria, idade, porte, sexo, espécie, descrição, personalidade, informações
-  médicas e status.
-- Exibir ação de adoção apenas para status `available`.
-- Para `treatment`, informar indisponibilidade temporária.
+- Exibir galeria de 1–3 fotos e estado. Informação médica não deve ser retornada nem exibida
+  publicamente até definição dos campos autorizados (ONG-05/ONG-10).
+- Exibir ação de manifestação de interesse apenas para estado `AVAILABLE`.
+- Para `ADOPTED`, identificar o animal como adotado e não oferecer a ação. A visibilidade
+  pública de adotados depende de ONG-02.
+- O estado `TREATMENT` do protótipo não foi aprovado e não deve ser implementado.
 - Para identificador inexistente, informar que o animal não foi encontrado.
-- Comportamento específico de adotados além da ausência da ação: `PENDENTE DE DECISÃO`.
 
 ## 6. Fluxo principal
 
@@ -37,24 +38,27 @@ O identificador existe no conjunto de dados acessível.
 
 - ID inexistente: mostrar mensagem e retorno ao catálogo.
 - Navegador sem Web Share API: o botão atual não executa fallback.
-- Falha futura da API: apresentação `PENDENTE DE IMPLEMENTAÇÃO`.
+- Falha da API: exibir erro recuperável e permitir nova tentativa.
 
 ## 8. Critérios de aceitação
 
 - **Dado** um animal existente, **quando** o detalhe abrir, **então** seus dados serão exibidos.
 - **Dado** múltiplas imagens, **quando** uma miniatura for acionada, **então** ela será a
   imagem principal.
-- **Dado** animal disponível, **quando** o detalhe abrir, **então** a ação de interesse será
+- **Dado** animal `AVAILABLE`, **quando** o detalhe abrir, **então** a ação de interesse será
   exibida com o ID correto.
+- **Dado** animal `ADOPTED` acessível, **quando** o detalhe abrir, **então** ele será
+  identificado como adotado e a ação de interesse não será exibida.
 - **Dado** ID inexistente, **quando** a rota abrir, **então** será exibido estado não encontrado.
 
 ## 9. Dados necessários
 
-Todos os campos de `Animal`, incluindo lista ordenada de imagens.
+Decisão aprovada: estado (`AVAILABLE`/`ADOPTED`) e lista ordenada de 1–3 imagens. Demais
+campos públicos continuam `PENDENTE DE DECISÃO` (ONG-10).
 
 ## 10. Contratos de API relacionados
 
-Planejado: `GET /animals/{animalId}`. Não implementado.
+Implementado: `GET /animals/{animalId}`. A resposta pública omite informação médica.
 
 ## 11. Validações
 
@@ -81,5 +85,5 @@ validada, typecheck/build válidos e interface preservada.
 
 ## 15. Estado atual
 
-**Protótipo.** Funciona com dados mockados e Web Share API; sem API e sem fallback de
-compartilhamento.
+**Parcial no worktree.** O detalhe usa a API, indica status e oferece interesse somente para
+animais disponíveis. A informação médica não é pública; Web Share API não possui fallback.

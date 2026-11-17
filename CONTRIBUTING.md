@@ -2,16 +2,16 @@
 
 Este guia orienta o mantenedor principal, **ZPoizon**, e contribuidores do SAAL. Todo
 trabalho deve respeitar `AGENTS.md`, as políticas em `docs/security/` e as especificações
-aprovadas. O frontend atual é um protótipo: dados mockados e estado em memória não são
-backend nem persistência real.
+aprovadas. O frontend consome a API Spring Boot em `backend/`, mas executa sozinho para
+trabalho de interface; estado em memória não é persistência real.
 
 ## Requisitos e configuração
 
 - Git e Git LFS;
 - Node.js `>=22.12 <23` e pnpm `10.34.3`, conforme `.mise.toml` e `package.json`;
 - IntelliJ IDEA (ou editor compatível com TypeScript);
-- Java e MySQL não são necessários para executar o frontend atual; o backend ainda não foi
-  implementado.
+- Java e MySQL não são necessários para executar o frontend; o backend Spring Boot em
+  `backend/` é opcional e tem instruções próprias em [`backend/README.md`](backend/README.md).
 
 Instale Git LFS (por exemplo, pelo instalador oficial em
 <https://git-lfs.com/>). Para a toolchain Node/pnpm, a opção preferencial é instalar `mise` e

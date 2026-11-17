@@ -75,22 +75,13 @@ describe("site settings", () => {
   })
 
   it("derives live animal counts from available records", () => {
-    const animals = [
-      { status: "available" },
-
-      { status: "adopted" },
-
-      { status: "treatment" },
-    ] as Animal[]
+    const animals = [{ status: "available" }, { status: "adopted" }] as Animal[]
 
     expect(getCurrentAnimalCounts(animals)).toEqual({
-      registered: 3,
+      registered: 2,
 
       available: 1,
-
       adopted: 1,
-
-      treatment: 1,
     })
   })
 

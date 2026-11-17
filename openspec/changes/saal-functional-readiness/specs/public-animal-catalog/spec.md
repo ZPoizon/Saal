@@ -2,33 +2,39 @@
 
 ## Purpose
 
-Permite que visitantes encontrem animais realmente disponíveis, consultem informações
-consistentes e iniciem ações usando dados publicados pelo serviço SAAL.
+Permite que visitantes encontrem animais disponíveis para adoção, consultem informações
+consistentes e iniciem manifestação de interesse usando dados publicados pelo serviço SAAL.
+Animais adotados permanecem cadastrados e identificados, mas não são oferecidos para adoção.
 
 ## ADDED Requirements
 
-### Requirement: Catálogo público apresenta animais disponíveis
+### Requirement: Catálogo público apresenta somente animais disponíveis
 
-O catálogo MUST apresentar somente animais elegíveis e publicados conforme o modelo de
-status/visibilidade aprovado e combinar busca por nome sem distinção entre maiúsculas/minúsculas
-com filtro de espécie. Os enums do protótipo são observados, não uma decisão final de domínio.
+O catálogo MUST apresentar somente animais com estado `AVAILABLE` (“Disponível para adoção”).
+Os estados aprovados são `AVAILABLE` e `ADOPTED`; não há rascunho nem publicação aprovados. O
+catálogo MUST manter a busca por nome sem distinção entre maiúsculas/minúsculas e o filtro de
+espécie existente no protótipo, condicionado à definição do vocabulário por ONG-10.
 
 #### Scenario: Filtrar catálogo por nome e espécie
 - **WHEN** o visitante informa parte de um nome e seleciona uma espécie
-- **THEN** o catálogo exibe somente animais disponíveis que atendam aos dois filtros e atualiza a contagem
+- **THEN** o catálogo exibe somente animais `AVAILABLE` que atendam aos dois filtros e atualiza a contagem
 
 #### Scenario: Nenhum resultado
-- **WHEN** os filtros não correspondem a animal disponível
+- **WHEN** os filtros não correspondem a animal `AVAILABLE`
 - **THEN** o catálogo informa ausência de resultados e oferece limpar os filtros
+
+#### Scenario: Animal adotado não aparece como disponível
+- **WHEN** o animal possui estado `ADOPTED`
+- **THEN** o catálogo não o apresenta como disponível para adoção
 
 ### Requirement: Detalhe reflete o animal publicado
 
 O detalhe MUST exibir somente dados públicos aprovados retornados pelo serviço, disponibilizar
-a galeria ordenada e distinguir os estados de disponibilidade aprovados.
+a galeria de 1–3 fotos e distinguir os dois estados aprovados.
 
-#### Scenario: Animal indisponível para adoção
-- **WHEN** o estado aprovado do animal indicar que não pode receber manifestações de interesse
-- **THEN** o sistema não oferece o fluxo de manifestação de interesse
+#### Scenario: Animal adotado
+- **WHEN** o detalhe de um animal `ADOPTED` for acessível conforme a decisão de visibilidade pública (ONG-02)
+- **THEN** o detalhe identifica o animal como adotado e não oferece o fluxo de manifestação de interesse
 
 #### Scenario: Identificador não encontrado
 - **WHEN** o serviço não encontrar o identificador solicitado

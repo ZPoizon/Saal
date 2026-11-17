@@ -1,0 +1,78 @@
+spring:
+  application:
+    name: saal-api
+  mvc:
+    problemdetails:
+      enabled: true
+    log-request-details: false
+  datasource:
+    # Sem fallback para senhas/hosts em producao. O backend deve falhar se nao houver config.
+    url: ${SAAL_DB_RUNTIME_URL}
+    username: ${SAAL_DB_USER}
+    password: ${SAAL_DB_PASSWORD}
+    hikari:
+      maximum-pool-size: 4
+      minimum-idle: 0
+      connection-timeout: 10000
+      # Aiven pode encerrar conexoes ociosas; o pool recicla antes disso.
+      idle-timeout: 60000
+      max-lifetime: 240000
+      validation-timeout: 5000
+  servlet:
+    multipart:
+      # O cliente normaliza e envia uma foto por requisicao (limite tecnico de 5 MB).
+      max-file-size: 5MB
+      max-request-size: 16MB
+  flyway:
+    enabled: true
+    clean-disabled: true
+    validate-on-migrate: true
+    url: ${SAAL_DB_MIGRATION_URL}
+    # Exige identidade e senha distintas da conta de runtime.
+    user: ${SAAL_DB_MIGRATION_USER}
+    password: ${SAAL_DB_MIGRATION_PASSWORD}
+  jpa:
+    # O schema e propriedade do Flyway; o Hibernate nao cria nem altera tabelas.
+    hibernate:
+      ddl-auto: none
+    open-in-view: false
+server:
+  port: ${PORT:8080}
+  # Render encerra TLS e encaminha X-Forwarded-*; o Spring usa isso para cookies/URLs.
+  forward-headers-strategy: native
+  servlet:
+    session:
+      timeout: ${SAAL_ADMIN_SESSION_TIMEOUT:15m}
+      cookie:
+        http-only: true
+        secure: ${SAAL_SESSION_COOKIE_SECURE:true}
+        same-site: lax
+  error:
+    include-message: never
+    include-stacktrace: never
+    include-binding-errors: never
+    include-exception: false
+  shutdown: graceful
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+      probes:
+        enabled: true
+logging:
+  level:
+    root: INFO
+saal:
+  admin:
+    username: ${SAAL_ADMIN_USERNAME:}
+    # O hash tem precedencia. A senha em texto claro serve apenas para provisionar
+    # a variavel secreta no Render; ela e convertida em BCrypt no startup e nunca persistida.
+    password-hash: ${SAAL_ADMIN_PASSWORD_HASH:}
+    password: ${SAAL_ADMIN_PASSWORD:}
+  security:
+    cors:
+      allowed-origins: ${SAAL_CORS_ALLOWED_ORIGINS:}
