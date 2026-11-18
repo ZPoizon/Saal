@@ -2,6 +2,10 @@ import { useEffect, useMemo, useRef, useState } from "react"
 
 import { useBlocker } from "react-router"
 
+import { toast } from "sonner"
+
+import { useConfirm } from "../ui/confirm"
+
 import {
   CalendarDays,
   EyeOff,
@@ -298,6 +302,8 @@ export function SiteSettingsPanel({
 }: SiteSettingsPanelProps) {
   const { settings, saveSettings, storageError } = useSiteSettings()
 
+  const confirm = useConfirm()
+
   const [draft, setDraft] = useState<SiteSettings>(settings)
 
   const [activeTab, setActiveTab] = useState<SettingsTab>("statistics")
@@ -380,16 +386,21 @@ export function SiteSettingsPanel({
   useEffect(() => {
     if (blocker.state !== "blocked") return
 
-    if (
-      window.confirm(
-        "Há alterações não salvas. Sair desta tela e descartá-las?",
-      )
-    ) {
-      blocker.proceed()
-    } else {
-      blocker.reset()
-    }
-  }, [blocker])
+    void confirm({
+      title: "Descartar alterações?",
+      description:
+        "Você possui alterações que ainda não foram salvas. Deseja sair sem salvar?",
+      confirmLabel: "Descartar alterações",
+      cancelLabel: "Continuar editando",
+      variant: "warning",
+    }).then((discard) => {
+      if (discard) {
+        blocker.proceed()
+      } else {
+        blocker.reset()
+      }
+    })
+  }, [blocker, confirm])
 
   const updateSection = <K extends SettingsTab,>(
     section: K,
@@ -403,16 +414,20 @@ export function SiteSettingsPanel({
     setValidationError("")
   }
 
-  const chooseTab = (nextTab: SettingsTab) => {
-    if (nextTab === activeTab) return
+  const chooseTab = async (nextTab: SettingsTab): Promise<boolean> => {
+    if (nextTab === activeTab) return false
 
-    if (
-      currentIsDirty &&
-      !window.confirm(
-        "Há alterações não salvas nesta aba. Descartá-las e continuar?",
-      )
-    ) {
-      return
+    if (currentIsDirty) {
+      const discard = await confirm({
+        title: "Descartar alterações?",
+        description:
+          "Você possui alterações que ainda não foram salvas nesta aba. Deseja sair sem salvar?",
+        confirmLabel: "Descartar alterações",
+        cancelLabel: "Continuar editando",
+        variant: "warning",
+      })
+
+      if (!discard) return false
     }
 
     setDraft((current) => ({ ...current, [activeTab]: settings[activeTab] }))
@@ -422,14 +437,22 @@ export function SiteSettingsPanel({
     setMessage("")
 
     setValidationError("")
+
+    return true
   }
 
-  const discardChanges = () => {
-    if (
-      currentIsDirty &&
-      !window.confirm("Descartar as alterações feitas nesta aba?")
-    ) {
-      return
+  const discardChanges = async () => {
+    if (currentIsDirty) {
+      const discard = await confirm({
+        title: "Descartar alterações?",
+        description:
+          "Você possui alterações que ainda não foram salvas nesta aba. Deseja descartá-las?",
+        confirmLabel: "Descartar alterações",
+        cancelLabel: "Continuar editando",
+        variant: "warning",
+      })
+
+      if (!discard) return
     }
 
     setDraft((current) => ({ ...current, [activeTab]: settings[activeTab] }))
@@ -439,9 +462,7 @@ export function SiteSettingsPanel({
     setValidationError("")
   }
 
-  const saveCurrentTab = async (
-    event: React.FormEvent<HTMLFormElement>,
-  ) => {
+  const saveCurrentTab = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
 
     setMessage("")
@@ -524,13 +545,17 @@ export function SiteSettingsPanel({
     }
 
     if (activeTab === "adoption" && !draft.adoption.acceptingInterests) {
-      if (
-        settings.adoption.acceptingInterests &&
-        !window.confirm(
-          "Pausar o recebimento de novos interesses? O bloqueio vale apenas para este navegador.",
-        )
-      ) {
-        return
+      if (settings.adoption.acceptingInterests) {
+        const pause = await confirm({
+          title: "Pausar interesses?",
+          description:
+            "Pausar o recebimento de novos interesses? O bloqueio vale apenas para este navegador.",
+          confirmLabel: "Pausar",
+          cancelLabel: "Manter aberto",
+          variant: "warning",
+        })
+
+        if (!pause) return
       }
     }
 
@@ -574,7 +599,7 @@ export function SiteSettingsPanel({
     if (saved) {
       setDraft((current) => ({ ...current, [activeTab]: updatedSection }))
 
-      setMessage("Alterações salvas no servidor.")
+      toast.success("Alterações salvas.")
     }
   }
 
@@ -675,13 +700,22 @@ export function SiteSettingsPanel({
     ])
 
   const removeCampaign = (id: string) => {
-    if (!window.confirm("Remover esta campanha da lista?")) return
+    void confirm({
+      title: "Remover campanha?",
+      description:
+        "A campanha será removida da lista atual. A alteração só é registrada ao salvar as configurações.",
+      confirmLabel: "Remover",
+      cancelLabel: "Manter",
+      variant: "warning",
+    }).then((remove) => {
+      if (!remove) return
 
-    updateSection(
-      "campaigns",
+      updateSection(
+        "campaigns",
 
-      draft.campaigns.filter((campaign) => campaign.id !== id),
-    )
+        draft.campaigns.filter((campaign) => campaign.id !== id),
+      )
+    })
   }
 
   const activeTabConfig = tabs.find((tab) => tab.id === activeTab)!
@@ -726,7 +760,7 @@ export function SiteSettingsPanel({
               id={`site-settings-tab-${id}`}
               aria-selected={activeTab === id}
               aria-controls="site-settings-tabpanel"
-              onClick={() => chooseTab(id)}
+              onClick={() => void chooseTab(id)}
               onKeyDown={(event) => {
                 if (
                   event.key !== "ArrowRight" &&
@@ -753,13 +787,14 @@ export function SiteSettingsPanel({
 
                 const nextTab = tabs[nextIndex]!
 
-                document
+                void chooseTab(nextTab.id).then((switched) => {
+                  if (switched) {
+                    document
+                      .getElementById(`site-settings-tab-${nextTab.id}`)
 
-                  .getElementById(`site-settings-tab-${nextTab.id}`)
-
-                  ?.focus()
-
-                chooseTab(nextTab.id)
+                      ?.focus()
+                  }
+                })
               }}
               className={`flex min-h-11 items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E4B04A] ${
                 activeTab === id
@@ -828,9 +863,9 @@ export function SiteSettingsPanel({
           <div className="space-y-8">
             <div className="rounded-xl border border-[#E4B04A]/40 bg-[#E4B04A]/10 p-4 text-sm leading-relaxed text-[#6b5425]">
               Os números históricos começam vazios e ocultos porque ainda não
-              foram confirmados.               Os contadores automáticos refletem os registros
-              de animais guardados neste navegador; o catálogo inicial
-              contém exemplos.
+              foram confirmados. Os contadores automáticos refletem os registros
+              de animais guardados neste navegador; o catálogo inicial contém
+              exemplos.
             </div>
             <div>
               <SectionHeading
@@ -1508,7 +1543,7 @@ export function SiteSettingsPanel({
                   </h4>
                   <button
                     type="button"
-                    onClick={() => removeCampaign(campaign.id)}
+                    onClick={() => void removeCampaign(campaign.id)}
                     className="inline-flex min-h-11 items-center gap-2 rounded-lg px-3 text-sm font-semibold text-red-700 hover:bg-red-50"
                   >
                     <Trash2 size={17} /> Remover
@@ -1639,7 +1674,7 @@ export function SiteSettingsPanel({
         <div className="mt-8 flex flex-col-reverse gap-3 border-t border-[#e6eee9] pt-5 sm:flex-row sm:items-center sm:justify-between">
           <button
             type="button"
-            onClick={discardChanges}
+            onClick={() => void discardChanges()}
             disabled={!currentIsDirty}
             className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg border border-[#2E7D6B] px-5 font-semibold text-[#2E7D6B] hover:bg-[#2E7D6B]/5 disabled:cursor-not-allowed disabled:opacity-50"
           >

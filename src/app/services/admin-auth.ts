@@ -153,7 +153,7 @@ export function getAdminAuthErrorMessage(
 
     case "forbidden":
       return action === "login"
-        ? "A verificação de segurança expirou. Recarregue a página e tente novamente."
+        ? "Esta conta não possui autorização para acessar a área administrativa."
         : "A sessão de segurança expirou. Recarregue a página e tente novamente."
 
     case "unauthorized":

@@ -63,7 +63,7 @@ export function SafeImage({
     <img
       src={resolved}
       alt={alt}
-      className={className}
+      className={classes(className, "object-contain")}
       loading="lazy"
       decoding="async"
       onError={() => setFailedSrc(resolved)}

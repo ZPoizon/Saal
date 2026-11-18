@@ -8,12 +8,25 @@ import { listPublicAnimals } from "../services/supabase-animals"
 
 import { AnimalCard } from "../components/AnimalCard"
 
+type SituationFilter = "all" | "available" | "adopted"
+
+const situationOptions: Array<{
+  value: SituationFilter
+  label: string
+}> = [
+  { value: "all", label: "Todos" },
+  { value: "available", label: "Disponíveis" },
+  { value: "adopted", label: "Adotados" },
+]
+
 export function Animals() {
   const [searchTerm, setSearchTerm] = useState("")
 
   const [speciesFilter, setSpeciesFilter] = useState<"all" | "dog" | "cat">(
     "all",
   )
+
+  const [situationFilter, setSituationFilter] = useState<SituationFilter>("all")
 
   const { data, status, reload } = useAsync("animals", () =>
     listPublicAnimals(),
@@ -29,10 +42,19 @@ export function Animals() {
     const matchesSpecies =
       speciesFilter === "all" || animal.species === speciesFilter
 
-    return matchesSearch && matchesSpecies
+    const matchesSituation =
+      situationFilter === "all" || animal.status === situationFilter
+
+    return matchesSearch && matchesSpecies && matchesSituation
   })
 
-  const hasActiveFilters = searchTerm !== "" || speciesFilter !== "all"
+  const hasActiveFilters =
+    searchTerm !== "" || speciesFilter !== "all" || situationFilter !== "all"
+
+  const emptyCatalogMessage =
+    situationFilter === "adopted"
+      ? "Nenhum animal adotado registrado ainda."
+      : "Nenhum animal disponível no momento."
 
   return (
     <div className="min-h-screen bg-[#F5EFE6] py-8 sm:py-12">
@@ -44,7 +66,8 @@ export function Animals() {
           </h1>
           <p className="text-[#527f74] max-w-2xl mx-auto">
             Conheça os animais que estão disponíveis neste momento e encontre
-            seu novo melhor amigo.
+            seu novo melhor amigo. Quem já encontrou um lar também tem sua
+            história aqui.
           </p>
         </div>
 
@@ -84,6 +107,32 @@ export function Animals() {
                 <option value="cat">Felinos</option>
               </select>
             </div>
+          </div>
+
+          {/* Situation Filter */}
+          <div
+            className="mt-4 flex flex-wrap items-center gap-2"
+            role="group"
+            aria-label="Filtrar por situação"
+          >
+            <span className="text-sm font-medium text-[#527f74]">
+              Situação:
+            </span>
+            {situationOptions.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                aria-pressed={situationFilter === option.value}
+                onClick={() => setSituationFilter(option.value)}
+                className={`inline-flex min-h-11 items-center rounded-full px-4 py-2 text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#E4B04A] ${
+                  situationFilter === option.value
+                    ? "bg-[#2E7D6B] text-white"
+                    : "bg-[#F5EFE6] text-[#2E7D6B] hover:bg-[#2E7D6B]/10"
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
           </div>
         </div>
 
@@ -132,7 +181,7 @@ export function Animals() {
             <p className="text-[#2E7D6B] text-lg font-semibold">
               {hasActiveFilters
                 ? "Nenhum animal encontrado com esses filtros."
-                : "Nenhum animal disponível no momento."}
+                : emptyCatalogMessage}
             </p>
             {hasActiveFilters && (
               <button
@@ -141,6 +190,8 @@ export function Animals() {
                   setSearchTerm("")
 
                   setSpeciesFilter("all")
+
+                  setSituationFilter("all")
                 }}
                 className="mt-4 inline-flex min-h-11 items-center text-sm font-semibold text-[#527f74] underline underline-offset-4 hover:text-[#E4B04A]"
               >

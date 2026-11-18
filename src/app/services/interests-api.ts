@@ -21,11 +21,32 @@ import {
  * `POST /api/v1/animals/{id}/interests` (ADR-008).
  */
 
+import { kindFromStatus, type FailureKind } from "./supabase-errors"
+
 export class InterestApiError extends Error {
-  constructor(readonly status: number) {
-    super(`A API de interesses respondeu com HTTP ${status}.`)
+  readonly kind: FailureKind
+
+  readonly code?: string
+
+  constructor(
+    readonly status: number,
+    options: {
+      code?: string
+
+      kind?: FailureKind
+
+      message?: string
+    } = {},
+  ) {
+    super(
+      options.message ?? `A API de interesses respondeu com HTTP ${status}.`,
+    )
 
     this.name = "InterestApiError"
+
+    this.code = options.code
+
+    this.kind = options.kind ?? kindFromStatus(status)
   }
 }
 

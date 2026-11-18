@@ -7,6 +7,8 @@ import {
   saveLocalAnimals,
 } from "../data/local-store"
 
+import { kindFromStatus, type FailureKind } from "./supabase-errors"
+
 /**
  * Catálogo em modo protótipo local (sem API).
  *
@@ -16,11 +18,33 @@ import {
  * e volta a valer quando o modo local for desligado (ADR-008).
  */
 
+export interface AnimalApiErrorOptions {
+  /** Código PostgREST original, quando a falha veio do Supabase. */
+  code?: string
+
+  /** Tipo de falha já classificado; inferido do status quando omitido. */
+  kind?: FailureKind
+
+  /** Mensagem técnica original, para diagnóstico seguro. */
+  message?: string
+}
+
 export class AnimalApiError extends Error {
-  constructor(readonly status: number) {
-    super(`A API de animais respondeu com HTTP ${status}.`)
+  readonly kind: FailureKind
+
+  readonly code?: string
+
+  constructor(
+    readonly status: number,
+    options: AnimalApiErrorOptions = {},
+  ) {
+    super(options.message ?? `A API de animais respondeu com HTTP ${status}.`)
 
     this.name = "AnimalApiError"
+
+    this.code = options.code
+
+    this.kind = options.kind ?? kindFromStatus(status)
   }
 }
 

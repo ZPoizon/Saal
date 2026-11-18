@@ -6,7 +6,7 @@ import { motion } from "motion/react"
 
 import { Animal } from "../data/animals"
 
-import { SafeImage } from "./SafeImage"
+import { AnimalPhotoFrame } from "./AnimalPhotoFrame"
 
 interface AnimalCardProps {
   animal: Animal
@@ -15,13 +15,13 @@ interface AnimalCardProps {
 export function AnimalCard({ animal }: AnimalCardProps) {
   const statusColors = {
     available: "bg-[#2E7D6B] text-white",
-
-    adopted: "bg-gray-400 text-white",
+    // Âmbar suave da identidade visual, com texto escuro para contraste (WCAG AA).
+    adopted:
+      "border border-[#E4B04A]/60 bg-white/95 text-[#6b4e12] shadow-lg backdrop-blur-sm",
   }
 
   const statusLabels = {
     available: "Disponível",
-
     adopted: "Adotado",
   }
 
@@ -32,28 +32,27 @@ export function AnimalCard({ animal }: AnimalCardProps) {
       className="overflow-hidden rounded-2xl bg-white shadow-md transition-shadow hover:shadow-xl"
     >
       <Link to={`/animais/${animal.id}`} className="block">
-        <div className="relative h-56 overflow-hidden bg-[#F5EFE6] sm:h-64">
-          <SafeImage
-            src={animal.images[0]}
-            alt={animal.name}
-            params={{ w: 500, h: 500, fit: "crop" }}
-            className="h-full w-full object-cover transition-transform duration-300 hover:scale-110"
-          />
-          <div className="absolute top-3 right-3">
-            <span
-              className={`${statusColors[animal.status]} px-3 py-1 rounded-full text-xs font-semibold shadow-lg`}
-            >
-              {statusLabels[animal.status]}
-            </span>
-          </div>
-          {animal.status === "adopted" && (
-            <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-              <div className="bg-white/90 backdrop-blur-sm px-6 py-3 rounded-full flex items-center gap-2">
-                <Heart className="w-5 h-5 text-[#E4B04A]" fill="#E4B04A" />
-                <span className="font-semibold text-[#2E7D6B]">Adotado</span>
-              </div>
-            </div>
-          )}
+        <AnimalPhotoFrame
+          src={animal.images[0]}
+          alt={animal.name}
+          ratio="aspect-[4/3]"
+          className={
+            animal.status === "adopted" ? "saturate-[0.55] opacity-95" : ""
+          }
+        />
+        <div className="absolute top-3 right-3 z-10">
+          <span
+            className={`${statusColors[animal.status]} flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold`}
+          >
+            {animal.status === "adopted" && (
+              <Heart
+                size={13}
+                className="fill-current text-[#E4B04A]"
+                aria-hidden="true"
+              />
+            )}
+            {statusLabels[animal.status]}
+          </span>
         </div>
         <div className="p-4 sm:p-5">
           <h3 className="mb-2 break-words text-xl font-bold text-[#2E7D6B]">
@@ -69,9 +68,18 @@ export function AnimalCard({ animal }: AnimalCardProps) {
           <p className="mb-4 line-clamp-2 text-sm text-gray-600">
             {animal.description}
           </p>
-          {animal.status === "available" && (
+          {animal.status === "available" ? (
             <span className="flex min-h-11 w-full items-center justify-center rounded-full bg-[#E4B04A] py-2 font-semibold text-white transition-colors hover:bg-[#d4a03a]">
               Quero Conhecer
+            </span>
+          ) : (
+            <span className="flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-[#F5EFE6] py-2 text-sm font-semibold text-[#527f74]">
+              <Heart
+                size={15}
+                className="fill-current text-[#E4B04A]"
+                aria-hidden="true"
+              />
+              Este animal já encontrou um lar
             </span>
           )}
         </div>

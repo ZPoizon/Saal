@@ -1,11 +1,9 @@
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 
 import {
   AlertCircle,
   ArrowLeft,
   AtSign,
-  Check,
-  ChevronDown,
   Eye,
   EyeOff,
   Heart,
@@ -22,6 +20,10 @@ import {
 
 import { Link } from "react-router"
 
+import { toast } from "sonner"
+
+import { useConfirm } from "../components/ui/confirm"
+
 import {
   AdminAuthError,
   getAdminAuthErrorMessage,
@@ -33,6 +35,11 @@ import {
   logoutAdmin,
 } from "../services/supabase-auth"
 
+import {
+  resourceFailureMessage,
+  type FailureKind,
+} from "../services/supabase-errors"
+
 import { Animal, AnimalInput, AnimalStatus } from "../data/animals"
 
 import {
@@ -41,13 +48,19 @@ import {
   deleteAnimal,
   listAdminAnimals,
   updateAnimal,
+  updateAnimalStatus,
 } from "../services/supabase-animals"
 
-import { InterestApiError, listAdminInterests } from "../services/supabase-interests"
+import {
+  InterestApiError,
+  listAdminInterests,
+} from "../services/supabase-interests"
 
 import type { AdminAnimalInterest } from "../data/interests"
 
 import { SafeImage } from "../components/SafeImage"
+
+import { StatusDropdown } from "../components/StatusDropdown"
 
 import logoSaal from "../../imports/logo_fundo_0.png"
 
@@ -61,30 +74,53 @@ function isNetworkFailure(error: unknown): boolean {
   return error instanceof TypeError
 }
 
+/** Código PostgREST do erro, quando disponível, para diagnóstico seguro. */
+function resourceErrorDetail(error: unknown): string | null {
+  if (error instanceof AnimalApiError || error instanceof InterestApiError) {
+    return error.code ?? null
+  }
+
+  return null
+}
+
 function adminResourceErrorMessage(
   error: unknown,
 
   resource: "animais" | "interessados",
 ): string {
   if (isNetworkFailure(error)) {
-    return "Não foi possível conectar ao servidor. Verifique sua conexão e tente novamente."
+    return resourceFailureMessage("network", resource)
   }
 
   if (error instanceof AnimalApiError || error instanceof InterestApiError) {
-    if (error.status === 404) {
-      return `O serviço de ${resource} não foi encontrado. A API pode não estar publicada ou o proxy /api não está configurado.`
-    }
-
-    if (error.status === 429) {
-      return "Muitas solicitações em pouco tempo. Aguarde e tente novamente."
-    }
-
-    if (error.status >= 500) {
-      return "O servidor está temporariamente indisponível. Tente novamente em instantes."
-    }
+    return resourceFailureMessage(error.kind as FailureKind, resource)
   }
 
-  return `Não foi possível carregar os ${resource}. Tente novamente.`
+  return resourceFailureMessage("unknown", resource)
+}
+
+/** Rótulo legível da espécie, usado na tabela e nos cards. */
+function speciesLabel(species: "dog" | "cat"): string {
+  return species === "dog" ? "Canino" : "Felino"
+}
+
+/** Opções do dropdown de status, com ícone discreto no estado adotado. */
+const animalStatusOptions = [
+  { value: "available" as const, label: "Disponível" },
+  {
+    value: "adopted" as const,
+    label: "Adotado",
+    icon: <Heart size={14} className="fill-current" aria-hidden="true" />,
+  },
+]
+
+/** Visual do badge/dropdown de status, coerente com a identidade visual. */
+function statusButtonClass(status: AnimalStatus, busy: boolean): string {
+  return `flex w-full items-center justify-between gap-2 rounded-full border px-4 py-2.5 text-xs font-semibold transition-all duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E4B04A] sm:text-sm ${
+    status === "available"
+      ? "border-[#2E7D6B]/30 bg-[#2E7D6B]/10 text-[#2E7D6B] hover:bg-[#2E7D6B]/20"
+      : "border-[#E4B04A]/40 bg-[#E4B04A]/10 text-[#6b4e12] hover:bg-[#E4B04A]/20"
+  } ${busy ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`
 }
 
 export function Admin() {
@@ -110,6 +146,10 @@ export function Admin() {
 
   const [animalsMessage, setAnimalsMessage] = useState<string | null>(null)
 
+  const [animalsErrorDetail, setAnimalsErrorDetail] = useState<string | null>(
+    null,
+  )
+
   const [interests, setInterests] = useState<AdminAnimalInterest[]>([])
 
   const [interestsStatus, setInterestsStatus] =
@@ -125,9 +165,8 @@ export function Admin() {
 
   const [openContactId, setOpenContactId] = useState<string | null>(null)
 
-  const [openStatusId, setOpenStatusId] = useState<string | null>(null)
-
-  const [activeTab, setActiveTab] = useState<"animals" | "interests" | "settings">("animals")
+  const [activeTab, setActiveTab] =
+    useState<"animals" | "interests" | "settings">("animals")
 
   const [updatingStatus, setUpdatingStatus] = useState<{
     id: string
@@ -139,6 +178,15 @@ export function Admin() {
     animalId: string
     animalName: string
   } | null>(null)
+
+  const confirm = useConfirm()
+
+  /** Estado mais recente para listeners registrados uma única vez. */
+  const adminStateRef = useRef({ activeTab, siteSettingsDirty })
+
+  useEffect(() => {
+    adminStateRef.current = { activeTab, siteSettingsDirty }
+  })
 
   const checkSession = useCallback(
     async (mode: "initial" | "revalidate") => {
@@ -201,6 +249,8 @@ export function Admin() {
 
     setAnimalsMessage(null)
 
+    setAnimalsErrorDetail(null)
+
     try {
       setAnimals(await listAdminAnimals())
 
@@ -220,6 +270,8 @@ export function Admin() {
       setAnimalsStatus("error")
 
       setAnimalsMessage(adminResourceErrorMessage(error, "animais"))
+
+      setAnimalsErrorDetail(resourceErrorDetail(error))
     }
   }, [])
 
@@ -294,7 +346,10 @@ export function Admin() {
       hash === "interests" ||
       hash === "settings"
     ) {
-      setActiveTab(((hash as "animals" | "interests" | "settings") || "animals") as "animals" | "interests" | "settings")
+      setActiveTab(
+        (hash as "animals" | "interests" | "settings" ||
+          "animals") as "animals" | "interests" | "settings",
+      )
     }
   }, [])
 
@@ -305,20 +360,51 @@ export function Admin() {
   }, [activeTab])
 
   useEffect(() => {
+    let confirming = false
+
     const handleHashChange = () => {
       const hash = window.location.hash.replace("#", "")
       if (hash === "animals" || hash === "interests" || hash === "settings") {
-        if (hash !== activeTab && activeTab === "settings" && siteSettingsDirty) {
-          if (
-            !window.confirm(
-              "Há alterações não salvas nas configurações do site. Descartá-las e mudar de seção?",
-            )
-          ) {
-            window.location.hash = activeTab
+        const { activeTab: currentTab, siteSettingsDirty: dirty } =
+          adminStateRef.current
+
+        if (hash === currentTab) return
+
+        if (currentTab === "settings" && dirty) {
+          // Confirmação pendente: volta imediatamente para a seção atual
+          // para não sair da tela sem decisão do usuário.
+          if (confirming) {
+            window.location.hash = currentTab
+
             return
           }
-          setSiteSettingsDirty(false)
+
+          confirming = true
+
+          void confirm({
+            title: "Descartar alterações?",
+            description:
+              "Você possui alterações que ainda não foram salvas. Deseja sair sem salvar?",
+            confirmLabel: "Descartar alterações",
+            cancelLabel: "Continuar editando",
+            variant: "warning",
+          })
+            .then((discard) => {
+              if (discard) {
+                setSiteSettingsDirty(false)
+
+                setActiveTab(hash)
+              } else {
+                window.location.hash = currentTab
+              }
+            })
+            .finally(() => {
+              confirming = false
+            })
+
+          return
         }
+
         setActiveTab(hash as "animals" | "interests" | "settings")
       }
     }
@@ -326,25 +412,7 @@ export function Admin() {
     return () => {
       window.removeEventListener("hashchange", handleHashChange)
     }
-  }, [])
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (openStatusId !== null) {
-        const target = event.target as Node
-        if (
-          !document.body.contains(target) ||
-          !(target as HTMLElement).closest('[aria-haspopup="listbox"]')
-        ) {
-          setOpenStatusId(null)
-        }
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside)
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside)
-    }
-  }, [openStatusId])
+  }, [confirm])
 
   const retrySessionCheck = () => {
     void checkSession("initial")
@@ -388,13 +456,21 @@ export function Admin() {
   }
 
   const handleLogout = async () => {
-    if (
-      siteSettingsDirty &&
-      !window.confirm(
-        "Há alterações não salvas nas configurações do site. Sair mesmo assim?",
-      )
-    ) {
-      return
+    const { siteSettingsDirty: dirty } = adminStateRef.current
+
+    if (dirty) {
+      const discard = await confirm({
+        title: "Descartar alterações?",
+        description:
+          "Você possui alterações que ainda não foram salvas. Deseja sair sem salvar?",
+        confirmLabel: "Descartar alterações",
+        cancelLabel: "Continuar editando",
+        variant: "warning",
+      })
+
+      if (!discard) return
+
+      setSiteSettingsDirty(false)
     }
 
     setIsSubmitting(true)
@@ -416,17 +492,27 @@ export function Admin() {
     }
   }
 
-  const requestTabChange = (nextTab: "animals" | "interests" | "settings"): boolean => {
-    if (activeTab === "settings" && siteSettingsDirty && nextTab !== "settings") {
-      if (
-        !window.confirm(
-          "Há alterações não salvas nas configurações do site. Descartá-las e mudar de seção?",
-        )
-      ) {
-        return false
-      }
+  const requestTabChange = async (
+    nextTab: "animals" | "interests" | "settings",
+  ): Promise<boolean> => {
+    const { activeTab: currentTab, siteSettingsDirty: dirty } =
+      adminStateRef.current
+
+    if (currentTab === "settings" && dirty && nextTab !== "settings") {
+      const discard = await confirm({
+        title: "Descartar alterações?",
+        description:
+          "Você possui alterações que ainda não foram salvas. Deseja sair sem salvar?",
+        confirmLabel: "Descartar alterações",
+        cancelLabel: "Continuar editando",
+        variant: "warning",
+      })
+
+      if (!discard) return false
+
       setSiteSettingsDirty(false)
     }
+
     return true
   }
 
@@ -442,26 +528,44 @@ export function Admin() {
     setShowForm(true)
   }
 
-  const handleDeleteAnimal = async (animal: Animal) => {
-    const confirmed = window.confirm(
-      `Excluir "${animal.name}" do catálogo? Esta ação não pode ser desfeita.`,
-    )
+  const handleDeleteAnimal = (animal: Animal) => {
+    void confirm({
+      title: "Excluir animal?",
+      description: `Você tem certeza de que deseja excluir o cadastro de ${animal.name}? A ficha e as fotografias ficarão indisponíveis no catálogo. Esta ação não pode ser desfeita.`,
+      confirmLabel: "Sim, excluir",
+      cancelLabel: "Cancelar",
+      variant: "destructive",
+      failureMessage: "Não foi possível excluir o animal. Tente novamente.",
+      onConfirm: async () => {
+        try {
+          await deleteAnimal(animal.id)
 
-    if (!confirmed) return
+          setAnimals((current) =>
+            current.filter((item) => item.id !== animal.id),
+          )
 
-    try {
-      await deleteAnimal(animal.id)
+          setAnimalsStatus("success")
 
-      setAnimals((current) => current.filter((item) => item.id !== animal.id))
+          setAnimalsMessage(null)
 
-      setAnimalsStatus("success")
+          setAnimalsErrorDetail(null)
 
-      setAnimalsMessage(null)
-    } catch (error) {
-      setAnimalsStatus("error")
+          toast.success("Animal excluído.")
+        } catch (error) {
+          // A lista permanece intacta: nenhuma perda de dados na falha.
+          if (
+            error instanceof AnimalApiError &&
+            (error.status === 401 || error.status === 403)
+          ) {
+            setAuthStatus("anonymous")
 
-      setAnimalsMessage(adminResourceErrorMessage(error, "animais"))
-    }
+            setAuthMessage("Sessão expirada. Entre novamente.")
+          }
+
+          throw new Error(adminResourceErrorMessage(error, "animais"))
+        }
+      },
+    })
   }
 
   const handleSaveAnimal = async (input: AnimalInput) => {
@@ -484,9 +588,15 @@ export function Admin() {
 
       setAnimalsMessage(null)
 
+      setAnimalsErrorDetail(null)
+
       setShowForm(false)
 
       setEditingAnimal(null)
+
+      toast.success(
+        editingAnimal ? "Alterações salvas." : "Animal cadastrado com sucesso.",
+      )
     } catch (error) {
       if (
         error instanceof AnimalApiError &&
@@ -507,21 +617,31 @@ export function Admin() {
   ) => {
     if (animal.status === newStatus) return
 
+    // Uma alteração por vez: evita atualizações duplicadas em paralelo.
+    if (updatingStatus) return
+
     setUpdatingStatus({ id: animal.id, status: newStatus })
 
+    setAnimalsMessage(null)
+
+    setAnimalsErrorDetail(null)
+
     try {
-      const updated = await updateAnimal(animal.id, {
-        ...animal,
-        status: newStatus,
-      } as AnimalInput)
+      // Operação dedicada: grava somente o status. A interface só muda o
+      // badge depois que o Supabase confirma a atualização.
+      const updated = await updateAnimalStatus(animal.id, newStatus)
 
       setAnimals((current) =>
-        current.map((item) =>
-          item.id === updated.id ? updated : item,
-        ),
+        current.map((item) => (item.id === updated.id ? updated : item)),
       )
+
+      setAnimalsStatus("success")
+
+      setAnimalsMessage(null)
+
+      toast.success("Status atualizado.")
     } catch (error) {
-      setUpdatingStatus(null)
+      // Sem alteração otimista: o status anterior permanece na tabela.
       if (
         error instanceof AnimalApiError &&
         (error.status === 401 || error.status === 403)
@@ -530,6 +650,10 @@ export function Admin() {
         setAuthMessage("Sessão expirada. Entre novamente.")
         return
       }
+
+      // Falha de ação: toast em vez do alerta da listagem (evita duplicar
+      // avisos; o alerta inline fica para falhas de carregamento).
+      toast.error(adminResourceErrorMessage(error, "animais"))
     } finally {
       setUpdatingStatus(null)
     }
@@ -538,29 +662,37 @@ export function Admin() {
   const handleConfirmAdoption = async () => {
     if (!confirmingAdoption) return
 
-    setUpdatingStatus({ id: confirmingAdoption.animalId, status: "adopted" })
+    const animal = animals.find((a) => a.id === confirmingAdoption.animalId)
+
+    if (!animal) {
+      setConfirmingAdoption(null)
+
+      setUpdatingStatus(null)
+
+      return
+    }
+
+    if (animal.status === "adopted") {
+      setConfirmingAdoption(null)
+
+      return
+    }
+
+    setUpdatingStatus({ id: animal.id, status: "adopted" })
 
     try {
-      const animal = animals.find((a) => a.id === confirmingAdoption.animalId)
-
-      if (!animal) {
-        setConfirmingAdoption(null)
-        setUpdatingStatus(null)
-        return
-      }
-
-      const updated = await updateAnimal(animal.id, {
-        ...animal,
-        status: "adopted",
-      } as AnimalInput)
+      const updated = await updateAnimalStatus(animal.id, "adopted")
 
       setAnimals((current) =>
-        current.map((item) =>
-          item.id === updated.id ? updated : item,
-        ),
+        current.map((item) => (item.id === updated.id ? updated : item)),
       )
+
+      setAnimalsStatus("success")
+
+      setAnimalsMessage(null)
+
+      toast.success("Status atualizado.")
     } catch (error) {
-      setUpdatingStatus(null)
       if (
         error instanceof AnimalApiError &&
         (error.status === 401 || error.status === 403)
@@ -569,8 +701,11 @@ export function Admin() {
         setAuthMessage("Sessão expirada. Entre novamente.")
         return
       }
+
+      toast.error(adminResourceErrorMessage(error, "animais"))
     } finally {
       setConfirmingAdoption(null)
+
       setUpdatingStatus(null)
     }
   }
@@ -701,15 +836,7 @@ export function Admin() {
             <h1 className="mb-2 text-2xl font-bold text-[#2E7D6B] sm:text-3xl">
               Painel Administrativo
             </h1>
-            <p className="text-[#6FAE9C]">
-              Gerencie os animais e interessados
-              <span
-                className="ml-2 inline-block rounded-full bg-[#E4B04A]/15 px-2 py-0.5 align-middle text-xs font-semibold text-[#6b5425]"
-                title="Dados salvos somente neste navegador, sem servidor"
-              >
-                protótipo local
-              </span>
-            </p>
+            <p className="text-[#6FAE9C]">Gerencie os animais e interessados</p>
           </div>
           <button
             onClick={handleLogout}
@@ -753,9 +880,9 @@ export function Admin() {
             type="button"
             aria-pressed={activeTab === "animals"}
             onClick={() => {
-              if (requestTabChange("animals")) {
-                setActiveTab("animals")
-              }
+              void requestTabChange("animals").then((allowed) => {
+                if (allowed) setActiveTab("animals")
+              })
             }}
             className={`inline-flex min-h-11 items-center rounded-full px-3 py-1.5 text-xs font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#E4B04A] sm:px-4 sm:py-2 sm:text-sm ${
               activeTab === "animals"
@@ -769,9 +896,9 @@ export function Admin() {
             type="button"
             aria-pressed={activeTab === "interests"}
             onClick={() => {
-              if (requestTabChange("interests")) {
-                setActiveTab("interests")
-              }
+              void requestTabChange("interests").then((allowed) => {
+                if (allowed) setActiveTab("interests")
+              })
             }}
             className={`inline-flex min-h-11 items-center rounded-full px-3 py-1.5 text-xs font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#E4B04A] sm:px-4 sm:py-2 sm:text-sm ${
               activeTab === "interests"
@@ -785,9 +912,9 @@ export function Admin() {
             type="button"
             aria-pressed={activeTab === "settings"}
             onClick={() => {
-              if (requestTabChange("settings")) {
-                setActiveTab("settings")
-              }
+              void requestTabChange("settings").then((allowed) => {
+                if (allowed) setActiveTab("settings")
+              })
             }}
             className={`inline-flex min-h-11 items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#E4B04A] sm:px-4 sm:py-2 sm:text-sm ${
               activeTab === "settings"
@@ -810,501 +937,509 @@ export function Admin() {
           <>
             {activeTab === "animals" && (
               <>
-            {/* Stats */}
-            <div className="mb-6 grid grid-cols-2 gap-3 sm:mb-8 sm:gap-4 lg:grid-cols-4">
-              <div className="rounded-xl bg-white p-4 shadow-md sm:p-6">
-                <div className="mb-2 flex items-center justify-between gap-2">
-                  <span className="text-sm text-[#6FAE9C] sm:text-base">
-                    Total de Animais
-                  </span>
-                  <PawPrint className="shrink-0 text-[#E4B04A]" size={20} />
+                {/* Stats */}
+                <div className="mb-6 grid grid-cols-2 gap-3 sm:mb-8 sm:gap-4 lg:grid-cols-4">
+                  <div className="rounded-xl bg-white p-4 shadow-md sm:p-6">
+                    <div className="mb-2 flex items-center justify-between gap-2">
+                      <span className="text-sm text-[#6FAE9C] sm:text-base">
+                        Total de Animais
+                      </span>
+                      <PawPrint className="shrink-0 text-[#E4B04A]" size={20} />
+                    </div>
+                    <p className="text-2xl font-bold text-[#2E7D6B] sm:text-3xl">
+                      {animals.length}
+                    </p>
+                  </div>
+
+                  <div className="rounded-xl bg-white p-4 shadow-md sm:p-6">
+                    <div className="mb-2 flex items-center justify-between gap-2">
+                      <span className="text-sm text-[#6FAE9C] sm:text-base">
+                        Disponíveis
+                      </span>
+                      <Heart className="shrink-0 text-[#2E7D6B]" size={20} />
+                    </div>
+                    <p className="text-2xl font-bold text-[#2E7D6B] sm:text-3xl">
+                      {animals.filter((a) => a.status === "available").length}
+                    </p>
+                  </div>
+
+                  <div className="rounded-xl bg-white p-4 shadow-md sm:p-6">
+                    <div className="mb-2 flex items-center justify-between gap-2">
+                      <span className="text-sm text-[#6FAE9C] sm:text-base">
+                        Adotados
+                      </span>
+                      <Heart
+                        className="shrink-0 text-green-500"
+                        size={20}
+                        fill="currentColor"
+                      />
+                    </div>
+                    <p className="text-2xl font-bold text-[#2E7D6B] sm:text-3xl">
+                      {animals.filter((a) => a.status === "adopted").length}
+                    </p>
+                  </div>
+
+                  <div className="rounded-xl bg-white p-4 shadow-md sm:p-6">
+                    <div className="mb-2 flex items-center justify-between gap-2">
+                      <span className="text-sm text-[#6FAE9C] sm:text-base">
+                        Solicitações
+                      </span>
+                      <Mail className="shrink-0 text-[#E4B04A]" size={20} />
+                    </div>
+                    <p className="text-2xl font-bold text-[#2E7D6B] sm:text-3xl">
+                      {interestsStatus === "success" ? interests.length : "—"}
+                    </p>
+                  </div>
                 </div>
-                <p className="text-2xl font-bold text-[#2E7D6B] sm:text-3xl">
-                  {animals.length}
-                </p>
-              </div>
 
-              <div className="rounded-xl bg-white p-4 shadow-md sm:p-6">
-                <div className="mb-2 flex items-center justify-between gap-2">
-                  <span className="text-sm text-[#6FAE9C] sm:text-base">
-                    Disponíveis
-                  </span>
-                  <Heart className="shrink-0 text-[#2E7D6B]" size={20} />
+                {/* Actions */}
+                <div className="mb-6 rounded-2xl bg-white p-4 shadow-md sm:mb-8 sm:p-6">
+                  <button
+                    onClick={handleAddAnimal}
+                    className="flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-[#E4B04A] px-6 py-3 font-semibold text-white transition-colors hover:bg-[#d4a03a] sm:w-auto"
+                  >
+                    <Plus size={20} />
+                    Cadastrar Novo Animal
+                  </button>
                 </div>
-                <p className="text-2xl font-bold text-[#2E7D6B] sm:text-3xl">
-                  {animals.filter((a) => a.status === "available").length}
-                </p>
-              </div>
 
-              <div className="rounded-xl bg-white p-4 shadow-md sm:p-6">
-                <div className="mb-2 flex items-center justify-between gap-2">
-                  <span className="text-sm text-[#6FAE9C] sm:text-base">
-                    Adotados
-                  </span>
-                  <Heart
-                    className="shrink-0 text-green-500"
-                    size={20}
-                    fill="currentColor"
-                  />
-                </div>
-                <p className="text-2xl font-bold text-[#2E7D6B] sm:text-3xl">
-                  {animals.filter((a) => a.status === "adopted").length}
-                </p>
-              </div>
-
-              <div className="rounded-xl bg-white p-4 shadow-md sm:p-6">
-                <div className="mb-2 flex items-center justify-between gap-2">
-                  <span className="text-sm text-[#6FAE9C] sm:text-base">
-                    Solicitações
-                  </span>
-                  <Mail className="shrink-0 text-[#E4B04A]" size={20} />
-                </div>
-                <p className="text-2xl font-bold text-[#2E7D6B] sm:text-3xl">
-                  {interestsStatus === "success" ? interests.length : "—"}
-                </p>
-              </div>
-            </div>
-
-            {/* Actions */}
-            <div className="mb-6 rounded-2xl bg-white p-4 shadow-md sm:mb-8 sm:p-6">
-              <button
-                onClick={handleAddAnimal}
-                className="flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-[#E4B04A] px-6 py-3 font-semibold text-white transition-colors hover:bg-[#d4a03a] sm:w-auto"
-              >
-                <Plus size={20} />
-                Cadastrar Novo Animal
-              </button>
-            </div>
-
-            {/* Animals Table */}
-            <div
-              id="animals"
-              className="scroll-mt-24 bg-white rounded-2xl shadow-md overflow-hidden"
-            >
-              <div className="p-6 border-b border-[#F5EFE6]">
-                <h2 className="text-xl font-bold text-[#2E7D6B]">
-                  Animais Cadastrados
-                </h2>
-              </div>
-              {animalsMessage && (
-                <p
-                  role="alert"
-                  className="mx-6 mt-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700"
+                {/* Animals Table */}
+                <div
+                  id="animals"
+                  className="scroll-mt-24 bg-white rounded-2xl shadow-md overflow-hidden"
                 >
-                  {animalsMessage}
-                </p>
-              )}
-              <div>
-                <table className="w-full table-fixed">
-                  <thead className="bg-[#F5EFE6]">
-                    <tr>
-                      <th className="w-16 px-2 py-3 text-left text-sm text-[#2E7D6B] sm:w-auto sm:px-6 sm:text-base">
-                        Foto
-                      </th>
-                      <th className="px-2 py-3 text-left text-sm text-[#2E7D6B] sm:px-6 sm:text-base">
-                        Nome
-                      </th>
-                      <th className="hidden px-6 py-3 text-left text-[#2E7D6B] sm:table-cell">
-                        Espécie
-                      </th>
-                      <th className="hidden px-6 py-3 text-left text-[#2E7D6B] md:table-cell">
-                        Idade
-                      </th>
-                      <th className="px-2 py-3 text-left text-sm text-[#2E7D6B] sm:px-6 sm:text-base">
-                        Status
-                      </th>
-                      <th className="w-14 px-1 py-3 text-right text-sm text-[#2E7D6B] sm:w-auto sm:px-6 sm:text-left sm:text-base">
-                        Ações
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[#F5EFE6]">
-                    {animalsStatus === "loading" && (
-                      <tr>
-                        <td
-                          colSpan={6}
-                          className="px-4 py-8 text-center text-[#6FAE9C] sm:px-6"
-                          role="status"
-                        >
-                          Carregando animais…
-                        </td>
-                      </tr>
-                    )}
-                    {animalsStatus === "error" && (
-                      <tr>
-                        <td
-                          colSpan={6}
-                          className="px-4 py-8 text-center sm:px-6"
-                        >
-                          <p
-                            role="alert"
-                            className="text-sm font-semibold text-[#2E7D6B] sm:text-base"
-                          >
-                            {animalsMessage ??
-                              "Não foi possível carregar os animais."}
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#F5EFE6] px-4 py-4 sm:px-6 sm:py-5">
+                    <h2 className="text-lg font-bold text-[#2E7D6B] sm:text-xl">
+                      Animais Cadastrados
+                    </h2>
+                    <span className="rounded-full bg-[#2E7D6B]/10 px-3 py-1 text-xs font-semibold text-[#2E7D6B] sm:text-sm">
+                      {animalsStatus === "success"
+                        ? `${animals.length} ${
+                            animals.length === 1 ? "registro" : "registros"
+                          }`
+                        : "—"}
+                    </span>
+                  </div>
+
+                  {/* Alerta compacto e único: substitui o aviso antigo da API. */}
+                  {animalsMessage && (
+                    <div
+                      role="alert"
+                      className="mx-4 mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 sm:mx-6"
+                    >
+                      <div className="flex items-start gap-2.5">
+                        <AlertCircle
+                          className="mt-0.5 shrink-0 text-red-600"
+                          size={18}
+                        />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium text-red-700">
+                            {animalsMessage}
                           </p>
+                          {animalsErrorDetail && (
+                            <p className="mt-0.5 text-xs text-red-500">
+                              Código do banco: {animalsErrorDetail}
+                            </p>
+                          )}
+                        </div>
+                        {animalsStatus === "error" && (
                           <button
                             type="button"
                             onClick={() => void loadAnimals()}
-                            className="mt-3 inline-flex min-h-11 items-center text-sm font-semibold text-[#527f74] underline underline-offset-4 hover:text-[#E4B04A]"
+                            className="shrink-0 rounded-lg border border-red-300 px-3 py-2 text-xs font-semibold text-red-700 transition-colors hover:bg-red-100"
                           >
                             Tentar novamente
                           </button>
-                        </td>
-                      </tr>
-                    )}
-                    {animalsStatus === "success" && animals.length === 0 && (
-                      <tr>
-                        <td
-                          colSpan={6}
-                          className="px-4 py-8 text-center text-[#6FAE9C] sm:px-6"
-                        >
-                          Nenhum animal cadastrado.
-                        </td>
-                      </tr>
-                    )}
-                    {animalsStatus === "success" &&
-                      animals.map((animal) => (
-                        <tr
-                          key={animal.id}
-                          className="transition-colors hover:bg-[#F5EFE6]/50"
-                        >
-                          <td className="px-2 py-3 sm:px-6 sm:py-4">
-                            <SafeImage
-                              src={animal.images[0]}
-                              alt={animal.name}
-                              params={{ w: 60, h: 60, fit: "crop" }}
-                              className="h-10 w-10 rounded-lg object-cover sm:h-12 sm:w-12"
-                            />
-                          </td>
-                          <td className="break-words px-2 py-3 font-semibold text-[#2E7D6B] sm:px-6 sm:py-4">
-                            {animal.name}
-                          </td>
-                          <td className="hidden px-6 py-4 text-[#6FAE9C] sm:table-cell">
-                            {animal.species === "dog" ? "Canino" : "Felino"}
-                          </td>
-                          <td className="hidden px-6 py-4 text-[#6FAE9C] md:table-cell">
-                            {animal.age}
-                          </td>
-                          <td className="px-2 py-3 sm:px-6 sm:py-4">
-                            <div className="relative inline-block w-full">
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  setOpenStatusId(
-                                    openStatusId === animal.id ? null : animal.id,
-                                  )
-                                }}
-                                aria-expanded={openStatusId === animal.id}
-                                aria-haspopup="listbox"
-                                aria-label={`Status do ${animal.name}: ${animal.status === "available" ? "Disponível" : "Adotado"}`}
-                                className={`flex w-full items-center justify-between gap-2 rounded-full px-4 py-2 text-xs font-semibold transition-all duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E4B04A] sm:text-sm sm:px-3 sm:py-2 ${
-                                  animal.status === "available"
-                                    ? "bg-[#2E7D6B]/10 border border-[#2E7D6B]/30 text-[#2E7D6B] hover:bg-[#2E7D6B]/20"
-                                    : "bg-[#E4B04A]/10 border border-[#E4B04A]/30 text-[#b45309] hover:bg-[#E4B04A]/20"
-                                }                                 ${updatingStatus?.id === animal.id
-                                  ? "opacity-50 cursor-not-allowed"
-                                  : "cursor-pointer"
-                                }`}
-                                disabled={updatingStatus?.id === animal.id}
-                              >
-                                <span>
-                                  {animal.status === "available"
-                                    ? "Disponível"
-                                    : "Adotado"}
-                                </span>
-                                <ChevronDown
-                                  className={`w-4 h-4 shrink-0 transition-transform duration-200 ${
-                                    openStatusId === animal.id
-                                      ? "rotate-180"
-                                      : ""
-                                  }`}
-                                />
-                              </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
 
-                              {openStatusId === animal.id && !(
-                                updatingStatus?.id === animal.id
-                              ) && (
-                                <div
-                                  className="absolute z-50 mt-2 w-full rounded-2xl border border-[#e6eee9] bg-white shadow-md overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200"
-                                >
-                                  <ul
-                                    role="listbox"
-                                    aria-labelledby={`status-${animal.id}`}
-                                    className="py-1.5 text-sm"
+                  {animalsStatus === "loading" && (
+                    <p
+                      role="status"
+                      className="px-4 py-10 text-center text-[#6FAE9C] sm:px-6"
+                    >
+                      Carregando animais…
+                    </p>
+                  )}
+
+                  {animalsStatus === "success" && animals.length === 0 && (
+                    <div className="px-4 py-10 text-center sm:px-6">
+                      <PawPrint
+                        className="mx-auto mb-3 text-[#E4B04A]"
+                        size={36}
+                      />
+                      <p className="font-semibold text-[#2E7D6B]">
+                        Nenhum animal cadastrado ainda.
+                      </p>
+                      <p className="mt-1 text-sm text-[#6FAE9C]">
+                        Use o botão “Cadastrar Novo Animal” para adicionar o
+                        primeiro.
+                      </p>
+                    </div>
+                  )}
+
+                  {animalsStatus === "success" && animals.length > 0 && (
+                    <>
+                      {/* Tabela em desktop */}
+                      <table className="hidden w-full table-fixed md:table">
+                        <thead className="bg-[#F5EFE6]">
+                          <tr>
+                            <th className="w-24 px-6 py-3.5 text-left text-sm font-semibold text-[#2E7D6B]">
+                              Foto
+                            </th>
+                            <th className="px-4 py-3.5 text-left text-sm font-semibold text-[#2E7D6B]">
+                              Nome
+                            </th>
+                            <th className="w-28 px-4 py-3.5 text-left text-sm font-semibold text-[#2E7D6B]">
+                              Espécie
+                            </th>
+                            <th className="w-32 px-4 py-3.5 text-left text-sm font-semibold text-[#2E7D6B]">
+                              Idade
+                            </th>
+                            <th className="w-44 px-4 py-3.5 text-left text-sm font-semibold text-[#2E7D6B]">
+                              Status
+                            </th>
+                            <th className="w-28 px-4 py-3.5 text-right text-sm font-semibold text-[#2E7D6B]">
+                              Ações
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-[#F5EFE6]">
+                          {animals.map((animal) => (
+                            <tr
+                              key={animal.id}
+                              className="transition-colors hover:bg-[#F5EFE6]/50"
+                            >
+                              <td className="px-6 py-4">
+                                <SafeImage
+                                  src={animal.images[0]}
+                                  alt={animal.name}
+                                  params={{ w: 120, h: 120, fit: "crop" }}
+                                  className="h-12 w-12 rounded-xl object-cover"
+                                />
+                              </td>
+                              <td className="break-words px-4 py-4 font-semibold text-[#2E7D6B]">
+                                {animal.name}
+                              </td>
+                              <td className="px-4 py-4 text-[#6FAE9C]">
+                                {speciesLabel(animal.species)}
+                              </td>
+                              <td className="px-4 py-4 text-[#6FAE9C]">
+                                {animal.age}
+                              </td>
+                              <td className="px-4 py-4">
+                                <StatusDropdown
+                                  value={animal.status}
+                                  options={animalStatusOptions}
+                                  onChange={(newStatus) => {
+                                    void handleChangeStatus(animal, newStatus)
+                                  }}
+                                  disabled={updatingStatus?.id === animal.id}
+                                  buttonClassName={statusButtonClass(
+                                    animal.status,
+                                    updatingStatus?.id === animal.id,
+                                  )}
+                                />
+                              </td>
+                              <td className="px-4 py-4">
+                                <div className="flex items-center justify-end gap-1">
+                                  <button
+                                    onClick={() => handleEditAnimal(animal)}
+                                    className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-[#2E7D6B] transition-colors hover:bg-[#F5EFE6]"
+                                    aria-label={`Editar ${animal.name}`}
                                   >
-                                    {(["available", "adopted"] as const).map(
-                                      (optionStatus) => {
-                                        const isSelected =
-                                          optionStatus === animal.status
-                                        return (
-                                          <li
-                                            key={optionStatus}
-                                            role="option"
-                                            aria-selected={isSelected}
-                                            onClick={(e) => {
-                                              e.stopPropagation()
-                                              void handleChangeStatus(
-                                                animal,
-                                                optionStatus,
-                                              )
-                                              setOpenStatusId(null)
-                                            }}
-                                            className={`flex w-full items-center gap-2 px-4 py-2.5 text-sm transition-colors duration-150 ${
-                                              isSelected
-                                                ? "bg-[#2E7D6B]/10 text-[#2E7D6B] font-semibold"
-                                                : "text-[#4b5563] hover:bg-[#F5EFE6] hover:text-[#2E7D6B]"
-                                            }`}
-                                          >
-                                            {optionStatus === "available"
-                                              ? "Disponível"
-                                              : "Adotado"}
-                                            {isSelected && (
-                                              <span className="ml-auto w-4 h-4 shrink-0">
-                                                <Check
-                                                  className="w-4 h-4 text-[#2E7D6B]"
-                                                />
-                                              </span>
-                                            )}
-                                          </li>
-                                        )
-                                      },
-                                    )}
-                                  </ul>
+                                    <Edit size={18} />
+                                  </button>
+                                  <button
+                                    onClick={() =>
+                                      void handleDeleteAnimal(animal)
+                                    }
+                                    className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-red-600 transition-colors hover:bg-red-50"
+                                    aria-label={`Excluir ${animal.name}`}
+                                  >
+                                    <Trash2 size={18} />
+                                  </button>
                                 </div>
-                              )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+
+                      {/* Cards administrativos em telas pequenas */}
+                      <ul className="divide-y divide-[#F5EFE6] md:hidden">
+                        {animals.map((animal) => (
+                          <li key={animal.id} className="p-4">
+                            <div className="flex items-start gap-3">
+                              <SafeImage
+                                src={animal.images[0]}
+                                alt={animal.name}
+                                params={{ w: 120, h: 120, fit: "crop" }}
+                                className="h-16 w-16 shrink-0 rounded-xl object-cover"
+                              />
+                              <div className="min-w-0 flex-1">
+                                <p className="break-words font-semibold text-[#2E7D6B]">
+                                  {animal.name}
+                                </p>
+                                <p className="mt-0.5 text-sm text-[#6FAE9C]">
+                                  {speciesLabel(animal.species)} • {animal.age}
+                                </p>
+                              </div>
+                              <div className="flex shrink-0 flex-row gap-1">
+                                <button
+                                  onClick={() => handleEditAnimal(animal)}
+                                  className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-[#2E7D6B] transition-colors hover:bg-[#F5EFE6]"
+                                  aria-label={`Editar ${animal.name}`}
+                                >
+                                  <Edit size={18} />
+                                </button>
+                                <button
+                                  onClick={() =>
+                                    void handleDeleteAnimal(animal)
+                                  }
+                                  className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-red-600 transition-colors hover:bg-red-50"
+                                  aria-label={`Excluir ${animal.name}`}
+                                >
+                                  <Trash2 size={18} />
+                                </button>
+                              </div>
                             </div>
-                          </td>
-                          <td className="px-1 py-3 text-right sm:px-6 sm:py-4 sm:text-left">
-                            <button
-                              onClick={() => handleEditAnimal(animal)}
-                              className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-[#2E7D6B] transition-colors hover:bg-[#F5EFE6]"
-                              aria-label={`Editar ${animal.name}`}
-                            >
-                              <Edit size={18} />
-                            </button>
-                            <button
-                              onClick={() => handleDeleteAnimal(animal)}
-                              className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-red-600 transition-colors hover:bg-red-50"
-                              aria-label={`Excluir ${animal.name}`}
-                            >
-                              <Trash2 size={18} />
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+                            <div className="mt-3">
+                              <StatusDropdown
+                                value={animal.status}
+                                options={animalStatusOptions}
+                                onChange={(newStatus) => {
+                                  void handleChangeStatus(animal, newStatus)
+                                }}
+                                disabled={updatingStatus?.id === animal.id}
+                                buttonClassName={statusButtonClass(
+                                  animal.status,
+                                  updatingStatus?.id === animal.id,
+                                )}
+                              />
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    </>
+                  )}
+                </div>
               </>
             )}
             {activeTab === "interests" && (
               <>
-
-            {/* Interests Section */}
-            <div
-              id="interests"
-              className="scroll-mt-24 bg-white rounded-2xl shadow-md overflow-hidden mt-8"
-            >
-              <div className="border-b border-[#F5EFE6] p-4 sm:p-6">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <h2 className="flex items-center gap-2 text-lg font-bold text-[#2E7D6B] sm:text-xl">
-                    <Mail size={20} className="shrink-0 text-[#E4B04A]" />
-                    Solicitações de Adoção
-                  </h2>
-                  <span className="rounded-full bg-[#E4B04A] px-3 py-1 text-xs font-semibold text-white sm:text-sm">
-                    {interestsStatus === "success"
-                      ? `${interests.length} registros`
-                      : interestsStatus === "loading"
-                        ? "Carregando…"
-                        : "Indisponível"}
-                  </span>
-                </div>
-              </div>
-              <div className="p-4 sm:p-6">
-                {interestsStatus === "loading" ? (
-                  <p role="status" className="py-8 text-center text-[#6FAE9C]">
-                    Carregando interessados…
-                  </p>
-                ) : interestsStatus === "error" ? (
-                  <div className="py-8 text-center">
-                    <p role="alert" className="text-[#2E7D6B]">
-                      {interestsMessage}
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => void loadInterests()}
-                      className="mt-3 text-sm font-semibold text-[#527f74] underline underline-offset-4 hover:text-[#E4B04A]"
-                    >
-                      Tentar novamente
-                    </button>
+                {/* Interests Section */}
+                <div
+                  id="interests"
+                  className="scroll-mt-24 bg-white rounded-2xl shadow-md overflow-hidden mt-8"
+                >
+                  <div className="border-b border-[#F5EFE6] p-4 sm:p-6">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <h2 className="flex items-center gap-2 text-lg font-bold text-[#2E7D6B] sm:text-xl">
+                        <Mail size={20} className="shrink-0 text-[#E4B04A]" />
+                        Solicitações de Adoção
+                      </h2>
+                      <span className="rounded-full bg-[#E4B04A] px-3 py-1 text-xs font-semibold text-white sm:text-sm">
+                        {interestsStatus === "success"
+                          ? `${interests.length} registros`
+                          : interestsStatus === "loading"
+                            ? "Carregando…"
+                            : "Indisponível"}
+                      </span>
+                    </div>
                   </div>
-                ) : interests.length === 0 ? (
-                  <p className="text-[#6FAE9C] text-center py-8">
-                    Nenhum interessado registrado.
-                  </p>
-                ) : (
-                  <div className="space-y-4">
-                    {interests.map((interest) => {
-                      const animal = animals.find(
-                        (candidate) => candidate.id === interest.animalId,
-                      )
-
-                      const links = buildInterestContactLinks({
-                        whatsapp: interest.whatsapp,
-
-                        email: interest.email,
-                      })
-
-                      return (
-                        <div
-                          key={interest.id}
-                          className="rounded-xl border border-[#E4B04A]/60 bg-[#E4B04A]/5 p-4"
+                  <div className="p-4 sm:p-6">
+                    {interestsStatus === "loading" ? (
+                      <p
+                        role="status"
+                        className="py-8 text-center text-[#6FAE9C]"
+                      >
+                        Carregando interessados…
+                      </p>
+                    ) : interestsStatus === "error" ? (
+                      <div className="py-8 text-center">
+                        <p role="alert" className="text-[#2E7D6B]">
+                          {interestsMessage}
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => void loadInterests()}
+                          className="mt-3 text-sm font-semibold text-[#527f74] underline underline-offset-4 hover:text-[#E4B04A]"
                         >
-                          <div className="flex flex-col gap-4 md:flex-row">
-                            <div className="flex items-center gap-3 md:w-1/3">
-                              {animal?.images[0] && (
-                                <SafeImage
-                                  src={animal.images[0]}
-                                  alt={interest.animalName}
-                                  params={{ w: 60, h: 60, fit: "crop" }}
-                                  className="h-16 w-16 shrink-0 rounded-lg object-cover"
-                                />
-                              )}
-                              <div>
-                                <p className="font-semibold text-[#2E7D6B]">
-                                  {interest.animalName}
-                                </p>
-                                <p className="text-xs text-[#6FAE9C]">
-                                  {new Date(interest.createdAt).toLocaleString(
-                                    "pt-BR",
+                          Tentar novamente
+                        </button>
+                      </div>
+                    ) : interests.length === 0 ? (
+                      <p className="text-[#6FAE9C] text-center py-8">
+                        Nenhum interessado registrado.
+                      </p>
+                    ) : (
+                      <div className="space-y-4">
+                        {interests.map((interest) => {
+                          const animal = animals.find(
+                            (candidate) => candidate.id === interest.animalId,
+                          )
 
-                                    {
-                                      day: "2-digit",
+                          const links = buildInterestContactLinks({
+                            whatsapp: interest.whatsapp,
 
-                                      month: "2-digit",
+                            email: interest.email,
+                          })
 
-                                      year: "numeric",
-
-                                      hour: "2-digit",
-
-                                      minute: "2-digit",
-                                    },
+                          return (
+                            <div
+                              key={interest.id}
+                              className="rounded-xl border border-[#E4B04A]/60 bg-[#E4B04A]/5 p-4"
+                            >
+                              <div className="flex flex-col gap-4 md:flex-row">
+                                <div className="flex items-center gap-3 md:w-1/3">
+                                  {animal?.images[0] && (
+                                    <SafeImage
+                                      src={animal.images[0]}
+                                      alt={interest.animalName}
+                                      params={{ w: 60, h: 60, fit: "crop" }}
+                                      className="h-16 w-16 shrink-0 rounded-lg object-cover"
+                                    />
                                   )}
-                                </p>
-                              </div>
-                            </div>
-
-                            <div className="flex-1 md:w-1/3">
-                              <p className="font-semibold text-[#2E7D6B]">
-                                {interest.fullName}
-                              </p>
-                              <p className="text-sm text-[#6FAE9C]">
-                                {interest.city}
-                              </p>
-                              <p className="text-sm text-[#6FAE9C]">
-                                {interest.email}
-                              </p>
-                              <p className="text-sm text-[#6FAE9C]">
-                                {interest.whatsapp}
-                              </p>
-                            </div>
-
-                            <div className="flex-col gap-3 md:flex-row md:w-1/3 md:flex-none md:justify-center">
-                              <button
-                                type="button"
-                                aria-expanded={openContactId === interest.id}
-                                aria-controls={`contact-actions-${interest.id}`}
-                                onClick={() =>
-                                  setOpenContactId((current) =>
-                                    current === interest.id
-                                      ? null
-                                      : interest.id,
-                                  )
-                                }
-                                className="flex-1 rounded-lg bg-[#2E7D6B] px-4 py-2 font-semibold text-white transition-colors hover:bg-[#6FAE9C] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E4B04A] md:flex-none"
-                              >
-                                Entrar em contato
-                              </button>
-                              <div
-                                id={`contact-actions-${interest.id}`}
-                                className={
-                                  openContactId === interest.id
-                                    ? "flex flex-col gap-2 sm:flex-row sm:flex-wrap"
-                                    : "hidden"
-                                }
-                              >
-                                {links.whatsapp && (
-                                  <a
-                                    href={links.whatsapp}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#25D366] px-3 py-2 text-sm font-semibold text-white hover:bg-[#1fae54] md:flex-none"
-                                  >
-                                    <MessageCircle size={16} />
-                                    WhatsApp
-                                  </a>
-                                )}
-                                {links.phone && (
-                                  <a
-                                    href={links.phone}
-                                    className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg border border-[#2E7D6B] px-3 py-2 text-sm font-semibold text-[#2E7D6B] hover:bg-[#F5EFE6] md:flex-none"
-                                  >
-                                    <Phone size={16} />
-                                    Ligar
-                                  </a>
-                                )}
-                                {links.email && (
-                                  <a
-                                    href={links.email}
-                                    className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg border border-[#2E7D6B] px-3 py-2 text-sm font-semibold text-[#2E7D6B] hover:bg-[#F5EFE6] md:flex-none"
-                                  >
-                                    <AtSign size={16} />
-                                    Enviar e-mail
-                                  </a>
-                                )}
-                                {!links.whatsapp &&
-                                  !links.phone &&
-                                  !links.email && (
-                                    <p className="text-sm text-gray-600">
-                                      Dados de contato indisponíveis.
+                                  <div>
+                                    <p className="font-semibold text-[#2E7D6B]">
+                                      {interest.animalName}
                                     </p>
-                                  )}
-                                <p className="w-full text-xs text-gray-500">
-                                  Os links abrem o aplicativo escolhido; nenhuma
-                                  mensagem é enviada automaticamente.
-                                </p>
-                              </div>
+                                    <p className="text-xs text-[#6FAE9C]">
+                                      {new Date(
+                                        interest.createdAt,
+                                      ).toLocaleString(
+                                        "pt-BR",
 
-                              {animal && animal.status === "available" && (
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    setConfirmingAdoption({
-                                      interestId: interest.id,
-                                      animalId: animal.id,
-                                      animalName: interest.animalName,
-                                    })
-                                  }
-                                  disabled={
-                                    updatingStatus?.id === animal.id
-                                  }
-                                  className="mt-3 flex-1 rounded-lg border border-[#2E7D6B] px-4 py-2 font-semibold text-[#2E7D6B] transition-colors hover:bg-[#2E7D6B]/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#E4B04A] md:flex-none disabled:cursor-not-allowed disabled:opacity-60"
-                                >
-                                  Confirmar Adoção
-                                </button>
-                              )}
+                                        {
+                                          day: "2-digit",
+
+                                          month: "2-digit",
+
+                                          year: "numeric",
+
+                                          hour: "2-digit",
+
+                                          minute: "2-digit",
+                                        },
+                                      )}
+                                    </p>
+                                  </div>
+                                </div>
+
+                                <div className="flex-1 md:w-1/3">
+                                  <p className="font-semibold text-[#2E7D6B]">
+                                    {interest.fullName}
+                                  </p>
+                                  <p className="text-sm text-[#6FAE9C]">
+                                    {interest.city}
+                                  </p>
+                                  <p className="text-sm text-[#6FAE9C]">
+                                    {interest.email}
+                                  </p>
+                                  <p className="text-sm text-[#6FAE9C]">
+                                    {interest.whatsapp}
+                                  </p>
+                                </div>
+
+                                <div className="flex-col gap-3 md:flex-row md:w-1/3 md:flex-none md:justify-center">
+                                  <button
+                                    type="button"
+                                    aria-expanded={
+                                      openContactId === interest.id
+                                    }
+                                    aria-controls={`contact-actions-${interest.id}`}
+                                    onClick={() =>
+                                      setOpenContactId((current) =>
+                                        current === interest.id
+                                          ? null
+                                          : interest.id,
+                                      )
+                                    }
+                                    className="flex-1 rounded-lg bg-[#2E7D6B] px-4 py-2 font-semibold text-white transition-colors hover:bg-[#6FAE9C] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E4B04A] md:flex-none"
+                                  >
+                                    Entrar em contato
+                                  </button>
+                                  <div
+                                    id={`contact-actions-${interest.id}`}
+                                    className={
+                                      openContactId === interest.id
+                                        ? "flex flex-col gap-2 sm:flex-row sm:flex-wrap"
+                                        : "hidden"
+                                    }
+                                  >
+                                    {links.whatsapp && (
+                                      <a
+                                        href={links.whatsapp}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#25D366] px-3 py-2 text-sm font-semibold text-white hover:bg-[#1fae54] md:flex-none"
+                                      >
+                                        <MessageCircle size={16} />
+                                        WhatsApp
+                                      </a>
+                                    )}
+                                    {links.phone && (
+                                      <a
+                                        href={links.phone}
+                                        className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg border border-[#2E7D6B] px-3 py-2 text-sm font-semibold text-[#2E7D6B] hover:bg-[#F5EFE6] md:flex-none"
+                                      >
+                                        <Phone size={16} />
+                                        Ligar
+                                      </a>
+                                    )}
+                                    {links.email && (
+                                      <a
+                                        href={links.email}
+                                        className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg border border-[#2E7D6B] px-3 py-2 text-sm font-semibold text-[#2E7D6B] hover:bg-[#F5EFE6] md:flex-none"
+                                      >
+                                        <AtSign size={16} />
+                                        Enviar e-mail
+                                      </a>
+                                    )}
+                                    {!links.whatsapp &&
+                                      !links.phone &&
+                                      !links.email && (
+                                        <p className="text-sm text-gray-600">
+                                          Dados de contato indisponíveis.
+                                        </p>
+                                      )}
+                                    <p className="w-full text-xs text-gray-500">
+                                      Os links abrem o aplicativo escolhido;
+                                      nenhuma mensagem é enviada
+                                      automaticamente.
+                                    </p>
+                                  </div>
+
+                                  {animal && animal.status === "available" && (
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        setConfirmingAdoption({
+                                          interestId: interest.id,
+                                          animalId: animal.id,
+                                          animalName: interest.animalName,
+                                        })
+                                      }
+                                      disabled={
+                                        updatingStatus?.id === animal.id
+                                      }
+                                      className="mt-3 flex-1 rounded-lg border border-[#2E7D6B] px-4 py-2 font-semibold text-[#2E7D6B] transition-colors hover:bg-[#2E7D6B]/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#E4B04A] md:flex-none disabled:cursor-not-allowed disabled:opacity-60"
+                                    >
+                                      Confirmar Adoção
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
                             </div>
-                          </div>
-                        </div>
-                      )
-                    })}
+                          )
+                        })}
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-            </div>
+                </div>
               </>
             )}
           </>
@@ -1332,9 +1467,7 @@ export function Admin() {
           aria-modal="true"
           aria-labelledby="confirm-adoption-title"
         >
-          <div
-            className="my-auto flex max-w-md flex-col rounded-2xl bg-white sm:max-w-lg sm:max-h-[calc(100dvh-2rem)]"
-          >
+          <div className="my-auto flex max-w-md flex-col rounded-2xl bg-white sm:max-w-lg sm:max-h-[calc(100dvh-2rem)]">
             <div className="flex shrink-0 items-center justify-between gap-2 border-b border-[#F5EFE6] p-4 sm:p-6">
               <h2
                 id="confirm-adoption-title"

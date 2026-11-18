@@ -10,7 +10,9 @@ import { useAsync } from "../hooks/useAsync"
 
 import { AnimalApiError, getPublicAnimal } from "../services/supabase-animals"
 
-import { SafeImage } from "../components/SafeImage"
+import { PhotoLightbox } from "../components/PhotoLightbox"
+
+import { AnimalPhotoFrame } from "../components/AnimalPhotoFrame"
 
 export function AnimalDetail() {
   const { id } = useParams<{ id: string }>()
@@ -32,6 +34,8 @@ export function AnimalDetail() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
 
   const [shareMessage, setShareMessage] = useState<string | null>(null)
+
+  const [lightboxOpen, setLightboxOpen] = useState(false)
 
   useEffect(() => {
     setCurrentImageIndex(0)
@@ -82,7 +86,10 @@ export function AnimalDetail() {
   const statusColors = {
     available: "bg-[#2E7D6B] text-white",
 
-    adopted: "bg-gray-400 text-white",
+    // Âmbar suave da identidade visual, com texto escuro para contraste.
+
+    adopted:
+      "border border-[#E4B04A]/60 bg-white/95 text-[#6b4e12] backdrop-blur-sm",
   }
 
   const statusLabels = {
@@ -141,19 +148,43 @@ export function AnimalDetail() {
           {/* Image Gallery */}
           <div>
             <div className="mb-4 overflow-hidden rounded-2xl bg-white shadow-lg">
-              <div className="relative h-64 bg-[#F5EFE6] sm:h-80 lg:h-96">
-                <SafeImage
+              <div
+                className="relative cursor-pointer bg-[#F5EFE6]"
+                style={{ aspectRatio: "4/3" }}
+                onClick={() => setLightboxOpen(true)}
+                role="button"
+                tabIndex={0}
+                aria-label="Ampliar foto"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault()
+
+                    setLightboxOpen(true)
+                  }
+                }}
+              >
+                <AnimalPhotoFrame
                   src={animal.images[currentImageIndex]}
                   alt={animal.name}
-                  params={{ w: 800, h: 800, fit: "crop" }}
-                  className="h-full w-full object-cover [image-orientation:from-image]"
+                  ratio="aspect-[4/3]"
+                  className="h-full w-full"
                 />
-                <div className="absolute right-3 top-3 sm:right-4 sm:top-4">
+                <div className="absolute top-3 right-3 sm:right-4 sm:top-4 z-10">
                   <span
-                    className={`${statusColors[animal.status]} rounded-full px-3 py-1.5 text-xs font-semibold shadow-lg sm:px-4 sm:py-2 sm:text-sm`}
+                    className={`${statusColors[animal.status]} flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold shadow-lg sm:px-4 sm:py-2 sm:text-sm`}
                   >
+                    {animal.status === "adopted" && (
+                      <Heart
+                        size={14}
+                        className="fill-current text-[#E4B04A]"
+                        aria-hidden="true"
+                      />
+                    )}
                     {statusLabels[animal.status]}
                   </span>
+                </div>
+                <div className="absolute bottom-3 right-3 rounded-full bg-black/40 px-3 py-1 text-xs font-semibold text-white z-10">
+                  Clique para ampliar
                 </div>
               </div>
             </div>
@@ -173,11 +204,11 @@ export function AnimalDetail() {
                         : "opacity-60 hover:opacity-100"
                     } transition-all`}
                   >
-                    <SafeImage
+                    <AnimalPhotoFrame
                       src={image}
                       alt={`${animal.name} ${index + 1}`}
-                      params={{ w: 200, h: 200, fit: "crop" }}
-                      className="h-full w-full object-cover [image-orientation:from-image]"
+                      ratio="aspect-square"
+                      className="h-full w-full"
                     />
                   </button>
                 ))}
@@ -284,7 +315,35 @@ export function AnimalDetail() {
               )}
             </div>
 
-            {/* CTA Button */}
+            {/* CTA ou aviso de adoção concluída */}
+            {animal.status === "adopted" && (
+              <div className="mb-6 rounded-2xl border border-[#E4B04A]/50 bg-[#E4B04A]/10 p-4 sm:p-5">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-3">
+                    <Heart
+                      size={22}
+                      className="shrink-0 fill-current text-[#E4B04A]"
+                      aria-hidden="true"
+                    />
+                    <div>
+                      <p className="font-semibold text-[#416f65]">
+                        Este animal já encontrou um lar!
+                      </p>
+                      <p className="text-sm text-[#527f74]">
+                        Não é possível manifestar interesse, mas a história dele
+                        fica aqui.
+                      </p>
+                    </div>
+                  </div>
+                  <Link
+                    to="/animais"
+                    className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-full bg-[#2E7D6B] px-5 text-sm font-semibold text-white transition-colors hover:bg-[#6FAE9C]"
+                  >
+                    Ver animais disponíveis
+                  </Link>
+                </div>
+              </div>
+            )}
             {animal.status === "available" && (
               <motion.div
                 whileHover={{ scale: 1.02 }}
@@ -298,6 +357,15 @@ export function AnimalDetail() {
                 </Link>
               </motion.div>
             )}
+
+            <PhotoLightbox
+              images={animal.images}
+              currentIndex={currentImageIndex}
+              open={lightboxOpen}
+              onClose={() => setLightboxOpen(false)}
+              onNavigate={setCurrentImageIndex}
+              altBase={animal.name}
+            />
           </div>
         </div>
       </div>

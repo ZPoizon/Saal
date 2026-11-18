@@ -27,7 +27,17 @@ export function Home() {
     listPublicAnimals(),
   )
 
-  const availableAnimals = (data ?? []).slice(0, 3)
+  // Seção dedicada a adoções disponíveis: nunca exibe animais adotados aqui.
+
+  const availableCount = (data ?? []).filter(
+    (animal) => animal.status === "available",
+  ).length
+
+  const availableAnimals = (data ?? [])
+
+    .filter((animal) => animal.status === "available")
+
+    .slice(0, 3)
 
   const activeCampaigns = getActiveCampaigns(settings.campaigns)
 
@@ -68,7 +78,7 @@ export function Home() {
 
           label: "Animais disponíveis",
 
-          value: data?.length ?? 0,
+          value: availableCount,
         }
       : null,
   ].filter((stat): stat is NonNullable<typeof stat> => stat !== null)
@@ -304,8 +314,11 @@ export function Home() {
               {about.photoUrls.some(Boolean) && (
                 <div className="grid grid-cols-2 gap-3 md:col-span-2">
                   {about.photoUrls
+
                     .filter(Boolean)
+
                     .slice(0, 4)
+
                     .map((photoUrl) => (
                       <img
                         key={photoUrl}
@@ -428,7 +441,8 @@ export function Home() {
           )}
           {!adoption.acceptingInterests && (
             <p className="mx-auto mt-6 max-w-3xl rounded-xl border border-[#E4B04A]/50 bg-[#E4B04A]/10 p-4 text-center text-sm text-[#6b5425]">
-              No momento, não estamos recebendo novas manifestações de interesse.
+              No momento, não estamos recebendo novas manifestações de
+              interesse.
             </p>
           )}
         </div>

@@ -107,6 +107,29 @@ export function Interest() {
     )
   }
 
+  if (animal.status === "adopted") {
+    return (
+      <div className="flex min-h-[60dvh] items-center justify-center bg-[#F5EFE6] px-4 py-12">
+        <div className="max-w-xl rounded-2xl bg-white p-8 text-center shadow-lg">
+          <Heart className="mx-auto mb-4 h-12 w-12 fill-current text-[#E4B04A]" />
+          <h1 className="mb-3 text-2xl font-bold text-[#2E7D6B]">
+            Este animal já encontrou um lar!
+          </h1>
+          <p className="mb-6 text-gray-600">
+            {animal.name} foi adotado e não recebe novas manifestações de
+            interesse. Conheça outros animais disponíveis.
+          </p>
+          <Link
+            to="/animais"
+            className="inline-flex min-h-12 items-center justify-center rounded-full bg-[#2E7D6B] px-6 font-semibold text-white hover:bg-[#6FAE9C]"
+          >
+            Ver animais disponíveis
+          </Link>
+        </div>
+      </div>
+    )
+  }
+
   if (!settings.adoption.acceptingInterests) {
     return (
       <div className="flex min-h-[60dvh] items-center justify-center bg-[#F5EFE6] px-4 py-12">
@@ -128,6 +151,9 @@ export function Interest() {
       </div>
     )
   }
+
+  const animalUnavailableMessage =
+    "Este animal não está disponível para receber manifestações de interesse."
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
@@ -406,7 +432,7 @@ export function Interest() {
                 }`}
               >
                 {!animalAvailable
-                  ? "Este animal não está disponível para receber manifestações de interesse."
+                  ? animalUnavailableMessage
                   : (submissionMessage ??
                     "A manifestação será registrada para avaliação manual da equipe. O envio não confirma a adoção.")}
               </p>

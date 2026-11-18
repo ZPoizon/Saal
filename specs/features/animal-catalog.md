@@ -19,15 +19,18 @@ Visitante.
 
 ## 5. Regras de negócio
 
-- O catálogo público MUST exibir somente animais com estado `AVAILABLE` (“Disponível para
-  adoção”). Os estados aprovados são `AVAILABLE` e `ADOPTED`; adotados permanecem cadastrados,
-  mas não são oferecidos para adoção (ONG-02/ONG-03, parciais).
+- O catálogo público MUST exibir animais com estado `AVAILABLE` primeiro e animais com
+  estado `ADOPTED` depois, claramente identificados. Os estados aprovados são `AVAILABLE`
+  e `ADOPTED`; adotados permanecem cadastrados e não são oferecidos para adoção
+  (ONG-02/ONG-03, parciais).
 - A busca por nome ignora diferença entre maiúsculas e minúsculas.
 - O filtro de espécie existente no protótipo aceita todos, cachorro ou gato; o vocabulário
   definitivo depende de ONG-10.
-- Busca e espécie são aplicadas em conjunto.
-- Publicação/rascunho, visibilidade pública de adotados, paginação e ordenação:
-  `PENDENTE DE DECISÃO`.
+- Filtro de situação com as opções “Todos”, “Disponíveis” e “Adotados”, aplicado em conjunto
+  com busca e espécie.
+- Publicação/rascunho e paginação: `PENDENTE DE DECISÃO`. A visibilidade pública de
+  adotados foi decidida pelo responsável do projeto (solicitação de 2026-11-17): adotados
+  aparecem no catálogo identificados como “Adotado”, sem ação de adoção.
 
 ## 6. Fluxo principal
 
@@ -45,12 +48,15 @@ Visitante.
 ## 8. Critérios de aceitação
 
 - **Dado** um conjunto com animais de diferentes status, **quando** o catálogo abrir,
-  **então** somente os disponíveis serão exibidos.
+  **então** os disponíveis serão exibidos primeiro e os adotados depois, identificados
+  como “Adotado”.
 - **Dado** um nome parcial, **quando** o visitante pesquisar, **então** a busca ignorará caixa.
-- **Dado** busca e espécie, **quando** ambos forem definidos, **então** só resultados que
-  atendam aos dois critérios serão exibidos.
+- **Dado** busca, espécie e situação, **quando** todos forem definidos, **então** só resultados
+  que atendam aos três critérios serão exibidos.
 - **Dado** nenhum resultado, **quando** os filtros forem aplicados, **então** o estado vazio
   e a ação de limpar filtros serão exibidos.
+- **Dado** um animal adotado, **quando** o catálogo exibir o card, **então** nenhuma ação de
+  adoção será oferecida e o detalhe informará que o animal já encontrou um lar.
 
 ## 9. Dados necessários
 
@@ -75,12 +81,13 @@ Endpoint futuro é público e somente leitura; limitar parâmetros e volume de r
 
 ## 13. Cenários de teste
 
-- lista apenas disponíveis;
+- lista disponíveis primeiro e adotados depois, identificados;
 - busca com caixa e texto parcial;
 - filtro por cachorro/gato;
+- filtro de situação (todos/disponíveis/adotados);
 - combinação de filtros;
 - estado vazio e limpeza;
-- abertura do detalhe correto.
+- abertura do detalhe correto, inclusive de adotado.
 
 ## 14. Definição de pronto
 
@@ -89,6 +96,6 @@ typecheck/build válidos e spec atualizada sem regressão visual.
 
 ## 15. Estado atual
 
-**Implementado no worktree.** A listagem consulta a API e exibe estados de carregamento,
-erro recuperável e vazio. O catálogo apresenta somente animais disponíveis; não há
-paginação.
+**Implementado no worktree.** A listagem consulta o Supabase e exibe estados de
+carregamento, erro recuperável e vazio. O catálogo exibe disponíveis primeiro e adotados
+depois, com filtro de situação; não há paginação.

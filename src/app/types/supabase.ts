@@ -44,7 +44,6 @@ export type Database = {
           personality?: string[]
           medical_info?: string
           images?: string[]
-          updated_by?: string
         }
       }
       animal_photos: {
@@ -141,27 +140,13 @@ export type Database = {
         }
       }
     }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      [_ in never]: never
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
+    Views: { [_ in never]: never }
+    Functions: { [_ in never]: never }
+    Enums: { [_ in never]: never }
+    CompositeTypes: { [_ in never]: never }
   }
 }
 
-type Json =
-  | string
-  | number
-  | boolean
-  | null
-  | Json[]
-  | { [key: string]: Json }
+type Json = string | number | boolean | null | Json[] | { [key: string]: Json }
 
 export type DatabasePublic = Database["public"]

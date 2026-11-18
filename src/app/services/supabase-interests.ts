@@ -9,8 +9,43 @@ export { InterestApiError }
 import { DatabasePublic } from "../types/supabase"
 import { supabase } from "../lib/supabase"
 
+import {
+  classifyFailure,
+  isNetworkFailure,
+  isPostgrestFailure,
+} from "./supabase-errors"
+
 type InterestRow = DatabasePublic["Tables"]["interests"]["Row"]
 type InterestInsert = DatabasePublic["Tables"]["interests"]["Insert"]
+
+function toInterestApiError(
+  error: unknown,
+  fallbackStatus: number,
+): InterestApiError {
+  if (error instanceof InterestApiError) return error
+
+  if (isNetworkFailure(error)) {
+    return new InterestApiError(0, {
+      kind: "network",
+      message: "Falha de rede ao contatar o Supabase.",
+    })
+  }
+
+  if (isPostgrestFailure(error)) {
+    const { kind, status } = classifyFailure(error.code)
+
+    return new InterestApiError(status ?? fallbackStatus, {
+      code: error.code ?? undefined,
+      kind,
+      message: error.message,
+    })
+  }
+
+  return new InterestApiError(fallbackStatus, {
+    kind: "unknown",
+    message: error instanceof Error ? error.message : undefined,
+  })
+}
 
 function rowToInterest(row: InterestRow): AdminAnimalInterest {
   return {
@@ -45,15 +80,23 @@ export async function submitAnimalInterest(
   animalId: string,
   input: AnimalInterestInput,
 ): Promise<AnimalInterestReceipt> {
-  // Verifica se o animal existe
+  // Verifica se o animal existe. maybeSingle evita HTTP 406 (PGRST116) para
+  // identificadores inexistentes: a ausência é tratada explicitamente como 404.
   const { data: animal, error: animalError } = await supabase
     .from("animals")
     .select("id, name, status")
     .eq("id", animalId)
-    .single()
+    .maybeSingle()
 
-  if (animalError || !animal) {
-    throw new InterestApiError(404)
+  if (animalError) {
+    throw toInterestApiError(animalError, 0)
+  }
+
+  if (!animal) {
+    throw new InterestApiError(404, {
+      kind: "not-found",
+      message: "Animal não encontrado.",
+    })
   }
 
   if (animal.status !== "available") {
@@ -67,7 +110,28 @@ export async function submitAnimalInterest(
     .single()
 
   if (error || !data) {
-    throw new InterestApiError(error?.code ? parseInt(error.code, 10) || 0 : 0)
+    // Guarda no banco (migration 002): violação de CHECK do trigger significa
+    // animal indisponível (409). FK violation: animal inexistente (404).
+    if (error?.code === "23514") {
+      throw new InterestApiError(409, {
+        code: error.code,
+        kind: "unknown",
+        message: error.message,
+      })
+    }
+
+    if (error?.code === "23503") {
+      throw new InterestApiError(404, {
+        code: error.code,
+        kind: "not-found",
+        message: error.message,
+      })
+    }
+
+    throw toInterestApiError(
+      error ?? new Error("Resposta vazia do Supabase."),
+      0,
+    )
   }
 
   return {
@@ -84,7 +148,7 @@ export async function listAdminInterests(): Promise<AdminAnimalInterest[]> {
     .order("created_at", { ascending: false })
 
   if (error) {
-    throw new InterestApiError(error?.code ? parseInt(error.code, 10) || 0 : 0)
+    throw toInterestApiError(error, 0)
   }
 
   return (data ?? []).map(rowToInterest)
@@ -101,7 +165,7 @@ export async function listAdminInterestsByAnimal(
     .order("created_at", { ascending: false })
 
   if (error) {
-    throw new InterestApiError(error?.code ? parseInt(error.code, 10) || 0 : 0)
+    throw toInterestApiError(error, 0)
   }
 
   return (data ?? []).map(rowToInterest)
