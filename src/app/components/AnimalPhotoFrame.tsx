@@ -38,7 +38,10 @@ export function AnimalPhotoFrame({
             decoding="async"
             onError={() => setHasError(true)}
           />
-          <div className="absolute inset-0 bg-[#F5EFE6]/40" aria-hidden="true" />
+          <div
+            className="absolute inset-0 bg-[#F5EFE6]/40"
+            aria-hidden="true"
+          />
         </>
       )}
       <div className="relative h-full w-full">

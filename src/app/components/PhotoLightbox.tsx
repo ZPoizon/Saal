@@ -144,7 +144,9 @@ export function PhotoLightbox({
             </button>
             <button
               type="button"
-              onClick={() => onNavigate(Math.min(currentIndex + 1, images.length - 1))}
+              onClick={() =>
+                onNavigate(Math.min(currentIndex + 1, images.length - 1))
+              }
               disabled={currentIndex === images.length - 1}
               aria-label="Próxima foto"
               className="absolute right-2 top-1/2 -translate-y-1/2 inline-flex h-11 w-11 items-center justify-center rounded-full bg-black/50 text-white transition-colors hover:bg-black/70 disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white"
