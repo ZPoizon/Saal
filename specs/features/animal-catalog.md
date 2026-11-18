@@ -19,10 +19,10 @@ Visitante.
 
 ## 5. Regras de negócio
 
-- O catálogo público MUST exibir animais com estado `AVAILABLE` primeiro e animais com
-  estado `ADOPTED` depois, claramente identificados. Os estados aprovados são `AVAILABLE`
-  e `ADOPTED`; adotados permanecem cadastrados e não são oferecidos para adoção
-  (ONG-02/ONG-03, parciais).
+- O catálogo público MUST exibir animais com estado `available` primeiro, `treatment` depois
+  e `adopted` por último, claramente identificados. Adotados permanecem cadastrados e não são
+  oferecidos para adoção (ONG-02/ONG-03, parciais). `treatment` foi acrescentado pelo fluxo de
+  ciclo de vida (`ADLC-001`/ADR-009).
 - A busca por nome ignora diferença entre maiúsculas e minúsculas.
 - O filtro de espécie existente no protótipo aceita todos, cachorro ou gato; o vocabulário
   definitivo depende de ONG-10.
@@ -30,7 +30,9 @@ Visitante.
   com busca e espécie.
 - Publicação/rascunho e paginação: `PENDENTE DE DECISÃO`. A visibilidade pública de
   adotados foi decidida pelo responsável do projeto (solicitação de 2026-11-17): adotados
-  aparecem no catálogo identificados como “Adotado”, sem ação de adoção.
+  aparecem no catálogo identificados como “Adotado”, sem ação de adoção. Após 30 dias da data
+  real de adoção, o animal deixa de aparecer mesmo que a limpeza das fotos ainda não tenha
+  sido executada; adotados legados sem data continuam visíveis (ADR-009).
 
 ## 6. Fluxo principal
 
@@ -48,8 +50,8 @@ Visitante.
 ## 8. Critérios de aceitação
 
 - **Dado** um conjunto com animais de diferentes status, **quando** o catálogo abrir,
-  **então** os disponíveis serão exibidos primeiro e os adotados depois, identificados
-  como “Adotado”.
+  **então** os disponíveis serão exibidos primeiro, os em tratamento depois e os adotados por
+  último, identificados; adotados com mais de 30 dias não aparecerão.
 - **Dado** um nome parcial, **quando** o visitante pesquisar, **então** a busca ignorará caixa.
 - **Dado** busca, espécie e situação, **quando** todos forem definidos, **então** só resultados
   que atendam aos três critérios serão exibidos.

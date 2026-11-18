@@ -1,6 +1,6 @@
 import { Link, NavLink } from "react-router"
 
-import { Menu, X } from "lucide-react"
+import { Lock, Menu, X } from "lucide-react"
 
 import { useState } from "react"
 
@@ -41,7 +41,7 @@ export function Header() {
           </Link>
 
           {/* Desktop Menu */}
-          <nav className="hidden md:flex items-center gap-6">
+          <nav className="hidden items-center gap-4 md:flex lg:gap-6">
             <NavLink to="/" end className={navClass}>
               Início
             </NavLink>
@@ -51,6 +51,14 @@ export function Header() {
             <NavLink to="/contato" className={navClass}>
               Contato
             </NavLink>
+            <Link
+              to="/admin"
+              aria-label="Admin — acessar a área administrativa"
+              className="inline-flex min-h-11 items-center gap-1.5 rounded-lg px-2 text-xs font-medium text-[#527f74] transition-colors hover:bg-[#F5EFE6] hover:text-[#2E7D6B] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E4B04A]"
+            >
+              <Lock size={14} aria-hidden="true" />
+              Admin
+            </Link>
             <Link
               to="/animais"
               className="bg-[#E4B04A] text-white px-6 py-2 rounded-full hover:bg-[#d4a03a] transition-all shadow-md hover:shadow-lg"
@@ -106,6 +114,18 @@ export function Header() {
               onClick={() => setMenuOpen(false)}
             >
               Quero Adotar
+            </Link>
+            <div
+              className="my-2 border-t border-[#2E7D6B]/10"
+              role="presentation"
+            />
+            <Link
+              to="/admin"
+              className="flex min-h-11 items-center gap-2 rounded-lg px-2 py-2 text-sm font-medium text-[#527f74] transition-colors hover:bg-[#F5EFE6] hover:text-[#2E7D6B] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E4B04A]"
+              onClick={() => setMenuOpen(false)}
+            >
+              <Lock size={16} aria-hidden="true" />
+              Área administrativa
             </Link>
           </nav>
         )}

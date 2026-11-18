@@ -6,40 +6,61 @@ import { createPortal } from "react-dom"
 
 import { Check, ChevronDown } from "lucide-react"
 
+import type { AnimalStatus } from "../data/animals"
+
 interface StatusOption {
-  value: "available" | "adopted"
+  value: AnimalStatus
+
   label: string
+
   icon?: ReactNode
 }
 
 interface StatusDropdownProps {
-  value: "available" | "adopted"
+  value: AnimalStatus
+
   options: StatusOption[]
-  onChange: (value: "available" | "adopted") => void
+
+  onChange: (value: AnimalStatus) => void
+
   disabled?: boolean
+
   buttonClassName?: string
 }
 
 const MENU_GAP = 4
+
 /** Margem mínima entre o menu e as bordas da viewport. */
+
 const VIEWPORT_MARGIN = 8
 
 export function StatusDropdown({
   value,
+
   options,
+
   onChange,
+
   disabled = false,
+
   buttonClassName,
 }: StatusDropdownProps) {
   const [isOpen, setIsOpen] = useState(false)
+
   const [position, setPosition] = useState({
     top: 0,
+
     left: 0,
+
     width: 0,
+
     openUpward: false,
   })
+
   const buttonRef = useRef<HTMLButtonElement>(null)
+
   const menuRef = useRef<HTMLUListElement>(null)
+
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
@@ -47,7 +68,9 @@ export function StatusDropdown({
   }, [])
 
   // Mede o menu já renderizado e posiciona antes da primeira pintura,
+
   // evitando abrir para cima com uma altura estimada incorreta.
+
   useLayoutEffect(() => {
     if (!isOpen) return
 
@@ -57,15 +80,21 @@ export function StatusDropdown({
       if (!button) return
 
       const rect = button.getBoundingClientRect()
+
       const viewportHeight = window.innerHeight
+
       const viewportWidth = window.innerWidth
+
       const menuHeight = menuRef.current?.offsetHeight ?? 0
+
       const spaceBelow = viewportHeight - rect.bottom
+
       const openUpward =
         spaceBelow < menuHeight + MENU_GAP && rect.top > menuHeight + MENU_GAP
 
       const left = Math.max(
         VIEWPORT_MARGIN,
+
         Math.min(rect.left, viewportWidth - rect.width - VIEWPORT_MARGIN),
       )
 
@@ -73,8 +102,11 @@ export function StatusDropdown({
         top: openUpward
           ? Math.max(VIEWPORT_MARGIN, rect.top - menuHeight - MENU_GAP)
           : rect.bottom + MENU_GAP,
+
         left,
+
         width: rect.width,
+
         openUpward,
       })
     }
@@ -82,10 +114,12 @@ export function StatusDropdown({
     updatePosition()
 
     window.addEventListener("resize", updatePosition)
+
     window.addEventListener("scroll", updatePosition, true)
 
     return () => {
       window.removeEventListener("resize", updatePosition)
+
       window.removeEventListener("scroll", updatePosition, true)
     }
   }, [isOpen])
@@ -100,21 +134,25 @@ export function StatusDropdown({
       ) {
         return
       }
+
       setIsOpen(false)
     }
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         setIsOpen(false)
+
         buttonRef.current?.focus()
       }
     }
 
     document.addEventListener("mousedown", handleClickOutside)
+
     window.addEventListener("keydown", handleKeyDown)
 
     return () => {
       document.removeEventListener("mousedown", handleClickOutside)
+
       window.removeEventListener("keydown", handleKeyDown)
     }
   }, [isOpen])
@@ -125,17 +163,23 @@ export function StatusDropdown({
     }
   }
 
-  const handleSelect = (optionValue: "available" | "adopted") => {
+  const handleSelect = (optionValue: AnimalStatus) => {
     onChange(optionValue)
+
     setIsOpen(false)
+
     buttonRef.current?.focus()
   }
 
   const menuStyle: React.CSSProperties = {
     position: "fixed",
+
     top: position.top,
+
     left: position.left,
+
     width: position.width,
+
     zIndex: 100,
   }
 
@@ -172,6 +216,7 @@ export function StatusDropdown({
           >
             {options.map((option) => {
               const isSelected = option.value === value
+
               return (
                 <li
                   key={option.value}
@@ -193,6 +238,7 @@ export function StatusDropdown({
               )
             })}
           </ul>,
+
           document.body,
         )}
     </>

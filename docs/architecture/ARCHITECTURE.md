@@ -12,6 +12,17 @@ de produção prevista é Vercel (frontend e proxy `/api`) → Render (API, uma 
 no Aiven; consulte o Blueprint `render.yaml`, o ADR-007 e as instruções do backend. Consulte as
 especificações para capacidades ainda parciais.
 
+> **Integração Supabase no frontend (2026-11-18):** além do caminho Java/MySQL descrito
+> acima, o worktree contém serviços que acessam o Supabase diretamente
+> (`src/app/lib/supabase.ts`, `src/app/services/supabase-*.ts`) para autenticação
+> administrativa, catálogo e fotos no Storage. O ciclo de vida da adoção e a retenção de
+> fotos usam esse caminho; consulte `specs/features/adoption-lifecycle.md` e o `ADR-009`.
+> A remoção das fotos após 30 dias é automática no servidor: Supabase Cron (pg_cron +
+> pg_net) chama a Edge Function protegida `cleanup-adopted-photos`
+> (`supabase/functions/`), que usa a API do Storage. O navegador não executa limpeza nem
+> recebe credenciais de exclusão. A existência do código não comprova migrações aplicadas,
+> bucket configurado, agendamento criado ou deploy ativo.
+
 Estrutura observada:
 
 - `src/main.tsx`: entrada do navegador.

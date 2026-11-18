@@ -1,6 +1,6 @@
 import { Link } from "react-router"
 
-import { CalendarDays, Heart, Lock, MapPin, PawPrint } from "lucide-react"
+import { CalendarDays, Heart, MapPin, PawPrint } from "lucide-react"
 
 import { motion } from "motion/react"
 
@@ -161,20 +161,13 @@ export function Home() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.7, duration: 0.5 }}
-              className="relative z-10 pointer-events-auto flex w-full flex-col items-center justify-center gap-3 sm:w-auto sm:flex-row sm:gap-4"
+              className="relative z-10 pointer-events-auto flex w-full justify-center"
             >
               <Link
                 to={home.primaryButtonDestination}
                 className="inline-flex min-h-11 w-full items-center justify-center rounded-full bg-[#E4B04A] px-8 py-4 font-semibold text-white shadow-lg transition-all hover:scale-105 hover:bg-[#d4a03a] hover:shadow-xl sm:w-auto"
               >
                 {home.primaryButtonText}
-              </Link>
-              <Link
-                to="/admin"
-                className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full border border-white/30 bg-white/10 px-6 py-3 font-semibold text-white backdrop-blur-sm transition-all hover:bg-white/20 sm:w-auto"
-              >
-                <Lock size={18} />
-                Área Administrativa
               </Link>
             </motion.div>
           </motion.div>

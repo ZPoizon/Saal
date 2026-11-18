@@ -43,7 +43,15 @@ function parseAnimal(value: unknown): Animal | null {
       record.size !== "médio" &&
       record.size !== "grande") ||
     (record.sex !== "macho" && record.sex !== "fêmea") ||
-    (record.status !== "available" && record.status !== "adopted") ||
+    (record.status !== "available" &&
+      record.status !== "treatment" &&
+      record.status !== "adopted") ||
+    (record.adoptedAt !== undefined &&
+      record.adoptedAt !== null &&
+      typeof record.adoptedAt !== "string") ||
+    (record.archivedAt !== undefined &&
+      record.archivedAt !== null &&
+      typeof record.archivedAt !== "string") ||
     typeof record.description !== "string" ||
     !Array.isArray(record.personality) ||
     !record.personality.every((item) => typeof item === "string") ||
@@ -76,6 +84,11 @@ function parseAnimal(value: unknown): Animal | null {
     medicalInfo: record.medicalInfo,
 
     images: record.images,
+
+    adoptedAt: typeof record.adoptedAt === "string" ? record.adoptedAt : null,
+
+    archivedAt:
+      typeof record.archivedAt === "string" ? record.archivedAt : null,
   }
 }
 
@@ -118,8 +131,11 @@ function parseInterest(value: unknown): AdminAnimalInterest | null {
 
 function readList<T>(
   storage: Storage,
+
   key: string,
+
   parse: (value: unknown) => T | null,
+
   seed: T[],
 ): T[] {
   let raw: string | null = null
@@ -140,7 +156,9 @@ function readList<T>(
     return parsed.map(parse).filter((item): item is T => item !== null)
   } catch {
     // Dados corrompidos são substituídos pelos dados de exemplo; o protótipo
+
     // não deve ficar inutilizável por causa de um registro inválido.
+
     return seed
   }
 }

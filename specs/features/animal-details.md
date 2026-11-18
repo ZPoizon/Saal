@@ -21,11 +21,13 @@ O identificador existe no conjunto de dados acessível.
 
 - Exibir galeria de 1–3 fotos e estado. Informação médica não deve ser retornada nem exibida
   publicamente até definição dos campos autorizados (ONG-05/ONG-10).
-- Exibir ação de manifestação de interesse apenas para estado `AVAILABLE`.
-- Para `ADOPTED`, identificar o animal como adotado e não oferecer a ação. A visibilidade
-  pública de adotados depende de ONG-02.
-- O estado `TREATMENT` do protótipo não foi aprovado e não deve ser implementado.
-- Para identificador inexistente, informar que o animal não foi encontrado.
+- Exibir ação de manifestação de interesse apenas para estado `available`.
+- Para `adopted`, identificar o animal como adotado e não oferecer a ação. A visibilidade
+  pública depende da data real: após 30 dias o detalhe deixa de ser público; legados sem data
+  permanecem visíveis (ADR-009).
+- O estado `treatment` foi aprovado para o catálogo e exibe o animal, mas não oferece ação de
+  manifestação (`ADLC-001`/ADR-009).
+- Para identificador inexistente ou adoção expirada, informar que o animal não foi encontrado.
 
 ## 6. Fluxo principal
 

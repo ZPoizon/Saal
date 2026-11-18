@@ -1,4 +1,8 @@
-import type { Animal, AnimalInput } from "../data/animals"
+import {
+  isAnimalPubliclyVisible,
+  type Animal,
+  type AnimalInput,
+} from "../data/animals"
 
 import {
   browserStorage,
@@ -20,12 +24,15 @@ import { kindFromStatus, type FailureKind } from "./supabase-errors"
 
 export interface AnimalApiErrorOptions {
   /** Código PostgREST original, quando a falha veio do Supabase. */
+
   code?: string
 
   /** Tipo de falha já classificado; inferido do status quando omitido. */
+
   kind?: FailureKind
 
   /** Mensagem técnica original, para diagnóstico seguro. */
+
   message?: string
 }
 
@@ -36,6 +43,7 @@ export class AnimalApiError extends Error {
 
   constructor(
     readonly status: number,
+
     options: AnimalApiErrorOptions = {},
   ) {
     super(options.message ?? `A API de animais respondeu com HTTP ${status}.`)
@@ -48,7 +56,13 @@ export class AnimalApiError extends Error {
   }
 }
 
-function localAnimalFromInput(input: AnimalInput, id: string): Animal {
+function localAnimalFromInput(
+  input: AnimalInput,
+
+  id: string,
+
+  previous?: Animal,
+): Animal {
   return {
     id,
 
@@ -71,20 +85,30 @@ function localAnimalFromInput(input: AnimalInput, id: string): Animal {
     medicalInfo: input.medicalInfo,
 
     images: input.images,
+
+    adoptedAt:
+      input.status === "adopted" ? (previous?.adoptedAt ?? null) : null,
+
+    archivedAt:
+      input.status === "adopted" ? (previous?.archivedAt ?? null) : null,
   }
 }
 
-/** Catálogo público local: somente animais disponiveis. */
+/**
+ * Catálogo público local: inclui disponíveis, animais em tratamento e
+ * adotados cuja janela de 30 dias ainda não terminou. Adotados sem data real
+ * (legado) permanecem visíveis.
+ */
 
 export async function listPublicAnimals(
   storage: Storage = browserStorage(),
 ): Promise<Animal[]> {
   const animals = loadLocalAnimals(storage)
 
-  return animals.filter((animal) => animal.status === "available")
+  return animals.filter((animal) => isAnimalPubliclyVisible(animal))
 }
 
-/** Detalhe público local: aceita qualquer estado (inclusive adotados). */
+/** Detalhe público local: respeita a janela de visibilidade do catálogo. */
 
 export async function getPublicAnimal(
   id: string,
@@ -95,7 +119,7 @@ export async function getPublicAnimal(
 
   const animal = animals.find((candidate) => candidate.id === id)
 
-  if (!animal) {
+  if (!animal || !isAnimalPubliclyVisible(animal)) {
     throw new AnimalApiError(404)
   }
 
@@ -115,7 +139,15 @@ export async function getAdminAnimal(
 
   storage: Storage = browserStorage(),
 ): Promise<Animal> {
-  return getPublicAnimal(id, storage)
+  const animals = loadLocalAnimals(storage)
+
+  const animal = animals.find((candidate) => candidate.id === id)
+
+  if (!animal) {
+    throw new AnimalApiError(404)
+  }
+
+  return animal
 }
 
 export async function createAnimal(
@@ -123,6 +155,14 @@ export async function createAnimal(
 
   storage: Storage = browserStorage(),
 ): Promise<Animal> {
+  if (input.status === "adopted") {
+    throw new AnimalApiError(409, {
+      kind: "forbidden",
+
+      message: "Adoções devem ser registradas pelo fluxo de confirmação.",
+    })
+  }
+
   const animals = loadLocalAnimals(storage)
 
   const animal = localAnimalFromInput(
@@ -151,7 +191,29 @@ export async function updateAnimal(
     throw new AnimalApiError(404)
   }
 
-  const updated = localAnimalFromInput(input, id)
+  const current = animals[index] as Animal
+
+  // Adoção nunca é gravada por edição direta, mesmo no modo local: o fluxo de
+
+  // confirmação é a única origem válida do status "adopted".
+
+  if (input.status === "adopted" && current.status !== "adopted") {
+    throw new AnimalApiError(409, {
+      kind: "forbidden",
+
+      message: "Adoções devem ser registradas pelo fluxo de confirmação.",
+    })
+  }
+
+  if (current.status === "adopted" && input.status !== "adopted") {
+    throw new AnimalApiError(409, {
+      kind: "forbidden",
+
+      message: "Reverta a adoção com justificativa antes de alterar o status.",
+    })
+  }
+
+  const updated = localAnimalFromInput(input, id, current)
 
   const next = [...animals]
 

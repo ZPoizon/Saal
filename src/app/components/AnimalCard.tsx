@@ -4,7 +4,7 @@ import { Heart, MapPin } from "lucide-react"
 
 import { motion } from "motion/react"
 
-import { Animal } from "../data/animals"
+import { ANIMAL_STATUS_LABELS, Animal, AnimalStatus } from "../data/animals"
 
 import { AnimalPhotoFrame } from "./AnimalPhotoFrame"
 
@@ -12,18 +12,22 @@ interface AnimalCardProps {
   animal: Animal
 }
 
-export function AnimalCard({ animal }: AnimalCardProps) {
-  const statusColors = {
-    available: "bg-[#2E7D6B] text-white",
-    // Âmbar suave da identidade visual, com texto escuro para contraste (WCAG AA).
-    adopted:
-      "border border-[#E4B04A]/60 bg-white/95 text-[#6b4e12] shadow-lg backdrop-blur-sm",
-  }
+const STATUS_COLORS: Record<AnimalStatus, string> = {
+  available: "bg-[#2E7D6B] text-white",
 
-  const statusLabels = {
-    available: "Disponível",
-    adopted: "Adotado",
-  }
+  // Âmbar suave da identidade visual, com texto escuro para contraste (WCAG AA).
+
+  treatment:
+    "border border-[#6FAE9C]/60 bg-white/95 text-[#2E7D6B] shadow-lg backdrop-blur-sm",
+
+  adopted:
+    "border border-[#E4B04A]/60 bg-white/95 text-[#6b4e12] shadow-lg backdrop-blur-sm",
+}
+
+export function AnimalCard({ animal }: AnimalCardProps) {
+  const statusColors = STATUS_COLORS
+
+  const statusLabels = ANIMAL_STATUS_LABELS
 
   return (
     <motion.div
@@ -71,6 +75,10 @@ export function AnimalCard({ animal }: AnimalCardProps) {
           {animal.status === "available" ? (
             <span className="flex min-h-11 w-full items-center justify-center rounded-full bg-[#E4B04A] py-2 font-semibold text-white transition-colors hover:bg-[#d4a03a]">
               Quero Conhecer
+            </span>
+          ) : animal.status === "treatment" ? (
+            <span className="flex min-h-11 w-full items-center justify-center rounded-full bg-[#2E7D6B]/10 py-2 text-sm font-semibold text-[#2E7D6B]">
+              Em tratamento — em breve disponível
             </span>
           ) : (
             <span className="flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-[#F5EFE6] py-2 text-sm font-semibold text-[#527f74]">

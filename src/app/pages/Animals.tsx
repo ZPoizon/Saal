@@ -8,14 +8,19 @@ import { listPublicAnimals } from "../services/supabase-animals"
 
 import { AnimalCard } from "../components/AnimalCard"
 
-type SituationFilter = "all" | "available" | "adopted"
+type SituationFilter = "all" | "available" | "treatment" | "adopted"
 
 const situationOptions: Array<{
   value: SituationFilter
+
   label: string
 }> = [
   { value: "all", label: "Todos" },
+
   { value: "available", label: "Disponíveis" },
+
+  { value: "treatment", label: "Em tratamento" },
+
   { value: "adopted", label: "Adotados" },
 ]
 
@@ -54,7 +59,9 @@ export function Animals() {
   const emptyCatalogMessage =
     situationFilter === "adopted"
       ? "Nenhum animal adotado registrado ainda."
-      : "Nenhum animal disponível no momento."
+      : situationFilter === "treatment"
+        ? "Nenhum animal em tratamento no momento."
+        : "Nenhum animal disponível no momento."
 
   return (
     <div className="min-h-screen bg-[#F5EFE6] py-8 sm:py-12">

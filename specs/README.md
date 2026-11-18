@@ -42,6 +42,7 @@ Consulte-as antes de implementar e ao revisar alterações.
 | Gestão de animais | `features/animal-management.md` | Protótipo local: CRUD + exclusão no navegador (ADR-008); API/ONG-03 pendentes |
 | Autenticação admin | `features/admin-authentication.md` | Protótipo local: login simples fixado no código (admin/saal2026), sessão na aba (ADR-008) |
 | Gestão de adoções | `features/adoption-management.md` | Protótipo local, somente leitura (ADR-008) |
+| Ciclo de vida da adoção | `features/adoption-lifecycle.md` | Implementado no worktree (Supabase); migrações, deploy e agendamento da limpeza pendentes de aprovação (ADR-009) |
 | Configurações do site | `features/site-settings.md` | Parcial; persistência local no navegador, sem API compartilhada |
 | Contato geral | — | Fora do primeiro incremento (ONG-07) |
 
@@ -66,6 +67,10 @@ Consulte-as antes de implementar e ao revisar alterações.
 - Definir finalidade, consentimento/base legal, aviso, acesso, retenção e exclusão dos dados
   pessoais conforme LGPD (ONG-05).
 - Definir publicação/visibilidade de adotados e exclusão/arquivamento de animais (ONG-02/ONG-03).
+  O ciclo de vida implementado em `ADR-009` cobre a visibilidade por data, a reversão e o
+  arquivamento após a limpeza automática no servidor, mas as migrações `003`/`004`/`005`, o
+  deploy da Edge Function e o agendamento ainda dependem de aprovação; ver
+  `features/adoption-lifecycle.md`.
 - Definir formatos adicionais, limites definitivos, storage externo, EXIF e moderação das 1–3
   imagens (ONG-06). Até a decisão, o ADR-007 registra a solução técnica provisória: normalização
   no navegador e binário no MySQL.

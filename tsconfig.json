@@ -29,6 +29,7 @@
   },
   "include": [
     "src",
+    "supabase/functions/_shared",
     "vite.config.ts",
     "vite.figma.config.ts"
   ]

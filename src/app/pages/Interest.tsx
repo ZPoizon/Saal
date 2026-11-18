@@ -130,6 +130,29 @@ export function Interest() {
     )
   }
 
+  if (animal.status === "treatment") {
+    return (
+      <div className="flex min-h-[60dvh] items-center justify-center bg-[#F5EFE6] px-4 py-12">
+        <div className="max-w-xl rounded-2xl bg-white p-8 text-center shadow-lg">
+          <Heart className="mx-auto mb-4 h-12 w-12 text-[#2E7D6B]" />
+          <h1 className="mb-3 text-2xl font-bold text-[#2E7D6B]">
+            {animal.name} está em tratamento
+          </h1>
+          <p className="mb-6 text-gray-600">
+            Este animal ainda não recebe manifestações de interesse. Conheça
+            outros animais disponíveis e volte em breve.
+          </p>
+          <Link
+            to="/animais"
+            className="inline-flex min-h-12 items-center justify-center rounded-full bg-[#2E7D6B] px-6 font-semibold text-white hover:bg-[#6FAE9C]"
+          >
+            Ver animais
+          </Link>
+        </div>
+      </div>
+    )
+  }
+
   if (!settings.adoption.acceptingInterests) {
     return (
       <div className="flex min-h-[60dvh] items-center justify-center bg-[#F5EFE6] px-4 py-12">

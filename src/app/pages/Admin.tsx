@@ -4,9 +4,12 @@ import {
   AlertCircle,
   ArrowLeft,
   AtSign,
+  ChevronDown,
   Eye,
   EyeOff,
   Heart,
+  History,
+  LogOut,
   Mail,
   MessageCircle,
   PawPrint,
@@ -15,7 +18,6 @@ import {
   Settings,
   Edit,
   Trash2,
-  X,
 } from "lucide-react"
 
 import { Link } from "react-router"
@@ -40,7 +42,13 @@ import {
   type FailureKind,
 } from "../services/supabase-errors"
 
-import { Animal, AnimalInput, AnimalStatus } from "../data/animals"
+import {
+  Animal,
+  AnimalInput,
+  AnimalStatus,
+  canConfirmAdoption,
+  type AdoptionRecord,
+} from "../data/animals"
 
 import {
   AnimalApiError,
@@ -68,6 +76,16 @@ import { AnimalForm } from "../components/admin/AnimalForm"
 
 import { SiteSettingsPanel } from "../components/admin/SiteSettingsPanel"
 
+import { AdoptionConfirmModal } from "../components/admin/AdoptionConfirmModal"
+
+import { AdoptionHistoryPanel } from "../components/admin/AdoptionHistoryPanel"
+
+import { AdoptionReversalModal } from "../components/admin/AdoptionReversalModal"
+
+import { LegacyAdoptionModal } from "../components/admin/LegacyAdoptionModal"
+
+import { AdoptionApiError, listAdoptions } from "../services/supabase-adoptions"
+
 import { buildInterestContactLinks } from "../utils/contact-links"
 
 function isNetworkFailure(error: unknown): boolean {
@@ -75,6 +93,7 @@ function isNetworkFailure(error: unknown): boolean {
 }
 
 /** Código PostgREST do erro, quando disponível, para diagnóstico seguro. */
+
 function resourceErrorDetail(error: unknown): string | null {
   if (error instanceof AnimalApiError || error instanceof InterestApiError) {
     return error.code ?? null
@@ -83,11 +102,7 @@ function resourceErrorDetail(error: unknown): string | null {
   return null
 }
 
-function adminResourceErrorMessage(
-  error: unknown,
-
-  resource: "animais" | "interessados",
-): string {
+function adminResourceErrorMessage(error: unknown, resource: string): string {
   if (isNetworkFailure(error)) {
     return resourceFailureMessage("network", resource)
   }
@@ -100,27 +115,44 @@ function adminResourceErrorMessage(
 }
 
 /** Rótulo legível da espécie, usado na tabela e nos cards. */
+
 function speciesLabel(species: "dog" | "cat"): string {
   return species === "dog" ? "Canino" : "Felino"
 }
 
 /** Opções do dropdown de status, com ícone discreto no estado adotado. */
+
 const animalStatusOptions = [
   { value: "available" as const, label: "Disponível" },
+
+  { value: "treatment" as const, label: "Em tratamento" },
+
   {
     value: "adopted" as const,
+
     label: "Adotado",
+
     icon: <Heart size={14} className="fill-current" aria-hidden="true" />,
   },
 ]
 
+const STATUS_TONES: Record<AnimalStatus, string> = {
+  available:
+    "border-[#2E7D6B]/30 bg-[#2E7D6B]/10 text-[#2E7D6B] hover:bg-[#2E7D6B]/20",
+
+  treatment:
+    "border-[#6FAE9C]/40 bg-[#6FAE9C]/10 text-[#416f65] hover:bg-[#6FAE9C]/20",
+
+  adopted:
+    "border-[#E4B04A]/40 bg-[#E4B04A]/10 text-[#6b4e12] hover:bg-[#E4B04A]/20",
+}
+
 /** Visual do badge/dropdown de status, coerente com a identidade visual. */
+
 function statusButtonClass(status: AnimalStatus, busy: boolean): string {
-  return `flex w-full items-center justify-between gap-2 rounded-full border px-4 py-2.5 text-xs font-semibold transition-all duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E4B04A] sm:text-sm ${
-    status === "available"
-      ? "border-[#2E7D6B]/30 bg-[#2E7D6B]/10 text-[#2E7D6B] hover:bg-[#2E7D6B]/20"
-      : "border-[#E4B04A]/40 bg-[#E4B04A]/10 text-[#6b4e12] hover:bg-[#E4B04A]/20"
-  } ${busy ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`
+  return `flex w-full items-center justify-between gap-2 rounded-full border px-4 py-2.5 text-xs font-semibold transition-all duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E4B04A] sm:text-sm ${STATUS_TONES[status]} ${
+    busy ? "cursor-not-allowed opacity-60" : "cursor-pointer"
+  }`
 }
 
 export function Admin() {
@@ -166,22 +198,40 @@ export function Admin() {
   const [openContactId, setOpenContactId] = useState<string | null>(null)
 
   const [activeTab, setActiveTab] =
-    useState<"animals" | "interests" | "settings">("animals")
+    useState<"animals" | "interests" | "history" | "settings">("animals")
 
   const [updatingStatus, setUpdatingStatus] = useState<{
     id: string
+
     status: AnimalStatus
   } | null>(null)
 
-  const [confirmingAdoption, setConfirmingAdoption] = useState<{
-    interestId: string
+  const [adoptions, setAdoptions] = useState<AdoptionRecord[]>([])
+
+  const [adoptionsStatus, setAdoptionsStatus] =
+    useState<"loading" | "success" | "error">("loading")
+
+  const [adoptionsMessage, setAdoptionsMessage] = useState<string | null>(null)
+
+  /** Animal selecionado para confirmação de adoção (com manifestação opcional). */
+
+  const [confirmingAnimal, setConfirmingAnimal] = useState<{
     animalId: string
-    animalName: string
+
+    initialInterestId: string | null
   } | null>(null)
+
+  const [reversingAdoption, setReversingAdoption] =
+    useState<AdoptionRecord | null>(null)
+
+  const [regularizingAnimal, setRegularizingAnimal] = useState<Animal | null>(
+    null,
+  )
 
   const confirm = useConfirm()
 
   /** Estado mais recente para listeners registrados uma única vez. */
+
   const adminStateRef = useRef({ activeTab, siteSettingsDirty })
 
   useEffect(() => {
@@ -302,6 +352,35 @@ export function Admin() {
     }
   }, [])
 
+  const loadAdoptions = useCallback(async () => {
+    setAdoptionsStatus("loading")
+
+    setAdoptionsMessage(null)
+
+    try {
+      setAdoptions(await listAdoptions())
+
+      setAdoptionsStatus("success")
+    } catch (error) {
+      if (
+        error instanceof AdoptionApiError &&
+        (error.status === 401 || error.status === 403)
+      ) {
+        setAuthStatus("anonymous")
+
+        setAuthMessage("Sessão expirada. Entre novamente.")
+
+        return
+      }
+
+      setAdoptionsStatus("error")
+
+      setAdoptionsMessage(
+        adminResourceErrorMessage(error, "histórico de adoções"),
+      )
+    }
+  }, [])
+
   useEffect(() => {
     if (authStatus !== "authenticated") return
 
@@ -313,6 +392,12 @@ export function Admin() {
 
     void loadInterests()
   }, [authStatus, loadInterests])
+
+  useEffect(() => {
+    if (authStatus !== "authenticated") return
+
+    void loadAdoptions()
+  }, [authStatus, loadAdoptions])
 
   useEffect(() => {
     void checkSession("initial")
@@ -340,16 +425,15 @@ export function Admin() {
 
   useEffect(() => {
     const hash = window.location.hash.replace("#", "")
+
     if (
       hash === "" ||
       hash === "animals" ||
       hash === "interests" ||
+      hash === "history" ||
       hash === "settings"
     ) {
-      setActiveTab(
-        (hash as "animals" | "interests" | "settings" ||
-          "animals") as "animals" | "interests" | "settings",
-      )
+      setActiveTab(hash === "" ? "animals" : hash)
     }
   }, [])
 
@@ -364,7 +448,13 @@ export function Admin() {
 
     const handleHashChange = () => {
       const hash = window.location.hash.replace("#", "")
-      if (hash === "animals" || hash === "interests" || hash === "settings") {
+
+      if (
+        hash === "animals" ||
+        hash === "interests" ||
+        hash === "history" ||
+        hash === "settings"
+      ) {
         const { activeTab: currentTab, siteSettingsDirty: dirty } =
           adminStateRef.current
 
@@ -372,7 +462,9 @@ export function Admin() {
 
         if (currentTab === "settings" && dirty) {
           // Confirmação pendente: volta imediatamente para a seção atual
+
           // para não sair da tela sem decisão do usuário.
+
           if (confirming) {
             window.location.hash = currentTab
 
@@ -383,12 +475,17 @@ export function Admin() {
 
           void confirm({
             title: "Descartar alterações?",
+
             description:
               "Você possui alterações que ainda não foram salvas. Deseja sair sem salvar?",
+
             confirmLabel: "Descartar alterações",
+
             cancelLabel: "Continuar editando",
+
             variant: "warning",
           })
+
             .then((discard) => {
               if (discard) {
                 setSiteSettingsDirty(false)
@@ -398,6 +495,7 @@ export function Admin() {
                 window.location.hash = currentTab
               }
             })
+
             .finally(() => {
               confirming = false
             })
@@ -405,10 +503,12 @@ export function Admin() {
           return
         }
 
-        setActiveTab(hash as "animals" | "interests" | "settings")
+        setActiveTab(hash as "animals" | "interests" | "history" | "settings")
       }
     }
+
     window.addEventListener("hashchange", handleHashChange)
+
     return () => {
       window.removeEventListener("hashchange", handleHashChange)
     }
@@ -461,10 +561,14 @@ export function Admin() {
     if (dirty) {
       const discard = await confirm({
         title: "Descartar alterações?",
+
         description:
           "Você possui alterações que ainda não foram salvas. Deseja sair sem salvar?",
+
         confirmLabel: "Descartar alterações",
+
         cancelLabel: "Continuar editando",
+
         variant: "warning",
       })
 
@@ -493,7 +597,7 @@ export function Admin() {
   }
 
   const requestTabChange = async (
-    nextTab: "animals" | "interests" | "settings",
+    nextTab: "animals" | "interests" | "history" | "settings",
   ): Promise<boolean> => {
     const { activeTab: currentTab, siteSettingsDirty: dirty } =
       adminStateRef.current
@@ -501,10 +605,14 @@ export function Admin() {
     if (currentTab === "settings" && dirty && nextTab !== "settings") {
       const discard = await confirm({
         title: "Descartar alterações?",
+
         description:
           "Você possui alterações que ainda não foram salvas. Deseja sair sem salvar?",
+
         confirmLabel: "Descartar alterações",
+
         cancelLabel: "Continuar editando",
+
         variant: "warning",
       })
 
@@ -531,11 +639,17 @@ export function Admin() {
   const handleDeleteAnimal = (animal: Animal) => {
     void confirm({
       title: "Excluir animal?",
+
       description: `Você tem certeza de que deseja excluir o cadastro de ${animal.name}? A ficha e as fotografias ficarão indisponíveis no catálogo. Esta ação não pode ser desfeita.`,
+
       confirmLabel: "Sim, excluir",
+
       cancelLabel: "Cancelar",
+
       variant: "destructive",
+
       failureMessage: "Não foi possível excluir o animal. Tente novamente.",
+
       onConfirm: async () => {
         try {
           await deleteAnimal(animal.id)
@@ -553,6 +667,7 @@ export function Admin() {
           toast.success("Animal excluído.")
         } catch (error) {
           // A lista permanece intacta: nenhuma perda de dados na falha.
+
           if (
             error instanceof AnimalApiError &&
             (error.status === 401 || error.status === 403)
@@ -613,12 +728,44 @@ export function Admin() {
 
   const handleChangeStatus = async (
     animal: Animal,
+
     newStatus: AnimalStatus,
   ) => {
     if (animal.status === newStatus) return
 
     // Uma alteração por vez: evita atualizações duplicadas em paralelo.
+
     if (updatingStatus) return
+
+    // Adoção nunca é gravada por edição direta: sempre passa pelo modal.
+
+    if (newStatus === "adopted") {
+      setConfirmingAnimal({ animalId: animal.id, initialInterestId: null })
+
+      return
+    }
+
+    // Sair de "adotado" exige reversão registrada, nunca uma troca silenciosa.
+
+    if (animal.status === "adopted") {
+      const activeAdoption =
+        adoptions.find(
+          (record) =>
+            record.animalId === animal.id && record.reversedAt === null,
+        ) ?? null
+
+      if (!activeAdoption) {
+        toast.error(
+          "Regularize a data real desta adoção no histórico antes de alterar o status.",
+        )
+
+        return
+      }
+
+      setReversingAdoption(activeAdoption)
+
+      return
+    }
 
     setUpdatingStatus({ id: animal.id, status: newStatus })
 
@@ -628,7 +775,9 @@ export function Admin() {
 
     try {
       // Operação dedicada: grava somente o status. A interface só muda o
+
       // badge depois que o Supabase confirma a atualização.
+
       const updated = await updateAnimalStatus(animal.id, newStatus)
 
       setAnimals((current) =>
@@ -642,73 +791,79 @@ export function Admin() {
       toast.success("Status atualizado.")
     } catch (error) {
       // Sem alteração otimista: o status anterior permanece na tabela.
+
       if (
         error instanceof AnimalApiError &&
         (error.status === 401 || error.status === 403)
       ) {
         setAuthStatus("anonymous")
+
         setAuthMessage("Sessão expirada. Entre novamente.")
+
         return
       }
 
       // Falha de ação: toast em vez do alerta da listagem (evita duplicar
+
       // avisos; o alerta inline fica para falhas de carregamento).
+
       toast.error(adminResourceErrorMessage(error, "animais"))
     } finally {
       setUpdatingStatus(null)
     }
   }
 
-  const handleConfirmAdoption = async () => {
-    if (!confirmingAdoption) return
+  const handleAdoptionConfirmed = async (adoption: AdoptionRecord) => {
+    setConfirmingAnimal(null)
 
-    const animal = animals.find((a) => a.id === confirmingAdoption.animalId)
+    await Promise.all([loadAnimals(), loadAdoptions()])
 
-    if (!animal) {
-      setConfirmingAdoption(null)
+    toast.success(`Adoção de ${adoption.animalName} confirmada.`)
+  }
 
-      setUpdatingStatus(null)
+  const handleAdoptionReversed = async (adoption: AdoptionRecord) => {
+    setReversingAdoption(null)
 
-      return
-    }
+    setAdoptions((current) =>
+      current.map((record) => (record.id === adoption.id ? adoption : record)),
+    )
 
-    if (animal.status === "adopted") {
-      setConfirmingAdoption(null)
+    await Promise.all([loadAnimals(), loadAdoptions()])
 
-      return
-    }
+    toast.success("Adoção revertida e mantida no histórico.")
+  }
 
-    setUpdatingStatus({ id: animal.id, status: "adopted" })
+  const handleAdoptionRegularized = async (adoption: AdoptionRecord) => {
+    setRegularizingAnimal(null)
 
-    try {
-      const updated = await updateAnimalStatus(animal.id, "adopted")
+    await Promise.all([loadAnimals(), loadAdoptions()])
 
-      setAnimals((current) =>
-        current.map((item) => (item.id === updated.id ? updated : item)),
+    toast.success(
+      `Data real da adoção de ${adoption.animalName} registrada no histórico.`,
+    )
+  }
+
+  const requestAdoptionReversal = (adoption: AdoptionRecord) => {
+    if (adoption.animalId === null) {
+      toast.error(
+        "O animal desta adoção foi excluído; não há status para reverter.",
       )
 
-      setAnimalsStatus("success")
-
-      setAnimalsMessage(null)
-
-      toast.success("Status atualizado.")
-    } catch (error) {
-      if (
-        error instanceof AnimalApiError &&
-        (error.status === 401 || error.status === 403)
-      ) {
-        setAuthStatus("anonymous")
-        setAuthMessage("Sessão expirada. Entre novamente.")
-        return
-      }
-
-      toast.error(adminResourceErrorMessage(error, "animais"))
-    } finally {
-      setConfirmingAdoption(null)
-
-      setUpdatingStatus(null)
+      return
     }
+
+    setReversingAdoption(adoption)
   }
+
+  const confirmingAdoptionAnimal = confirmingAnimal
+    ? (animals.find((animal) => animal.id === confirmingAnimal.animalId) ??
+      null)
+    : null
+
+  const reversingAdoptionAnimal = reversingAdoption?.animalId
+    ? (animals.find((animal) => animal.id === reversingAdoption.animalId) ??
+      null)
+    : null
 
   if (authStatus !== "authenticated") {
     return (
@@ -793,6 +948,7 @@ export function Admin() {
                     onChange={(e) =>
                       setCredentials({
                         ...credentials,
+
                         password: e.target.value,
                       })
                     }
@@ -831,18 +987,23 @@ export function Admin() {
     <div className="min-h-screen bg-[#F5EFE6] py-6 sm:py-8">
       <div className="container mx-auto px-4">
         {/* Header */}
-        <div className="mb-6 flex flex-col gap-4 sm:mb-8 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mb-5 flex flex-col gap-3 sm:mb-7 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
           <div className="min-w-0">
-            <h1 className="mb-2 text-2xl font-bold text-[#2E7D6B] sm:text-3xl">
+            <h1 className="text-2xl font-bold leading-tight text-[#2E7D6B] sm:text-3xl">
               Painel Administrativo
             </h1>
-            <p className="text-[#6FAE9C]">Gerencie os animais e interessados</p>
+            <p className="mt-1 text-sm text-[#6FAE9C] sm:text-base">
+              Gerencie os animais e interessados
+            </p>
           </div>
           <button
+            type="button"
             onClick={handleLogout}
             disabled={isSubmitting}
-            className="inline-flex min-h-11 items-center justify-center rounded-lg bg-red-500 px-4 py-2 text-white transition-colors hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto max-w-xs sm:max-w-none"
+            aria-label="Sair do painel administrativo"
+            className="inline-flex w-auto min-h-11 shrink-0 items-center justify-center gap-1.5 self-end whitespace-nowrap rounded-lg border border-red-200/70 bg-white px-3.5 py-2 text-sm font-medium text-red-700 shadow-sm transition-colors hover:bg-red-50 hover:text-red-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-400/70 disabled:cursor-not-allowed disabled:opacity-60 sm:self-start"
           >
+            <LogOut size={18} aria-hidden="true" />
             {isSubmitting ? "Aguarde…" : "Sair"}
           </button>
         </div>
@@ -874,7 +1035,7 @@ export function Admin() {
 
         <nav
           aria-label="Navegação administrativa"
-          className="mb-8 flex flex-wrap justify-center items-center gap-1 rounded-2xl bg-white p-2 sm:p-3 shadow-md"
+          className="mb-6 flex flex-wrap items-center justify-center gap-1 rounded-2xl bg-white p-2 shadow-md sm:mb-8 sm:p-3"
         >
           <button
             type="button"
@@ -910,6 +1071,23 @@ export function Admin() {
           </button>
           <button
             type="button"
+            aria-pressed={activeTab === "history"}
+            onClick={() => {
+              void requestTabChange("history").then((allowed) => {
+                if (allowed) setActiveTab("history")
+              })
+            }}
+            className={`inline-flex min-h-11 items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#E4B04A] sm:px-4 sm:py-2 sm:text-sm ${
+              activeTab === "history"
+                ? "bg-[#2E7D6B] text-white"
+                : "text-[#2E7D6B] hover:bg-[#F5EFE6]"
+            }`}
+          >
+            <History size={14} />
+            Histórico
+          </button>
+          <button
+            type="button"
             aria-pressed={activeTab === "settings"}
             onClick={() => {
               void requestTabChange("settings").then((allowed) => {
@@ -938,7 +1116,7 @@ export function Admin() {
             {activeTab === "animals" && (
               <>
                 {/* Stats */}
-                <div className="mb-6 grid grid-cols-2 gap-3 sm:mb-8 sm:gap-4 lg:grid-cols-4">
+                <div className="mb-6 grid grid-cols-2 gap-3 sm:mb-8 sm:gap-4 lg:grid-cols-5">
                   <div className="rounded-xl bg-white p-4 shadow-md sm:p-6">
                     <div className="mb-2 flex items-center justify-between gap-2">
                       <span className="text-sm text-[#6FAE9C] sm:text-base">
@@ -960,6 +1138,18 @@ export function Admin() {
                     </div>
                     <p className="text-2xl font-bold text-[#2E7D6B] sm:text-3xl">
                       {animals.filter((a) => a.status === "available").length}
+                    </p>
+                  </div>
+
+                  <div className="rounded-xl bg-white p-4 shadow-md sm:p-6">
+                    <div className="mb-2 flex items-center justify-between gap-2">
+                      <span className="text-sm text-[#6FAE9C] sm:text-base">
+                        Em tratamento
+                      </span>
+                      <PawPrint className="shrink-0 text-[#6FAE9C]" size={20} />
+                    </div>
+                    <p className="text-2xl font-bold text-[#2E7D6B] sm:text-3xl">
+                      {animals.filter((a) => a.status === "treatment").length}
                     </p>
                   </div>
 
@@ -1139,6 +1329,7 @@ export function Admin() {
                                   disabled={updatingStatus?.id === animal.id}
                                   buttonClassName={statusButtonClass(
                                     animal.status,
+
                                     updatingStatus?.id === animal.id,
                                   )}
                                 />
@@ -1216,6 +1407,7 @@ export function Admin() {
                                 disabled={updatingStatus?.id === animal.id}
                                 buttonClassName={statusButtonClass(
                                   animal.status,
+
                                   updatingStatus?.id === animal.id,
                                 )}
                               />
@@ -1243,7 +1435,9 @@ export function Admin() {
                       </h2>
                       <span className="rounded-full bg-[#E4B04A] px-3 py-1 text-xs font-semibold text-white sm:text-sm">
                         {interestsStatus === "success"
-                          ? `${interests.length} registros`
+                          ? `${interests.length} ${
+                              interests.length === 1 ? "registro" : "registros"
+                            }`
                           : interestsStatus === "loading"
                             ? "Carregando…"
                             : "Indisponível"}
@@ -1289,25 +1483,25 @@ export function Admin() {
                           })
 
                           return (
-                            <div
+                            <article
                               key={interest.id}
-                              className="rounded-xl border border-[#E4B04A]/60 bg-[#E4B04A]/5 p-4"
+                              className="overflow-hidden rounded-xl border border-[#2E7D6B]/15 bg-white shadow-sm"
                             >
-                              <div className="flex flex-col gap-4 md:flex-row">
-                                <div className="flex items-center gap-3 md:w-1/3">
+                              <div className="flex flex-col gap-4 p-4 sm:p-5 md:flex-row md:items-start md:gap-6">
+                                <div className="flex min-w-0 items-center gap-3 md:w-[38%]">
                                   {animal?.images[0] && (
                                     <SafeImage
                                       src={animal.images[0]}
                                       alt={interest.animalName}
                                       params={{ w: 60, h: 60, fit: "crop" }}
-                                      className="h-16 w-16 shrink-0 rounded-lg object-cover"
+                                      className="h-14 w-14 shrink-0 rounded-xl object-cover sm:h-16 sm:w-16"
                                     />
                                   )}
-                                  <div>
-                                    <p className="font-semibold text-[#2E7D6B]">
+                                  <div className="min-w-0">
+                                    <p className="break-words font-semibold leading-snug text-[#2E7D6B]">
                                       {interest.animalName}
                                     </p>
-                                    <p className="text-xs text-[#6FAE9C]">
+                                    <p className="mt-0.5 text-xs text-[#6FAE9C]">
                                       {new Date(
                                         interest.createdAt,
                                       ).toLocaleString(
@@ -1329,24 +1523,27 @@ export function Admin() {
                                   </div>
                                 </div>
 
-                                <div className="flex-1 md:w-1/3">
-                                  <p className="font-semibold text-[#2E7D6B]">
+                                <div className="min-w-0 flex-1">
+                                  <p className="break-words font-semibold leading-snug text-[#2E7D6B]">
                                     {interest.fullName}
                                   </p>
-                                  <p className="text-sm text-[#6FAE9C]">
+                                  <p className="mt-0.5 break-words text-sm text-[#527f74]">
                                     {interest.city}
                                   </p>
-                                  <p className="text-sm text-[#6FAE9C]">
+                                  <p className="mt-0.5 break-words text-sm text-[#527f74]">
                                     {interest.email}
                                   </p>
-                                  <p className="text-sm text-[#6FAE9C]">
+                                  <p className="break-words text-sm text-[#527f74]">
                                     {interest.whatsapp}
                                   </p>
                                 </div>
+                              </div>
 
-                                <div className="flex-col gap-3 md:flex-row md:w-1/3 md:flex-none md:justify-center">
+                              <div className="border-t border-[#2E7D6B]/10 bg-[#F5EFE6]/50 px-4 py-4 sm:px-5">
+                                <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
                                   <button
                                     type="button"
+                                    id={`contact-trigger-${interest.id}`}
                                     aria-expanded={
                                       openContactId === interest.id
                                     }
@@ -1358,82 +1555,110 @@ export function Admin() {
                                           : interest.id,
                                       )
                                     }
-                                    className="flex-1 rounded-lg bg-[#2E7D6B] px-4 py-2 font-semibold text-white transition-colors hover:bg-[#6FAE9C] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E4B04A] md:flex-none"
-                                  >
-                                    Entrar em contato
-                                  </button>
-                                  <div
-                                    id={`contact-actions-${interest.id}`}
-                                    className={
+                                    className={`inline-flex min-h-11 w-full items-center justify-between gap-2 rounded-lg border px-4 py-2 text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E4B04A] sm:w-auto ${
                                       openContactId === interest.id
-                                        ? "flex flex-col gap-2 sm:flex-row sm:flex-wrap"
-                                        : "hidden"
-                                    }
+                                        ? "border-[#2E7D6B] bg-[#2E7D6B]/5 text-[#2E7D6B]"
+                                        : "border-[#2E7D6B]/30 bg-white text-[#2E7D6B] hover:bg-[#2E7D6B]/5"
+                                    }`}
                                   >
+                                    <span className="inline-flex min-w-0 items-center gap-2">
+                                      <MessageCircle
+                                        size={16}
+                                        aria-hidden="true"
+                                        className="shrink-0"
+                                      />
+                                      Entrar em contato
+                                    </span>
+                                    <ChevronDown
+                                      size={16}
+                                      aria-hidden="true"
+                                      className={`shrink-0 transition-transform ${
+                                        openContactId === interest.id
+                                          ? "rotate-180"
+                                          : ""
+                                      }`}
+                                    />
+                                  </button>
+
+                                  {animal && canConfirmAdoption(animal) && (
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        setConfirmingAnimal({
+                                          animalId: animal.id,
+
+                                          initialInterestId: interest.id,
+                                        })
+                                      }
+                                      disabled={
+                                        updatingStatus?.id === animal.id
+                                      }
+                                      className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-[#2E7D6B] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#6FAE9C] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E4B04A] disabled:cursor-not-allowed disabled:opacity-60 sm:ml-auto sm:w-auto"
+                                    >
+                                      <Heart size={16} aria-hidden="true" />
+                                      Confirmar Adoção
+                                    </button>
+                                  )}
+                                </div>
+
+                                <div
+                                  id={`contact-actions-${interest.id}`}
+                                  role="region"
+                                  aria-labelledby={`contact-trigger-${interest.id}`}
+                                  className={`mt-3 rounded-xl border border-[#2E7D6B]/10 bg-white p-3 sm:mt-4 sm:p-4 ${
+                                    openContactId === interest.id
+                                      ? ""
+                                      : "hidden"
+                                  }`}
+                                >
+                                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 sm:gap-2.5">
                                     {links.whatsapp && (
                                       <a
                                         href={links.whatsapp}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#25D366] px-3 py-2 text-sm font-semibold text-white hover:bg-[#1fae54] md:flex-none"
+                                        className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-[#25D366] px-3.5 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#1fae54] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E4B04A]"
                                       >
-                                        <MessageCircle size={16} />
+                                        <MessageCircle
+                                          size={16}
+                                          aria-hidden="true"
+                                        />
                                         WhatsApp
                                       </a>
                                     )}
                                     {links.phone && (
                                       <a
                                         href={links.phone}
-                                        className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg border border-[#2E7D6B] px-3 py-2 text-sm font-semibold text-[#2E7D6B] hover:bg-[#F5EFE6] md:flex-none"
+                                        className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-[#2E7D6B] px-3.5 py-2 text-sm font-semibold text-[#2E7D6B] transition-colors hover:bg-[#F5EFE6] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E4B04A]"
                                       >
-                                        <Phone size={16} />
+                                        <Phone size={16} aria-hidden="true" />
                                         Ligar
                                       </a>
                                     )}
                                     {links.email && (
                                       <a
                                         href={links.email}
-                                        className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg border border-[#2E7D6B] px-3 py-2 text-sm font-semibold text-[#2E7D6B] hover:bg-[#F5EFE6] md:flex-none"
+                                        className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-[#2E7D6B] px-3.5 py-2 text-sm font-semibold text-[#2E7D6B] transition-colors hover:bg-[#F5EFE6] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E4B04A]"
                                       >
-                                        <AtSign size={16} />
+                                        <AtSign size={16} aria-hidden="true" />
                                         Enviar e-mail
                                       </a>
                                     )}
                                     {!links.whatsapp &&
                                       !links.phone &&
                                       !links.email && (
-                                        <p className="text-sm text-gray-600">
+                                        <p className="w-full rounded-lg bg-[#F5EFE6] px-3 py-2 text-sm text-[#527f74] sm:col-span-3">
                                           Dados de contato indisponíveis.
                                         </p>
                                       )}
-                                    <p className="w-full text-xs text-gray-500">
-                                      Os links abrem o aplicativo escolhido;
-                                      nenhuma mensagem é enviada
-                                      automaticamente.
-                                    </p>
                                   </div>
-
-                                  {animal && animal.status === "available" && (
-                                    <button
-                                      type="button"
-                                      onClick={() =>
-                                        setConfirmingAdoption({
-                                          interestId: interest.id,
-                                          animalId: animal.id,
-                                          animalName: interest.animalName,
-                                        })
-                                      }
-                                      disabled={
-                                        updatingStatus?.id === animal.id
-                                      }
-                                      className="mt-3 flex-1 rounded-lg border border-[#2E7D6B] px-4 py-2 font-semibold text-[#2E7D6B] transition-colors hover:bg-[#2E7D6B]/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#E4B04A] md:flex-none disabled:cursor-not-allowed disabled:opacity-60"
-                                    >
-                                      Confirmar Adoção
-                                    </button>
-                                  )}
+                                  <p className="mt-3 text-xs leading-relaxed text-[#527f74]">
+                                    Os links abrem o aplicativo escolhido;
+                                    nenhuma mensagem é enviada automaticamente.
+                                  </p>
                                 </div>
                               </div>
-                            </div>
+                            </article>
                           )
                         })}
                       </div>
@@ -1441,6 +1666,17 @@ export function Admin() {
                   </div>
                 </div>
               </>
+            )}
+            {activeTab === "history" && (
+              <AdoptionHistoryPanel
+                adoptions={adoptions}
+                animals={animals}
+                status={adoptionsStatus}
+                message={adoptionsMessage}
+                onReload={() => void loadAdoptions()}
+                onReverse={requestAdoptionReversal}
+                onRegularize={setRegularizingAnimal}
+              />
             )}
           </>
         )}
@@ -1459,71 +1695,34 @@ export function Admin() {
         />
       )}
 
-      {/* Confirm Adoption Modal */}
-      {confirmingAdoption && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/50 p-3 sm:p-4"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="confirm-adoption-title"
-        >
-          <div className="my-auto flex max-w-md flex-col rounded-2xl bg-white sm:max-w-lg sm:max-h-[calc(100dvh-2rem)]">
-            <div className="flex shrink-0 items-center justify-between gap-2 border-b border-[#F5EFE6] p-4 sm:p-6">
-              <h2
-                id="confirm-adoption-title"
-                className="text-xl font-bold text-[#2E7D6B] sm:text-2xl"
-              >
-                Confirmar Adoção
-              </h2>
-              <button
-                type="button"
-                onClick={() => setConfirmingAdoption(null)}
-                aria-label="Fechar"
-                className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg transition-colors hover:bg-[#F5EFE6] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#E4B04A]"
-              >
-                <X className="text-[#6FAE9C]" />
-              </button>
-            </div>
+      {/* Confirmação de adoção */}
+      {confirmingAnimal && confirmingAdoptionAnimal && (
+        <AdoptionConfirmModal
+          animal={confirmingAdoptionAnimal}
+          interests={interests}
+          initialInterestId={confirmingAnimal.initialInterestId}
+          onClose={() => setConfirmingAnimal(null)}
+          onConfirmed={(adoption) => void handleAdoptionConfirmed(adoption)}
+        />
+      )}
 
-            <div className="p-4 sm:p-6">
-              <div className="flex items-center gap-3">
-                <div className="rounded-full bg-[#E4B04A]/10 p-3 text-[#E4B04A]">
-                  <AlertCircle size={24} />
-                </div>
-                <div>
-                  <p className="mb-1 font-semibold text-[#2E7D6B]">
-                    Confirmar adoção de "{confirmingAdoption.animalName}"?
-                  </p>
-                  <p className="text-sm text-[#6FAE9C]">
-                    O status do animal será alterado para Adotado em todo o
-                    painel. Esta ação pode ser desfeita editando o animal.
-                  </p>
-                </div>
-              </div>
-            </div>
+      {/* Reversão de adoção */}
+      {reversingAdoption && (
+        <AdoptionReversalModal
+          adoption={reversingAdoption}
+          animal={reversingAdoptionAnimal}
+          onClose={() => setReversingAdoption(null)}
+          onReversed={(adoption) => void handleAdoptionReversed(adoption)}
+        />
+      )}
 
-            <div className="flex flex-col-reverse gap-3 pt-4 pb-6 px-4 sm:flex-row sm:justify-end sm:px-6">
-              <button
-                type="button"
-                onClick={() => setConfirmingAdoption(null)}
-                disabled={updatingStatus?.id === confirmingAdoption.animalId}
-                className="min-h-11 flex-1 rounded-full bg-gray-200 py-3 font-semibold text-gray-700 transition-colors hover:bg-gray-300 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirmAdoption}
-                disabled={updatingStatus?.id === confirmingAdoption.animalId}
-                className="min-h-11 flex-1 rounded-full bg-[#E4B04A] py-3 font-semibold text-white transition-colors hover:bg-[#d4a03a] disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {updatingStatus?.id === confirmingAdoption.animalId
-                  ? "Confirmando…"
-                  : "Sim, confirmar adoção"}
-              </button>
-            </div>
-          </div>
-        </div>
+      {/* Regularização de adoção legada */}
+      {regularizingAnimal && (
+        <LegacyAdoptionModal
+          animal={regularizingAnimal}
+          onClose={() => setRegularizingAnimal(null)}
+          onRegularized={(adoption) => void handleAdoptionRegularized(adoption)}
+        />
       )}
     </div>
   )

@@ -98,3 +98,8 @@ WhatsApp, cidade, e-mail e data/hora, com links manuais para WhatsApp, telefone 
 Não há transições de status, mensagens automáticas, filtros, exportação ou histórico. A
 finalidade e retenção dos dados permanecem pendentes; a integração MySQL real deve ser
 validada antes da operação.
+
+> **Evolução separada:** a confirmação, reversão e o histórico de adoções foram implementados
+> como fluxo próprio no Supabase, descrito em [`adoption-lifecycle.md`](adoption-lifecycle.md)
+> e no `ADR-009`. Esta especificação continua valendo para a consulta de manifestações de
+> interesse, que permanece somente leitura.

@@ -86,6 +86,9 @@ export function AnimalDetail() {
   const statusColors = {
     available: "bg-[#2E7D6B] text-white",
 
+    treatment:
+      "border border-[#6FAE9C]/60 bg-white/95 text-[#2E7D6B] backdrop-blur-sm",
+
     // Âmbar suave da identidade visual, com texto escuro para contraste.
 
     adopted:
@@ -94,6 +97,8 @@ export function AnimalDetail() {
 
   const statusLabels = {
     available: "Disponível para Adoção",
+
+    treatment: "Em tratamento",
 
     adopted: "Adotado",
   }
@@ -342,6 +347,17 @@ export function AnimalDetail() {
                     Ver animais disponíveis
                   </Link>
                 </div>
+              </div>
+            )}
+            {animal.status === "treatment" && (
+              <div className="mb-6 rounded-2xl border border-[#6FAE9C]/50 bg-[#2E7D6B]/5 p-4 sm:p-5">
+                <p className="font-semibold text-[#2E7D6B]">
+                  {animal.name} está em tratamento.
+                </p>
+                <p className="mt-1 text-sm text-[#527f74]">
+                  Este animal ainda não recebe manifestações de interesse.
+                  Acompanhe o catálogo para saber quando estiver disponível.
+                </p>
               </div>
             )}
             {animal.status === "available" && (

@@ -5,6 +5,12 @@
 `V2__create_animal_interest.sql`; isso não resolve finalidade, base legal, acesso ou retenção
 dos dados pessoais.
 
+> **Nota de escopo (2026-11-18):** a aplicação deste worktree usa Supabase para autenticação,
+> banco e Storage. A feature `ADLC-001` (`specs/features/adoption-lifecycle.md`) e o `ADR-009`
+> acrescentam o estado `treatment`, o histórico de adoções e a retenção de fotos por 30 dias,
+> substituindo, para esse caminho, as afirmações abaixo sobre "exatamente dois estados" e sobre
+> o storage no MySQL. As migrações `003`/`004`/`005` ainda não foram aplicadas remotamente.
+
 ## Decisões técnicas aprovadas e implementação atual
 
 - MySQL 8 é acessado exclusivamente pela API Java/Spring Boot; o backend está no worktree.

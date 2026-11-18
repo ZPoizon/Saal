@@ -10,7 +10,13 @@ import {
   X,
 } from "lucide-react"
 
-import { Animal, AnimalInput, AnimalStatus } from "../../data/animals"
+import {
+  ANIMAL_STATUS_LABELS,
+  Animal,
+  AnimalInput,
+  AnimalStatus,
+  EDITABLE_ANIMAL_STATUSES,
+} from "../../data/animals"
 
 import { AnimalApiError } from "../../services/animals-api"
 
@@ -653,17 +659,32 @@ export function AnimalForm({ animal, onSave, onCancel }: AnimalFormProps) {
               <label htmlFor="status" className="mb-2 block text-[#2E7D6B]">
                 Status *
               </label>
-              <select
-                id="status"
-                name="status"
-                required
-                value={formData.status}
-                onChange={handleChange}
-                className="w-full rounded-lg border-none bg-[#F5EFE6] px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#E4B04A]"
-              >
-                <option value="available">Disponível</option>
-                <option value="adopted">Adotado</option>
-              </select>
+              {animal?.status === "adopted" ? (
+                <div className="rounded-lg bg-[#F5EFE6] px-4 py-3">
+                  <p className="font-semibold text-[#2E7D6B]">
+                    {ANIMAL_STATUS_LABELS.adopted}
+                  </p>
+                  <p className="mt-1 text-xs text-[#416f65]">
+                    Para alterar o status, use a reversão de adoção no
+                    histórico, informando o motivo.
+                  </p>
+                </div>
+              ) : (
+                <select
+                  id="status"
+                  name="status"
+                  required
+                  value={formData.status}
+                  onChange={handleChange}
+                  className="w-full rounded-lg border-none bg-[#F5EFE6] px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#E4B04A]"
+                >
+                  {EDITABLE_ANIMAL_STATUSES.map((status) => (
+                    <option key={status} value={status}>
+                      {ANIMAL_STATUS_LABELS[status]}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
           </div>
 

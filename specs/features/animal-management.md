@@ -31,6 +31,9 @@ No alvo, administrador autenticado e autorizado. No protótipo, login demonstrat
 - Exclusão/arquivamento de animais não adotados continua `PENDENTE DE DECISÃO` (ONG-03) no
   modo com API. No protótipo local (ADR-008), a exclusão com confirmação foi habilitada por
   decisão do responsável. Animais adotados permanecem cadastrados.
+- O formulário cria e edita apenas `available` e `treatment`. O estado `adopted` nunca é
+  escolhido diretamente: ele é gravado pela confirmação de adoção, e a saída exige reversão
+  com motivo. Ver `adoption-lifecycle.md` e `ADR-009`.
 
 ## 6. Fluxo principal
 

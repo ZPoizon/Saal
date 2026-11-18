@@ -72,12 +72,52 @@ beforeEach(() => {
 })
 
 describe("animals-api service (modo local)", () => {
-  it("semeia os dados de exemplo e lista só os disponíveis no catálogo público", async () => {
+  it("semeia os dados e mantém a adoção legada visível no catálogo público", async () => {
     const animals = await listPublicAnimals(storage)
 
     expect(animals.length).toBeGreaterThan(0)
 
-    expect(animals.every((animal) => animal.status === "available")).toBe(true)
+    expect(
+      animals.every(
+        (animal) => animal.status === "available" || animal.adoptedAt === null,
+      ),
+    ).toBe(true)
+
+    expect(animals.some((animal) => animal.status === "adopted")).toBe(true)
+  })
+
+  it("oculta do catálogo local o adotado com janela de 30 dias vencida", async () => {
+    const animals = await listAdminAnimals(storage)
+
+    const adopted = animals.find((animal) => animal.status === "adopted")
+
+    expect(adopted).toBeDefined()
+
+    storage.setItem(
+      LOCAL_ANIMALS_STORAGE_KEY,
+      JSON.stringify(
+        animals.map((animal) =>
+          animal.id === adopted?.id
+            ? { ...animal, adoptedAt: "2020-01-01T00:00:00.000Z" }
+            : animal,
+        ),
+      ),
+    )
+
+    const publicAnimals = await listPublicAnimals(storage)
+
+    expect(publicAnimals.some((animal) => animal.id === adopted?.id)).toBe(
+      false,
+    )
+
+    await expect(getPublicAnimal(adopted!.id, storage)).rejects.toEqual(
+      expect.objectContaining<Partial<AnimalApiError>>({ status: 404 }),
+    )
+
+    await expect(getAdminAnimal(adopted!.id, storage)).resolves.toMatchObject({
+      id: adopted!.id,
+      status: "adopted",
+    })
   })
 
   it("lista disponíveis e adotados na listagem administrativa", async () => {
@@ -122,7 +162,7 @@ describe("animals-api service (modo local)", () => {
     const updated = await updateAnimal(
       "1",
 
-      { ...validInput, name: "Thor Atualizado", status: "adopted" },
+      { ...validInput, name: "Thor Atualizado", status: "treatment" },
 
       storage,
     )
@@ -131,7 +171,39 @@ describe("animals-api service (modo local)", () => {
 
     const animals = await listAdminAnimals(storage)
 
-    expect(animals.find((animal) => animal.id === "1")?.status).toBe("adopted")
+    expect(animals.find((animal) => animal.id === "1")?.status).toBe(
+      "treatment",
+    )
+  })
+
+  it("rejeita adoção gravada por edição direta", async () => {
+    await expect(
+      updateAnimal("1", { ...validInput, status: "adopted" }, storage),
+    ).rejects.toEqual(expect.objectContaining({ status: 409 }))
+  })
+
+  it("rejeita retirar o status de um animal adotado sem reversão", async () => {
+    await expect(
+      updateAnimal("7", { ...validInput, status: "available" }, storage),
+    ).rejects.toEqual(expect.objectContaining({ status: 409 }))
+  })
+
+  it("permite editar os dados de um animal adotado preservando o status", async () => {
+    const updated = await updateAnimal(
+      "7",
+
+      { ...validInput, name: "Rex Atualizado", status: "adopted" },
+
+      storage,
+    )
+
+    expect(updated).toMatchObject({
+      id: "7",
+
+      name: "Rex Atualizado",
+
+      status: "adopted",
+    })
   })
 
   it("rejeita com 404 ao atualizar animal inexistente", async () => {

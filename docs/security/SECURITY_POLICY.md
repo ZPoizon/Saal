@@ -73,7 +73,9 @@ base legal e retenção dos dados pessoais permanecem pendentes.
 15. **LGPD:** coletar somente dados necessários e com finalidade clara; definir base legal,
     aviso/consentimento quando aplicável, retenção, acesso, correção, exclusão/anonimização,
     compartilhamento e resposta a incidentes antes de operar com dados reais. Não alegar
-    conformidade sem revisão jurídica e operacional.
+    conformidade sem revisão jurídica e operacional. O inventário e as pendências de retenção
+    de adoções estão em [`PII_RETENTION.md`](PII_RETENTION.md); nenhum dado pessoal deve ser
+    apagado sem decisão e aprovação registradas.
 16. **Testes de segurança:** automatizar casos críticos para autenticação, autorização por
     recurso/papel, validação de fronteira, CSRF quando aplicável, uploads, rate limits e
     ausência de vazamento em erros/logs. Testes no frontend não substituem testes de API.
